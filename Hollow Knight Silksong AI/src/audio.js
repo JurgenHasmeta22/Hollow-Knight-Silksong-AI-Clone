@@ -21,25 +21,35 @@
                 if (this.ctx.state === 'suspended') this.ctx.resume();
                 return;
             }
+
             const AC = window.AudioContext || window.webkitAudioContext;
+            
             if (!AC) return;
+
             this.ctx = new AC();
             this.master = this.ctx.createGain();
             this.master.connect(this.ctx.destination);
             this.sfxBus = this.ctx.createGain();
+            
             const comp = this.ctx.createDynamicsCompressor();
             comp.threshold.value = -14;
             comp.ratio.value = 4;
             comp.attack.value = 0.004;
             comp.release.value = 0.2;
+
             this.sfxBus.connect(comp);
+
             comp.connect(this.master);
+
             this.applyVolumes();
             // noise buffer for synth fallbacks
             const len = this.ctx.sampleRate * 1.0;
             this.noiseBuf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+            
             const d = this.noiseBuf.getChannelData(0);
+            
             for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+            
             this.decodePack();
             this.ready = true;
         },
@@ -48,14 +58,19 @@
         decodePack() {
             const pack = window.BW_SFX_DATA || {};
             const names = Object.keys(pack);
+
             const next = () => {
                 const name = names.shift();
+
                 if (!name) return;
+
                 try {
                     const b64 = pack[name].split(',')[1];
                     const bin = atob(b64);
                     const bytes = new Uint8Array(bin.length);
+                    
                     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+                    
                     this.ctx.decodeAudioData(
                         bytes.buffer,
                         (buf) => {
@@ -66,8 +81,10 @@
                 } catch (e) {
                     BW.note('sfx pack error ' + name);
                 }
+
                 setTimeout(next, 0);
             };
+
             next();
         },
 
@@ -96,33 +113,46 @@
                 if (this.ctx) this.ctx.resume();
                 if (!this.ctx) return;
             }
+
             const now = this.ctx.currentTime;
             const minGap = opts.minGap != null ? opts.minGap : 0.03;
+            
             if (this.lastPlay[name] && now - this.lastPlay[name] < minGap) return;
+            
             this.lastPlay[name] = now;
+            
             let vol = opts.vol != null ? opts.vol : 1;
+            
             if (name.startsWith('ui_')) vol *= this.vol.ui;
             if (vol <= 0.001) return;
+            
             const out = this.ctx.createGain();
             out.gain.value = vol;
             let dest = out;
+            
             if (opts.pan && this.ctx.createStereoPanner) {
                 const p = this.ctx.createStereoPanner();
                 p.pan.value = BW.clamp(opts.pan, -1, 1);
                 out.connect(p);
                 p.connect(this.sfxBus);
             } else out.connect(this.sfxBus);
+
             const alias = ALIAS[name];
             const sample = opts.sample || (alias && alias.sample) || name;
             const buf = this.buffers[sample];
+            
             if (buf) {
                 const src = this.ctx.createBufferSource();
                 src.buffer = buf;
                 let rate = (opts.rate || 1) * (opts.vary ? 1 + (Math.random() * 2 - 1) * opts.vary : 1);
+                
                 if (opts.pitch && BASE_PITCH[sample]) rate *= opts.pitch / BASE_PITCH[sample];
+                
                 src.playbackRate.value = rate;
+                
                 let node = src;
                 const lp = opts.lowpass || (alias && alias.lowpass);
+                
                 if (lp) {
                     const f = this.ctx.createBiquadFilter();
                     f.type = 'lowpass';
@@ -130,27 +160,37 @@
                     src.connect(f);
                     node = f;
                 }
+
                 if (alias && alias.vol) out.gain.value *= alias.vol;
+                
                 node.connect(dest);
                 src.start(now);
+
                 return;
             }
+
             const synth = SYNTH[name];
+
             if (synth) synth(this.ctx, dest, now, opts, this);
         },
 
         // ---- Music & ambience ----
         registerTrack(name, src, gain = 1, xfade = 2.5) {
             if (this.tracks[name]) return;
+            
             this.tracks[name] = new LoopPlayer(name, src, gain, xfade, name.startsWith('amb') ? 'amb' : 'music');
         },
 
         playMusic(name, fade = 2.0) {
             if (this.musicName === name) return;
+
             const prev = this.tracks[this.musicName];
+
             if (prev) prev.fadeTo(0, fade, true);
+
             this.musicName = name;
             const t = this.tracks[name];
+
             if (t) {
                 t.start();
                 t.fadeTo(1, fade);
@@ -158,10 +198,14 @@
         },
         playAmbience(name, fade = 2.0) {
             if (this.ambName === name) return;
+
             const prev = this.tracks[this.ambName];
+
             if (prev) prev.fadeTo(0, fade, true);
+
             this.ambName = name;
             const t = this.tracks[name];
+
             if (t) {
                 t.start();
                 t.fadeTo(1, fade);
@@ -169,10 +213,12 @@
         },
         duckMusic(level, time) {
             const t = this.tracks[this.musicName];
+
             if (t) t.duck(level, time);
         },
         stopAll(fade = 1) {
             for (const k in this.tracks) this.tracks[k].fadeTo(0, fade, true);
+            
             this.musicName = null;
             this.ambName = null;
         },
@@ -190,11 +236,13 @@
             this.gain = gain;
             this.xfade = xfade;
             this.kind = kind;
+
             this.els = [new Audio(src), new Audio(src)];
             this.els.forEach((e) => {
                 e.preload = 'auto';
                 e.volume = 0;
             });
+
             this.cur = 0;
             this.level = 0;
             this.target = 0;
@@ -210,16 +258,22 @@
                 this.stopWhenSilent = false;
                 return;
             }
+
             this.active = true;
             this.stopWhenSilent = false;
+
             const e = this.els[this.cur];
+
             try {
                 e.currentTime = 0;
             } catch (err) {
                 /* not loaded yet */
             }
+
             this.elLevel[this.cur] = 1;
+
             const p = e.play();
+
             if (p && p.catch) p.catch(() => {});
         }
         fadeTo(level, time, stopAfter) {
@@ -238,10 +292,13 @@
                 this.gain *
                 this.level *
                 this.duckLevel;
-            // Writing .volume crosses into the media pipeline, so skip it when nothing audibly changed.
+            
+                // Writing .volume crosses into the media pipeline, so skip it when nothing audibly changed.
             const last = this.lastVol || (this.lastVol = [-1, -1]);
+            
             for (let i = 0; i < 2; i++) {
                 const nv = BW.clamp(v * this.elLevel[i], 0, 1);
+                
                 if (Math.abs(nv - last[i]) > 0.002 || (nv === 0) !== (last[i] === 0)) {
                     this.els[i].volume = nv;
                     last[i] = nv;
@@ -250,14 +307,19 @@
         }
         update(dt) {
             if (!this.active) return;
+
             this.level = BW.approach(this.level, this.target, this.rate * dt);
+            
             if (this.duckT > 0) {
                 this.duckT -= dt;
                 if (this.duckT <= 0) this.duckLevel = 1;
             }
+
             const e = this.els[this.cur],
                 other = this.els[1 - this.cur];
+
             const dur = e.duration;
+
             if (
                 dur &&
                 isFinite(dur) &&
@@ -270,27 +332,37 @@
                 } catch (err) {
                     /* ignore */
                 }
+
                 const p = other.play();
+
                 if (p && p.catch) p.catch(() => {});
+
                 this.elLevel[1 - this.cur] = 0.0001;
             }
             if (this.elLevel[1 - this.cur] > 0) {
                 const inc = dt / this.xfade;
+
                 this.elLevel[1 - this.cur] = Math.min(1, this.elLevel[1 - this.cur] + inc);
                 this.elLevel[this.cur] = Math.max(0, this.elLevel[this.cur] - inc);
+                
                 if (this.elLevel[this.cur] <= 0) {
                     e.pause();
                     this.cur = 1 - this.cur;
                 }
             }
+
             this.retryT = (this.retryT || 0) - dt;
+
             if (e.paused && this.elLevel[this.cur] > 0 && this.level > 0 && !this.stopWhenSilent && this.retryT <= 0) {
                 // the element may have been blocked by autoplay rules; keep trying, but not every tick
                 this.retryT = 0.5;
                 const p = e.play();
+
                 if (p && p.catch) p.catch(() => {});
             }
+
             this.applyVolume();
+
             if (this.stopWhenSilent && this.level <= 0.001) {
                 this.els.forEach((x) => x.pause());
                 this.active = false;
@@ -309,14 +381,17 @@
         g.gain.exponentialRampToValueAtTime(peak, t + a);
         g.gain.exponentialRampToValueAtTime(Math.max(0.0001, sustain), t + a + d);
     }
+    
     function noise(ctx, dest, t, dur, type, f0, f1, q, peak, a = 0.003) {
         const src = ctx.createBufferSource();
         src.buffer = A.noiseBuf;
+
         const f = ctx.createBiquadFilter();
         f.type = type;
         f.Q.value = q;
         f.frequency.setValueAtTime(f0, t);
         f.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+        
         const g = ctx.createGain();
         env(g, t, a, peak, dur);
         src.connect(f);
@@ -325,18 +400,23 @@
         src.start(t, Math.random() * 0.5);
         src.stop(t + dur + 0.05);
     }
+
     function tone(ctx, dest, t, dur, type, f0, f1, peak, a = 0.005) {
         const o = ctx.createOscillator();
         o.type = type;
         o.frequency.setValueAtTime(f0, t);
+
         if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+        
         const g = ctx.createGain();
         env(g, t, a, peak, dur);
+
         o.connect(g);
         g.connect(dest);
         o.start(t);
         o.stop(t + dur + 0.05);
     }
+
     function bell(ctx, dest, t, base, dur, peak) {
         const partials = [
             [0.5, 0.5],
@@ -349,9 +429,11 @@
             [3.01, 0.12],
             [4.1, 0.08],
         ];
+
         for (const [m, a] of partials)
             tone(ctx, dest, t, dur * (1.2 - m * 0.18), 'sine', base * m, base * m * 0.998, peak * a, 0.004);
     }
+
     const SYNTH = {
         swing(ctx, d, t) {
             noise(ctx, d, t, 0.13, 'bandpass', 900, 4200, 1.2, 0.35);
@@ -406,6 +488,7 @@
             noise(ctx, d, t, 0.05, 'highpass', 6500, 3500, 0.6, 0.6, 0.001);
             noise(ctx, d, t + 0.01, 0.34, 'bandpass', 2400, 9500, 4, 0.2, 0.01);
             tone(ctx, d, t, 0.16, 'triangle', 260, 70, 0.5, 0.002);
+            
             for (const [m, a, dur] of [
                 [1, 0.5, 0.9],
                 [2.76, 0.34, 0.65],

@@ -13,29 +13,38 @@
         loadAll(onProgress) {
             const man = window.BW_MANIFEST || { images: {}, sprites: {} };
             const names = Object.keys(man.images);
+
             this.total = names.length;
+
             if (!names.length) return Promise.resolve();
+
             return new Promise((resolve) => {
                 let done = 0;
+
                 const finish = () => {
                     done++;
                     this.loaded = done;
+
                     if (onProgress) onProgress(done / names.length);
                     if (done === names.length) resolve();
                 };
+
                 for (const n of names) {
                     const img = new Image();
+
                     // decode up front so the first draw of a sprite never hitches
                     img.onload = () => {
                         this.images[n] = img;
                         if (img.decode) img.decode().then(finish, finish);
                         else finish();
                     };
+
                     img.onerror = () => {
                         this.failed.push(n);
                         BW.note('missing image ' + n);
                         finish();
                     };
+
                     img.src = man.images[n];
                 }
             });
@@ -56,34 +65,49 @@
         // Lazily build a white silhouette of an image (for hit flashes).
         white(name) {
             if (this.whites[name]) return this.whites[name];
+
             const img = this.images[name];
+
             if (!img) return null;
+
             const c = BW.makeCanvas(img.width, img.height),
                 x = c.getContext('2d');
+
             x.drawImage(img, 0, 0);
             x.globalCompositeOperation = 'source-in';
             x.fillStyle = '#fff';
             x.fillRect(0, 0, c.width, c.height);
+
             this.whites[name] = c;
+
             BW.toBitmap(c, (bm) => {
                 this.whites[name] = bm;
             });
+
             return c;
         },
 
         // Lazily build a recoloured copy (used for area variants of enemies).
         tinted(name, key, fn) {
             const k = name + '|' + key;
+
             if (this.tints[k]) return this.tints[k];
+
             const img = this.images[name];
+
             if (!img) return null;
+
             const c = BW.makeCanvas(img.width, img.height),
                 x = c.getContext('2d');
+
             fn(x, img, c);
+
             this.tints[k] = c;
+
             BW.toBitmap(c, (bm) => {
                 this.tints[k] = bm;
             });
+
             return c;
         },
 
@@ -91,68 +115,98 @@
         // opts: flip, scale, alpha, rot, flash (0..1 white overlay), variant ('pale'), sx/sy (squash)
         draw(ctx, name, fi, x, y, opts = {}) {
             const s = this.sprite(name);
+
             if (!s) return false;
+
             let src = this.images[s.img];
+
             if (!src) return false;
+
             if (opts.variant === 'pale') src = this.tinted(s.img, 'pale', paleTint) || src;
             else if (opts.variant === 'ember') src = this.tinted(s.img, 'ember', emberTint) || src;
+
             const f = s.frames[((fi % s.frames.length) + s.frames.length) % s.frames.length];
             const sc = (opts.scale || 1) * s.scale;
+
             ctx.save();
             ctx.translate(x, y);
+
             if (opts.rot) ctx.rotate(opts.rot);
+
             ctx.scale((opts.flip ? -1 : 1) * sc * (opts.sx || 1), sc * (opts.sy || 1));
+
             if (opts.alpha != null) ctx.globalAlpha *= opts.alpha;
+
             const ax = f[4] != null ? f[4] : s.ax,
                 ay = f[5] != null ? f[5] : s.ay;
+
             if (opts.rim) {
                 // soft cool rim light so dark creatures stay readable against dark scenery
                 const w = this.white(s.img);
+
                 if (w) {
                     const a0 = ctx.globalAlpha;
                     ctx.globalAlpha = a0 * opts.rim;
+
                     const o = 2.2 / sc;
+
                     ctx.drawImage(w, f[0], f[1], f[2], f[3], -ax - o, -ay - o, f[2], f[3]);
                     ctx.drawImage(w, f[0], f[1], f[2], f[3], -ax + o, -ay - o, f[2], f[3]);
                     ctx.globalAlpha = a0;
                 }
             }
+
             ctx.drawImage(src, f[0], f[1], f[2], f[3], -ax, -ay, f[2], f[3]);
+
             if (opts.flash > 0) {
                 const w = this.white(s.img);
+
                 if (w) {
                     ctx.globalAlpha *= BW.clamp(opts.flash, 0, 1);
                     ctx.drawImage(w, f[0], f[1], f[2], f[3], -ax, -ay, f[2], f[3]);
                 }
             }
+
             ctx.restore();
+
             return true;
         },
 
         // Draw a whole image centred/anchored (props, objects). anchor: [ax, ay] as fractions.
         drawImg(ctx, name, x, y, opts = {}) {
             const img = this.images[name];
+
             if (!img) return false;
+
             const sc = opts.scale || 1;
+
             const w = opts.w || img.width * sc,
                 h = opts.h || img.height * sc;
+
             const ax = opts.ax != null ? opts.ax : 0.5,
                 ay = opts.ay != null ? opts.ay : 1;
+
             ctx.save();
             ctx.translate(x, y);
+
             if (opts.rot) ctx.rotate(opts.rot);
             if (opts.flip) ctx.scale(-1, 1);
             if (opts.alpha != null) ctx.globalAlpha *= opts.alpha;
             if (opts.composite) ctx.globalCompositeOperation = opts.composite;
+
             ctx.drawImage(img, -w * ax, -h * ay, w, h);
+
             if (opts.flash > 0) {
                 const wi = this.white(name);
+
                 if (wi) {
                     ctx.globalAlpha *= opts.flash;
                     ctx.drawImage(wi, -w * ax, -h * ay, w, h);
                 }
             }
+
             ctx.restore();
+
             return true;
         },
     };
@@ -163,6 +217,7 @@
         x.globalCompositeOperation = 'source-atop';
         x.globalAlpha = 0.42;
         x.fillStyle = '#e8e2d4';
+
         x.fillRect(0, 0, c.width, c.height);
         x.globalAlpha = 1;
         x.globalCompositeOperation = 'source-over';
@@ -174,9 +229,11 @@
         x.globalCompositeOperation = 'source-atop';
         x.globalAlpha = 0.12;
         x.fillStyle = '#2a0904';
+
         x.fillRect(0, 0, c.width, c.height);
         x.globalAlpha = 0.15;
         x.fillStyle = '#ff6a24';
+
         x.fillRect(0, 0, c.width, c.height);
         x.globalAlpha = 1;
         x.globalCompositeOperation = 'source-over';
