@@ -1,6 +1,7 @@
 'use strict';
 // Bellweaver — core namespace, constants and small helpers shared by every module.
 window.BW = window.BW || {};
+
 (function (BW) {
     BW.VERSION = '0.9.0';
     BW.BUILD_STAGE = 2;
@@ -47,45 +48,56 @@ window.BW = window.BW || {};
     BW.damp = (cur, target, rate, dt) => cur + (target - cur) * (1 - Math.exp(-rate * dt));
     BW.easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
     BW.easeInOutSine = (t) => -(Math.cos(Math.PI * t) - 1) / 2;
+
     BW.easeOutBack = (t) => {
         const c1 = 1.70158,
             c3 = c1 + 1;
+
         return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
     };
+
     BW.overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
     BW.pointIn = (px, py, r) => px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h;
 
     // Deterministic PRNG for decoration placement (same room always looks the same).
     BW.seeded = function (seed) {
         let s = seed >>> 0 || 1;
+
         return function () {
             s ^= s << 13;
             s >>>= 0;
             s ^= s >>> 17;
             s ^= s << 5;
             s >>>= 0;
+
             return s / 4294967296;
         };
     };
+
     BW.hashStr = function (str) {
         let h = 2166136261;
+
         for (let i = 0; i < str.length; i++) {
             h ^= str.charCodeAt(i);
             h = Math.imul(h, 16777619);
         }
+
         return h >>> 0;
     };
 
     BW.makeCanvas = function (w, h) {
         const c = document.createElement('canvas');
+
         c.width = Math.max(1, Math.ceil(w));
         c.height = Math.max(1, Math.ceil(h));
+
         return c;
     };
 
     // Convert a finished offscreen canvas into an ImageBitmap (GPU-friendly, immutable) when supported.
     BW.toBitmap = function (canvas, done) {
         if (!window.createImageBitmap) return;
+
         try {
             window
                 .createImageBitmap(canvas)
@@ -99,32 +111,44 @@ window.BW = window.BW || {};
     // In-place filter for lists pruned every fixed step; avoids allocating a new array 120 times a second.
     BW.prune = function (arr, keep) {
         let j = 0;
+
         for (let i = 0; i < arr.length; i++) {
             const v = arr[i];
+
             if (keep(v)) arr[j++] = v;
         }
+
         arr.length = j;
+
         return arr;
     };
 
     const rgbCache = {};
+
     BW.hexToRgb = function (hex) {
         let c = rgbCache[hex];
+
         if (!c) {
             const v = parseInt(hex.slice(1), 16);
+
             c = rgbCache[hex] = [(v >> 16) & 255, (v >> 8) & 255, v & 255];
         }
+
         return c;
     };
+
     BW.rgba = function (hex, a) {
         const [r, g, b] = BW.hexToRgb(hex);
+
         return `rgba(${r},${g},${b},${a})`;
     };
 
     // Simple event log used by the automated tests.
     BW.log = [];
+
     BW.note = function (msg) {
         BW.log.push(msg);
+
         if (BW.log.length > 200) BW.log.shift();
     };
 })(window.BW);

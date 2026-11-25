@@ -1,4 +1,5 @@
 'use strict';
+
 // Audio: music/ambience stream through <audio> elements (works from file://), sound effects are
 // decoded from an embedded base64 pack into WebAudio buffers, with small synthesized fallbacks.
 (function (BW) {
@@ -19,19 +20,21 @@
         init() {
             if (this.ctx) {
                 if (this.ctx.state === 'suspended') this.ctx.resume();
+
                 return;
             }
 
             const AC = window.AudioContext || window.webkitAudioContext;
-            
+
             if (!AC) return;
 
             this.ctx = new AC();
             this.master = this.ctx.createGain();
             this.master.connect(this.ctx.destination);
             this.sfxBus = this.ctx.createGain();
-            
+
             const comp = this.ctx.createDynamicsCompressor();
+
             comp.threshold.value = -14;
             comp.ratio.value = 4;
             comp.attack.value = 0.004;
@@ -42,14 +45,16 @@
             comp.connect(this.master);
 
             this.applyVolumes();
+
             // noise buffer for synth fallbacks
             const len = this.ctx.sampleRate * 1.0;
+
             this.noiseBuf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
-            
+
             const d = this.noiseBuf.getChannelData(0);
-            
+
             for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
-            
+
             this.decodePack();
             this.ready = true;
         },
@@ -68,9 +73,9 @@
                     const b64 = pack[name].split(',')[1];
                     const bin = atob(b64);
                     const bytes = new Uint8Array(bin.length);
-                    
+
                     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-                    
+
                     this.ctx.decodeAudioData(
                         bytes.buffer,
                         (buf) => {
@@ -94,6 +99,7 @@
         applyVolumes() {
             if (this.master) this.master.gain.value = this.masterLevel();
             if (this.sfxBus) this.sfxBus.gain.value = this.vol.sfx;
+
             for (const k in this.tracks) this.tracks[k].applyVolume();
         },
 
@@ -103,6 +109,7 @@
         },
         setMuted(m) {
             if (this.muted === !!m) return;
+
             this.muted = !!m;
             this.applyVolumes();
         },
@@ -116,22 +123,25 @@
 
             const now = this.ctx.currentTime;
             const minGap = opts.minGap != null ? opts.minGap : 0.03;
-            
+
             if (this.lastPlay[name] && now - this.lastPlay[name] < minGap) return;
-            
+
             this.lastPlay[name] = now;
-            
+
             let vol = opts.vol != null ? opts.vol : 1;
-            
+
             if (name.startsWith('ui_')) vol *= this.vol.ui;
             if (vol <= 0.001) return;
-            
+
             const out = this.ctx.createGain();
+
             out.gain.value = vol;
+
             let dest = out;
-            
+
             if (opts.pan && this.ctx.createStereoPanner) {
                 const p = this.ctx.createStereoPanner();
+
                 p.pan.value = BW.clamp(opts.pan, -1, 1);
                 out.connect(p);
                 p.connect(this.sfxBus);
@@ -140,21 +150,24 @@
             const alias = ALIAS[name];
             const sample = opts.sample || (alias && alias.sample) || name;
             const buf = this.buffers[sample];
-            
+
             if (buf) {
                 const src = this.ctx.createBufferSource();
+
                 src.buffer = buf;
+
                 let rate = (opts.rate || 1) * (opts.vary ? 1 + (Math.random() * 2 - 1) * opts.vary : 1);
-                
+
                 if (opts.pitch && BASE_PITCH[sample]) rate *= opts.pitch / BASE_PITCH[sample];
-                
+
                 src.playbackRate.value = rate;
-                
+
                 let node = src;
                 const lp = opts.lowpass || (alias && alias.lowpass);
-                
+
                 if (lp) {
                     const f = this.ctx.createBiquadFilter();
+
                     f.type = 'lowpass';
                     f.frequency.value = lp;
                     src.connect(f);
@@ -162,7 +175,7 @@
                 }
 
                 if (alias && alias.vol) out.gain.value *= alias.vol;
-                
+
                 node.connect(dest);
                 src.start(now);
 
@@ -177,7 +190,7 @@
         // ---- Music & ambience ----
         registerTrack(name, src, gain = 1, xfade = 2.5) {
             if (this.tracks[name]) return;
-            
+
             this.tracks[name] = new LoopPlayer(name, src, gain, xfade, name.startsWith('amb') ? 'amb' : 'music');
         },
 
@@ -189,6 +202,7 @@
             if (prev) prev.fadeTo(0, fade, true);
 
             this.musicName = name;
+
             const t = this.tracks[name];
 
             if (t) {
@@ -204,6 +218,7 @@
             if (prev) prev.fadeTo(0, fade, true);
 
             this.ambName = name;
+
             const t = this.tracks[name];
 
             if (t) {
@@ -218,7 +233,7 @@
         },
         stopAll(fade = 1) {
             for (const k in this.tracks) this.tracks[k].fadeTo(0, fade, true);
-            
+
             this.musicName = null;
             this.ambName = null;
         },
@@ -238,6 +253,7 @@
             this.kind = kind;
 
             this.els = [new Audio(src), new Audio(src)];
+
             this.els.forEach((e) => {
                 e.preload = 'auto';
                 e.volume = 0;
@@ -256,6 +272,7 @@
         start() {
             if (this.active) {
                 this.stopWhenSilent = false;
+
                 return;
             }
 
@@ -292,13 +309,13 @@
                 this.gain *
                 this.level *
                 this.duckLevel;
-            
-                // Writing .volume crosses into the media pipeline, so skip it when nothing audibly changed.
+
+            // Writing .volume crosses into the media pipeline, so skip it when nothing audibly changed.
             const last = this.lastVol || (this.lastVol = [-1, -1]);
-            
+
             for (let i = 0; i < 2; i++) {
                 const nv = BW.clamp(v * this.elLevel[i], 0, 1);
-                
+
                 if (Math.abs(nv - last[i]) > 0.002 || (nv === 0) !== (last[i] === 0)) {
                     this.els[i].volume = nv;
                     last[i] = nv;
@@ -309,9 +326,10 @@
             if (!this.active) return;
 
             this.level = BW.approach(this.level, this.target, this.rate * dt);
-            
+
             if (this.duckT > 0) {
                 this.duckT -= dt;
+
                 if (this.duckT <= 0) this.duckLevel = 1;
             }
 
@@ -339,12 +357,13 @@
 
                 this.elLevel[1 - this.cur] = 0.0001;
             }
+
             if (this.elLevel[1 - this.cur] > 0) {
                 const inc = dt / this.xfade;
 
                 this.elLevel[1 - this.cur] = Math.min(1, this.elLevel[1 - this.cur] + inc);
                 this.elLevel[this.cur] = Math.max(0, this.elLevel[this.cur] - inc);
-                
+
                 if (this.elLevel[this.cur] <= 0) {
                     e.pause();
                     this.cur = 1 - this.cur;
@@ -356,6 +375,7 @@
             if (e.paused && this.elLevel[this.cur] > 0 && this.level > 0 && !this.stopWhenSilent && this.retryT <= 0) {
                 // the element may have been blocked by autoplay rules; keep trying, but not every tick
                 this.retryT = 0.5;
+
                 const p = e.play();
 
                 if (p && p.catch) p.catch(() => {});
@@ -381,18 +401,21 @@
         g.gain.exponentialRampToValueAtTime(peak, t + a);
         g.gain.exponentialRampToValueAtTime(Math.max(0.0001, sustain), t + a + d);
     }
-    
+
     function noise(ctx, dest, t, dur, type, f0, f1, q, peak, a = 0.003) {
         const src = ctx.createBufferSource();
+
         src.buffer = A.noiseBuf;
 
         const f = ctx.createBiquadFilter();
+
         f.type = type;
         f.Q.value = q;
         f.frequency.setValueAtTime(f0, t);
         f.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
-        
+
         const g = ctx.createGain();
+
         env(g, t, a, peak, dur);
         src.connect(f);
         f.connect(g);
@@ -403,12 +426,14 @@
 
     function tone(ctx, dest, t, dur, type, f0, f1, peak, a = 0.005) {
         const o = ctx.createOscillator();
+
         o.type = type;
         o.frequency.setValueAtTime(f0, t);
 
         if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
-        
+
         const g = ctx.createGain();
+
         env(g, t, a, peak, dur);
 
         o.connect(g);
@@ -488,7 +513,7 @@
             noise(ctx, d, t, 0.05, 'highpass', 6500, 3500, 0.6, 0.6, 0.001);
             noise(ctx, d, t + 0.01, 0.34, 'bandpass', 2400, 9500, 4, 0.2, 0.01);
             tone(ctx, d, t, 0.16, 'triangle', 260, 70, 0.5, 0.002);
-            
+
             for (const [m, a, dur] of [
                 [1, 0.5, 0.9],
                 [2.76, 0.34, 0.65],
@@ -496,6 +521,7 @@
                 [8.93, 0.12, 0.22],
             ])
                 tone(ctx, d, t, dur, 'sine', 1175 * m, 1175 * m * 0.997, a * 0.4, 0.001);
+
             tone(ctx, d, t + 0.02, 0.5, 'sine', 3136, 3120, 0.06, 0.004);
         },
         spit(ctx, d, t) {

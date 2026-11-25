@@ -1,4 +1,5 @@
 'use strict';
+
 // Story content: the opening chapters, short interludes the first time you reach a region, and the lore notes
 // scattered through the world. Collected notes are kept in state.flags ('note_<id>') so they save with the game.
 (function (BW) {
@@ -305,7 +306,9 @@
             from: 'Orrin Vael',
         },
     ];
+
     const BY_ID = {};
+
     for (const n of NOTES) BY_ID[n.id] = n;
 
     const Lore = {
@@ -318,26 +321,33 @@
         },
         count(st) {
             let c = 0;
+
             for (const n of NOTES) if (this.has(st, n.id)) c++;
+
             return c;
         },
         roomName(n) {
             const r = BW.ROOMS[n.room];
+
             return r ? r.name : n.room;
         },
         areaName(n) {
             const r = BW.ROOMS[n.room];
+
             return r ? BW.AREAS[r.area].name : '';
         },
         // collect a note; returns true the first time
         collect(g, id) {
             const f = g.state.flags;
+
             if (f['note_' + id]) return false;
+
             f['note_' + id] = true;
             g.hud.toast('Lore note found', `${BY_ID[id].title}  \u00b7  ${this.count(g.state)} / ${NOTES.length}`, 3.4);
             BW.Audio.play('glint', { vol: 0.7, minGap: 0 });
             g.gainXp(BW.XP.REWARD.note);
             g.saveGame();
+
             return true;
         },
 
@@ -345,12 +355,17 @@
         interlude(g, areaId) {
             const it = INTERLUDES[areaId],
                 f = g.state.flags;
+
             if (!it || f['lore_' + it.id] || g.seq || g.mode !== 'play') return;
+
             f['lore_' + it.id] = true;
+
             g.startSequence(
                 (function* () {
                     g.seq.hideHud = true;
+
                     const p = g.player;
+
                     p.state = 'cutscene';
                     p.vx = 0;
                     yield 0.5;
@@ -379,15 +394,20 @@
                     n: slides.length,
                     lines: null,
                 });
+
             for (let f = 0; f < 36; f++) {
                 sl.a = f / 36;
                 sl.t += 1 / 60;
                 yield 1 / 60;
             }
+
             sl.a = 1;
+
             let skip = false;
+
             for (let i = 0; i < slides.length && !skip; i++) {
                 const s = slides[i];
+
                 sl.prev = sl.art;
                 sl.art = s.art;
                 sl.mix = sl.prev ? 0 : 1;
@@ -397,25 +417,33 @@
                 sl.lines = null;
                 sl.ta = 0;
                 sl.total = s.lines.join('').length + s.lines.length * 12;
+
                 let hold = 0;
+
                 for (;;) {
                     yield 1 / 60;
                     sl.t += 1 / 60;
                     sl.mix = Math.min(1, sl.mix + 1 / 60 / 1.1);
                     sl.ta = Math.min(1, sl.ta + 1 / 60 / 0.5);
+
                     if (I.pressed.pause || I.pressed.back) {
                         skip = true;
                         break;
                     }
+
                     const go = I.pressed.confirm || I.pressed.jump || I.pressed.attack;
+
                     if (sl.chars < sl.total) {
                         sl.chars += 48 / 60;
+
                         if (go && sl.t > 0.3) sl.chars = sl.total;
                     } else {
                         hold += 1 / 60;
+
                         if (go || hold > 5) break;
                     }
                 }
+
                 if (!skip) {
                     for (let f = 0; f < 24; f++) {
                         sl.ta = 1 - f / 24;
@@ -424,12 +452,14 @@
                     }
                 }
             }
+
             for (let f = 36; f >= 0; f--) {
                 sl.a = f / 36;
                 sl.ta = Math.min(sl.ta, sl.a);
                 sl.t += 1 / 60;
                 yield 1 / 60;
             }
+
             g.loreSlide = null;
         },
 
@@ -439,18 +469,25 @@
                 cx = VW / 2,
                 s = sl.slide,
                 t = sl.t;
+
             ctx.save();
             ctx.globalAlpha = sl.a;
             ctx.fillStyle = '#040508';
             ctx.fillRect(0, 0, VW, VH);
+
             const art = (name, a) => {
                 const img = name && BW.Assets.img(name);
+
                 if (!img || a <= 0) return;
+
                 const k = Math.max(VW / img.width, VH / img.height) * (1.08 + 0.05 * Math.min(1, t / 14));
+
                 const w = img.width * k,
                     h = img.height * k;
+
                 ctx.save();
                 ctx.globalAlpha *= a * 0.62;
+
                 ctx.drawImage(
                     img,
                     (VW - w) / 2 - Math.sin(t * 0.08) * 14,
@@ -458,16 +495,23 @@
                     w,
                     h,
                 );
+
                 ctx.restore();
             };
+
             if (sl.prev && sl.mix < 1) art(sl.prev, 1 - sl.mix);
+
             art(sl.art, sl.mix);
+
             const vg = ctx.createRadialGradient(cx, VH * 0.45, VH * 0.2, cx, VH * 0.5, VH * 0.95);
+
             vg.addColorStop(0, 'rgba(0,0,0,0.25)');
             vg.addColorStop(1, 'rgba(0,0,0,0.92)');
             ctx.fillStyle = vg;
             ctx.fillRect(0, 0, VW, VH);
+
             const bar = ctx.createLinearGradient(0, VH * 0.5, 0, VH);
+
             bar.addColorStop(0, 'rgba(0,0,0,0)');
             bar.addColorStop(1, 'rgba(0,0,0,0.75)');
             ctx.fillStyle = bar;
@@ -475,24 +519,31 @@
             // drifting silk motes
             ctx.save();
             ctx.globalCompositeOperation = 'lighter';
+
             for (let i = 0; i < 34; i++) {
                 const x = ((i * 151.7 + t * (6 + (i % 5) * 2)) % (VW + 40)) - 20,
                     y = VH - ((i * 83.3 + t * (9 + (i % 7) * 2)) % (VH + 40)) + 20;
+
                 ctx.fillStyle = `rgba(255,232,190,${0.12 + (i % 3) * 0.07})`;
                 ctx.beginPath();
                 ctx.arc(x, y, 1 + (i % 3) * 0.6, 0, Math.PI * 2);
                 ctx.fill();
             }
+
             ctx.restore();
+
             if (!s) {
                 ctx.restore();
+
                 return;
             }
 
             ctx.globalAlpha = sl.a * sl.ta;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
+
             const top = s.chapter ? VH * 0.3 : VH * 0.24;
+
             // numeral in a ring
             if (!s.chapter) {
                 ctx.strokeStyle = 'rgba(232,201,138,0.65)';
@@ -510,16 +561,22 @@
             } else {
                 ctx.font = `600 20px ${BW.FONT_T}`;
                 ctx.fillStyle = '#e8c98a';
+
                 if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '8px';
+
                 ctx.fillText(s.kicker.toUpperCase(), cx + 4, top - 50);
+
                 if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
             }
+
             ctx.save();
             ctx.font = `600 58px ${BW.FONT_T}`;
             ctx.fillStyle = '#f7ecd6';
             ctx.shadowColor = 'rgba(0,0,0,0.9)';
             ctx.shadowBlur = 20;
+
             if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '3px';
+
             ctx.fillText(s.title, cx, top + 10);
             ctx.restore();
             ctx.save();
@@ -539,38 +596,50 @@
 
             // typewriter body: wrap once, then reveal by character
             ctx.font = `italic 500 31px ${BW.FONT_B}`;
+
             if (!sl.lines) {
                 sl.lines = [];
+
                 for (const para of s.lines) {
                     const words = para.split(' ');
                     let line = '';
+
                     for (const w of words) {
                         const test = line ? line + ' ' + w : w;
+
                         if (line && ctx.measureText(test).width > 880) {
                             sl.lines.push(line);
                             line = w;
                         } else line = test;
                     }
+
                     sl.lines.push(line);
                     sl.lines.push('');
                 }
+
                 sl.lines.pop();
             }
+
             ctx.fillStyle = '#efe4cc';
             ctx.shadowColor = 'rgba(0,0,0,0.95)';
             ctx.shadowBlur = 14;
+
             let left = Math.floor(sl.chars),
                 y = top + 118;
+
             for (const l of sl.lines) {
                 if (l === '') {
                     y += 20;
                     left -= 12;
                     continue;
                 }
+
                 if (left > 0) ctx.fillText(l.slice(0, left), cx, y);
+
                 left -= l.length;
                 y += 42;
             }
+
             ctx.shadowBlur = 0;
 
             // progress pips and prompt
@@ -582,6 +651,7 @@
                     ctx.fill();
                 }
             }
+
             ctx.font = `500 19px ${BW.FONT_B}`;
             ctx.fillStyle = `rgba(230,220,200,${0.45 + 0.2 * Math.sin(t * 3)})`;
             ctx.fillText(`${BW.Input.label('confirm')}  continue      ${BW.Input.label('pause')}  skip`, cx, VH - 52);
@@ -591,6 +661,7 @@
 
     // ---------------------------------------------------------------- the note object
     const OBJ = BW.OBJ;
+
     OBJ.note = class LoreNote extends BW.ObjBase {
         constructor(g, d) {
             super(g, d);
@@ -608,10 +679,14 @@
         }
         interact() {
             const n = BY_ID[this.def.id];
+
             if (!n) return;
+
             const first = Lore.collect(this.game, n.id);
+
             BW.Audio.play('ui_ok', { vol: 0.5 });
             this.game.dialog.open(n.title, n.text.concat(['\u2014 ' + n.from]), { kind: 'sign' });
+
             if (first)
                 this.game.fx.burst(this.x, this.y - 18, 14, {
                     color: ['#ffe6a6', '#ffffff'],
@@ -625,19 +700,28 @@
         draw(ctx) {
             const x = this.x,
                 y = this.y;
+
             // ease the unread -> read look in real time (the sim is paused while the note is open), so nothing snaps
             const now = performance.now(),
                 dtr = this.lastDraw ? Math.min(0.05, (now - this.lastDraw) / 1000) : 0;
+
             this.lastDraw = now;
+
             if (this.gotK == null) this.gotK = this.got ? 1 : 0;
+
             const target = this.got ? 1 : 0;
+
             this.gotK += Math.max(-1, Math.min(1, target - this.gotK)) * Math.min(1, dtr * 5);
+
             if (Math.abs(target - this.gotK) < 0.004) this.gotK = target;
+
             const k = this.gotK,
                 un = 1 - k,
                 b = Math.sin(this.t * 2.2) * 2.5 * un;
+
             if (un > 0.01) {
                 const a = un * (0.45 + 0.15 * Math.sin(this.t * 3));
+
                 ctx.save();
                 ctx.globalCompositeOperation = 'lighter';
                 ctx.globalAlpha = Math.min(1, a / 0.45);
@@ -645,6 +729,7 @@
                 ctx.restore();
                 this.game.addLight(x, y - 18, 70, '#ffe0a0', 0.3 * un);
             }
+
             ctx.save();
             ctx.translate(x, y - 16 + b);
             ctx.rotate(-0.12);
@@ -669,7 +754,9 @@
     function mix(a, b, k, aa = 1, ab = 1) {
         const pa = parseInt(a.slice(1), 16),
             pb = parseInt(b.slice(1), 16);
+
         const ch = (s) => Math.round(((pa >> s) & 255) * (1 - k) + ((pb >> s) & 255) * k);
+
         return `rgba(${ch(16)},${ch(8)},${ch(0)},${aa * (1 - k) + ab * k})`;
     }
 

@@ -1,8 +1,10 @@
 'use strict';
+
 // Room definition DSL, runtime room state and tile collision shared by the player and enemies.
 // Tile legend:  # solid   . air   = one-way ledge   ^ thorns   B breakable wall   G gate
 (function (BW) {
     const T = BW.T;
+
     BW.ROOMS = {};
     BW.ROOM_LIST = [];
 
@@ -11,7 +13,7 @@
         const g = [];
 
         for (let y = 0; y < def.h; y++) g.push(new Array(def.w).fill('#'));
-        
+
         const room = Object.assign(
             { ents: [], gates: [], breakables: [], deco: [], secrets: [], triggers: [], lights: [] },
             def,
@@ -96,13 +98,16 @@
         raw(tx, ty) {
             if (tx < 0) tx = 0;
             else if (tx >= this.w) tx = this.w - 1;
+
             if (ty < 0) ty = 0;
             else if (ty >= this.h) ty = this.h - 1;
+
             return this.grid[ty][tx];
         }
 
         solid(tx, ty) {
             const c = this.raw(tx, ty);
+
             return c === '#' || c === 'B' || c === 'G';
         }
 
@@ -120,6 +125,7 @@
 
         openGate(g) {
             if (g.open) return;
+
             g.open = true;
             this.fillTiles(g, '.');
         }
@@ -140,42 +146,46 @@
 
             const ty0 = Math.floor((e.y + 0.5) / T),
                 ty1 = Math.floor((e.y + e.h - 0.5) / T);
-            
-                // only tiles the leading edge newly enters can block (an embedded body is never snapped backwards)
+
+            // only tiles the leading edge newly enters can block (an embedded body is never snapped backwards)
             if (dx > 0) {
                 const oldTx = Math.floor((e.x + e.w - 0.001) / T),
                     tx = Math.floor((e.x + e.w + dx - 0.001) / T);
-                
-                    if (tx > oldTx)
+
+                if (tx > oldTx)
                     for (let ty = ty0; ty <= ty1; ty++)
                         if (room.solid(tx, ty)) {
                             e.x = tx * T - e.w;
+
                             return true;
                         }
             } else {
                 const oldTx = Math.floor(e.x / T),
                     tx = Math.floor((e.x + dx) / T);
-                
+
                 if (tx < oldTx)
                     for (let ty = ty0; ty <= ty1; ty++)
                         if (room.solid(tx, ty)) {
                             e.x = (tx + 1) * T;
+
                             return true;
                         }
             }
 
             e.x += dx;
+
             return false;
         },
 
         // Move vertically. Lands on solids, one-way ledges (when falling onto them) and moving platforms.
         moveY(room, e, dy) {
             const res = { landed: false, ceil: false, oneway: false, platform: null };
-            
+
             if (dy === 0) return res;
 
             const x0 = e.x + 0.5,
                 x1 = e.x + e.w - 0.5;
+
             const tx0 = Math.floor(x0 / T),
                 tx1 = Math.floor(x1 / T);
 
@@ -190,6 +200,7 @@
                         res.landed = true;
                         break;
                     }
+
                 if (!res.landed && !e.dropThrough) {
                     for (let tx = tx0; tx <= tx1; tx++) {
                         if (room.oneway(tx, ty) && oldBottom <= ty * T + 0.5) {
@@ -204,7 +215,7 @@
                 if (!e.dropThrough || true) {
                     for (const p of room.platforms) {
                         if (!p.solidTop) continue;
-                        
+
                         if (x1 > p.x && x0 < p.x + p.w && oldBottom <= p.y + Math.abs(p.stepDy || 0) + 1 && nb >= p.y) {
                             if (!res.landed || p.y < nb) {
                                 nb = p.y;
@@ -225,6 +236,7 @@
                     if (room.solid(tx, ty)) {
                         e.y = (ty + 1) * T;
                         res.ceil = true;
+
                         return res;
                     }
 
@@ -238,8 +250,9 @@
             const x0 = e.x + 0.5,
                 x1 = e.x + e.w - 0.5,
                 by = e.y + e.h + 1;
+
             const ty = Math.floor(by / T);
-            
+
             for (let tx = Math.floor(x0 / T); tx <= Math.floor(x1 / T); tx++) {
                 if (room.solid(tx, ty)) return true;
                 if (room.oneway(tx, ty) && Math.abs(e.y + e.h - ty * T) < 1.5) return true;
@@ -247,18 +260,19 @@
 
             for (const p of room.platforms)
                 if (p.solidTop && x1 > p.x && x0 < p.x + p.w && Math.abs(e.y + e.h - p.y) < 1.5) return true;
-            
+
             return false;
         },
 
         overlapsSolid(room, r) {
             const tx0 = Math.floor(r.x / T),
                 tx1 = Math.floor((r.x + r.w - 0.01) / T);
+
             const ty0 = Math.floor(r.y / T),
                 ty1 = Math.floor((r.y + r.h - 0.01) / T);
-            
+
             for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) if (room.solid(tx, ty)) return true;
-            
+
             return false;
         },
 
@@ -278,6 +292,7 @@
                 for (let tx = tx0; tx <= tx1; tx++) {
                     if (room.hazard(tx, ty)) {
                         const top = ty * T + 16;
+
                         if (y1 > top) return true;
                     }
                 }
@@ -290,10 +305,10 @@
                 tx1 = Math.floor((r.x + r.w) / T),
                 ty0 = Math.floor(r.y / T),
                 ty1 = Math.floor((r.y + r.h) / T);
-            
+
             for (let ty = ty0; ty <= ty1; ty++)
-            for (let tx = tx0; tx <= tx1; tx++) if (room.hazard(tx, ty)) return true;
-            
+                for (let tx = tx0; tx <= tx1; tx++) if (room.hazard(tx, ty)) return true;
+
             return false;
         },
 
@@ -304,12 +319,14 @@
 
             for (let i = 1; i < n; i++) {
                 const t = i / n;
+
                 if (room.solidPx(ax + (bx - ax) * t, ay + (by - ay) * t)) return false;
             }
 
             return true;
         },
     };
+
     BW.Phys = Phys;
 
     // Helper used by the map and transitions: which room contains a world tile position?
@@ -318,7 +335,7 @@
             if (r.id === exceptId) continue;
             if (wx >= r.x && wx < r.x + r.w && wy >= r.y && wy < r.y + r.h) return r;
         }
-        
+
         return null;
     };
 })(window.BW);

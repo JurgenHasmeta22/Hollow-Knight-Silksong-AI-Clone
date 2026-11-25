@@ -1,4 +1,5 @@
 'use strict';
+
 // Controller button glyphs. Every action maps to canonical pad buttons (by position on a standard-mapped pad);
 // a style (Xbox / PlayStation / Switch / Generic) decides how each button is named and drawn. The style comes from
 // the "Controller Icons" option, or from the connected pad's id when that is left on Auto.
@@ -23,6 +24,7 @@
         confirm: ['S'],
         back: ['E'],
     };
+
     const FACE = { S: 1, E: 1, W: 1, N: 1 };
     const SHOULDER = { LB: 1, RB: 1, LT: 1, RT: 1 };
     const DPAD = { DU: 1, DD: 1, DL: 1, DR: 1 };
@@ -68,6 +70,7 @@
             words: { S: 'Button 1', E: 'Button 2', W: 'Button 3', N: 'Button 4' },
         },
     };
+
     const ORDER = ['auto', 'xbox', 'playstation', 'switch', 'generic'];
     const DIRWORD = { DU: 'Up', DD: 'Down', DL: 'Left', DR: 'Right', LS: 'Left Stick' };
 
@@ -79,18 +82,23 @@
         // Style implied by the connected pad. Unknown pads are treated as Xbox-like, the web standard layout.
         detect() {
             const id = ((BW.Input && BW.Input.padId) || '').toLowerCase();
+
             if (/playstation|dualshock|dualsense|054c|sony|wireless controller/.test(id)) return 'playstation';
             if (/nintendo|switch|057e|joy-?con|pro controller/.test(id)) return 'switch';
+
             return 'xbox';
         },
         style() {
             const s = (BW.settings && BW.settings.pad) || 'auto';
+
             return s === 'auto' || !STYLES[s] ? this.detect() : s;
         },
         styleName(setting) {
             const s = setting || (BW.settings && BW.settings.pad) || 'auto';
+
             if (s === 'auto')
                 return 'Auto' + (BW.Input && BW.Input.padConnected ? ' (' + STYLES[this.detect()].name + ')' : '');
+
             return STYLES[s] ? STYLES[s].name : 'Auto';
         },
 
@@ -99,10 +107,12 @@
         },
         word(tok) {
             const S = STYLES[this.style()];
+
             if (FACE[tok]) return S.words[tok];
             if (SHOULDER[tok]) return S.sh[tok];
             if (tok === 'SELECT') return S.select;
             if (tok === 'START') return S.start;
+
             return DIRWORD[tok] || tok;
         },
         // Plain-text name of an action's pad binding, for prompts that cannot draw glyphs
@@ -117,21 +127,29 @@
         // ---- drawing. x is the left edge, y the vertical centre, h the glyph height.
         tokenWidth(ctx, tok, h) {
             const S = STYLES[this.style()];
+
             if (FACE[tok] || tok === 'LS' || DPAD[tok]) return h;
+
             ctx.save();
             ctx.font = `700 ${Math.round(h * 0.56)}px ${BW.FONT_T}`;
+
             const t = SHOULDER[tok] ? S.sh[tok] : tok === 'SELECT' ? S.select : S.start;
             const w = Math.max(h * 1.25, ctx.measureText(t).width + h * 0.7);
+
             ctx.restore();
+
             return w;
         },
         drawToken(ctx, tok, x, y, h) {
             const S = STYLES[this.style()],
                 r = h / 2,
                 cx = x + r;
+
             ctx.save();
+
             if (FACE[tok]) {
                 const [sym, col] = S.face[tok];
+
                 ctx.fillStyle = S.light ? '#e8e6e0' : '#1c1f27';
                 ctx.beginPath();
                 ctx.arc(cx, y, r, 0, Math.PI * 2);
@@ -144,7 +162,9 @@
                 ctx.lineWidth = Math.max(1.6, h * 0.1);
                 ctx.lineJoin = 'round';
                 ctx.lineCap = 'round';
+
                 const k = r * 0.46;
+
                 if (sym === 'x') {
                     ctx.beginPath();
                     ctx.moveTo(cx - k, y - k);
@@ -191,14 +211,17 @@
             } else if (DPAD[tok]) {
                 const a = r * 0.36,
                     L = r * 0.95;
+
                 ctx.fillStyle = '#4a4f5c';
                 ctx.fillRect(cx - a, y - L, a * 2, L * 2);
                 ctx.fillRect(cx - L, y - a, L * 2, a * 2);
                 ctx.fillStyle = '#fff1d0';
+
                 if (tok === 'DU') ctx.fillRect(cx - a, y - L, a * 2, L);
                 else if (tok === 'DD') ctx.fillRect(cx - a, y, a * 2, L);
                 else if (tok === 'DL') ctx.fillRect(cx - L, y - a, L, a * 2);
                 else ctx.fillRect(cx, y - a, L, a * 2);
+
                 ctx.strokeStyle = 'rgba(255,255,255,0.3)';
                 ctx.lineWidth = 1;
                 ctx.strokeRect(cx - L, y - a, L * 2, a * 2);
@@ -207,7 +230,9 @@
                 const w = this.tokenWidth(ctx, tok, h),
                     trig = tok === 'LT' || tok === 'RT',
                     bh = h * 0.82;
+
                 const t = SHOULDER[tok] ? S.sh[tok] : tok === 'SELECT' ? S.select : S.start;
+
                 ctx.fillStyle = trig ? '#3b404d' : '#262a34';
                 BW.roundRect(ctx, x, y - bh / 2, w, bh, trig ? bh * 0.5 : bh * 0.3);
                 ctx.fill();
@@ -220,9 +245,12 @@
                 ctx.textBaseline = 'middle';
                 ctx.fillText(t, x + w / 2, y + h * 0.03);
                 ctx.restore();
+
                 return w;
             }
+
             ctx.restore();
+
             return h;
         },
 
@@ -230,12 +258,16 @@
         keyWidth(ctx, text, h) {
             ctx.save();
             ctx.font = `700 ${Math.round(h * 0.66)}px ${BW.FONT_T}`;
+
             const w = ctx.measureText(text).width + h * 0.8;
+
             ctx.restore();
+
             return Math.max(h, w);
         },
         drawKeycap(ctx, text, x, y, h) {
             const w = this.keyWidth(ctx, text, h);
+
             ctx.save();
             ctx.fillStyle = '#efe2c6';
             BW.roundRect(ctx, x, y - h / 2, w, h, Math.min(7, h * 0.25));
@@ -246,6 +278,7 @@
             ctx.textBaseline = 'middle';
             ctx.fillText(text, x + w / 2, y + h * 0.04);
             ctx.restore();
+
             return w;
         },
 
@@ -255,7 +288,9 @@
         },
         actionWidth(ctx, action, h, mode) {
             mode = mode || this.mode();
+
             if (mode === 'kb') return this.keyWidth(ctx, BW.Input.label(action, 'kb'), h);
+
             return this.seqWidth(
                 ctx,
                 this.tokens(action).flatMap((t, i) => (i ? ['/', t] : [t])),
@@ -264,7 +299,9 @@
         },
         drawAction(ctx, action, x, y, h, mode) {
             mode = mode || this.mode();
+
             if (mode === 'kb') return this.drawKeycap(ctx, BW.Input.label(action, 'kb'), x, y, h);
+
             return this.drawSeq(
                 ctx,
                 this.tokens(action).flatMap((t, i) => (i ? ['/', t] : [t])),
@@ -277,18 +314,24 @@
         // A free sequence of canonical tokens and plain text (e.g. ['DD', '+', 'W'])
         seqWidth(ctx, seq, h) {
             let w = 0;
+
             for (const s of seq) w += (TOKENS[s] ? this.tokenWidth(ctx, s, h) : this.textWidth(ctx, s, h)) + 6;
+
             return Math.max(0, w - 6);
         },
         textWidth(ctx, s, h) {
             ctx.save();
             ctx.font = `600 ${Math.round(h * 0.78)}px ${BW.FONT_B}`;
+
             const w = ctx.measureText(s).width;
+
             ctx.restore();
+
             return w;
         },
         drawSeq(ctx, seq, x, y, h) {
             let cx = x;
+
             for (const s of seq) {
                 if (TOKENS[s]) cx += this.drawToken(ctx, s, cx, y, h) + 6;
                 else {
@@ -302,6 +345,7 @@
                     ctx.restore();
                 }
             }
+
             return cx - x - 6;
         },
     };

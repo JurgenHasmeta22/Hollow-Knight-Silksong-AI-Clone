@@ -1,4 +1,5 @@
 'use strict';
+
 // Pre-renders a room's terrain into cached canvases: textured rock with rounded convex corners,
 // an ink outline, depth shading toward the interior, lit rims, and area-specific edge dressing.
 (function (BW) {
@@ -12,10 +13,12 @@
         build(room) {
             const def = room.def,
                 area = room.area;
+
             const W = room.w,
                 H = room.h,
                 pw = room.pw,
                 ph = room.ph;
+
             const g = def.grid;
             const solid = (x, y) => (x < 0 || y < 0 || x >= W || y >= H ? true : isSolidChar(g[y][x]));
             const rng = BW.seeded(BW.hashStr(def.id));
@@ -41,6 +44,7 @@
                     if (path.roundRect && (tl || tr || br || bl)) path.roundRect(x * T, y * T, T, T, [tl, tr, br, bl]);
                     else path.rect(x * T, y * T, T, T);
                 }
+
             // concave fillets so inner corners read as carved, not gridded
             for (let y = 0; y < H; y++)
                 for (let x = 0; x < W; x++) {
@@ -97,8 +101,9 @@
             if (tex) {
                 const pat = x.createPattern(tex, 'repeat');
                 const s = 256 / tex.width;
-                
+
                 if (pat.setTransform && window.DOMMatrix) pat.setTransform(new DOMMatrix().scale(s, s));
+
                 x.fillStyle = pat;
             } else x.fillStyle = area.fog;
 
@@ -119,6 +124,7 @@
                         dist[yy * W + xx] = 0;
                         q.push(yy * W + xx);
                     }
+
             for (let i = 0; i < q.length; i++) {
                 const id = q[i],
                     cx = id % W,
@@ -132,15 +138,16 @@
                     [cx, cy - 1],
                 ]) {
                     if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
-                    
+
                     const n = ny * W + nx;
-                    
+
                     if (dist[n] > d) {
                         dist[n] = d;
                         q.push(n);
                     }
                 }
             }
+
             const sh = BW.makeCanvas(W, H),
                 sx = sh.getContext('2d'),
                 img = sx.createImageData(W, H);
@@ -170,10 +177,10 @@
 
                     if (!solid(xx, yy - 1)) {
                         const gr = x.createLinearGradient(0, yy * T, 0, yy * T + 14);
-                        
+
                         gr.addColorStop(0, `rgba(${rr},${rg},${rb},0.5)`);
                         gr.addColorStop(1, `rgba(${rr},${rg},${rb},0)`);
-                        
+
                         x.fillStyle = gr;
                         x.fillRect(xx * T, yy * T, T, 14);
                     }
@@ -193,6 +200,7 @@
 
             // ---- edge dressing ----
             const fx = x; // grass "in front" is baked straight into the terrain: no second room-sized canvas
+
             const tops = [],
                 bottoms = [];
 
@@ -201,7 +209,7 @@
 
                 for (let xx = 0; xx <= W; xx++) {
                     const edge = xx < W && solid(xx, yy) && !solid(xx, yy - 1) && yy > 0;
-                    
+
                     if (edge) {
                         if (!run) run = { y: yy, x0: xx, x1: xx };
                         else run.x1 = xx;
@@ -215,7 +223,7 @@
 
                 for (let xx = 0; xx <= W; xx++) {
                     const edge = xx < W && solid(xx, yy) && !solid(xx, yy + 1) && yy < H - 1;
-                    
+
                     if (edge) {
                         if (!run) run = { y: yy, x0: xx, x1: xx };
                         else run.x1 = xx;
@@ -227,7 +235,7 @@
             }
 
             const style = DRESS[area.dress || area.id] || DRESS.mosslit;
-            
+
             for (const r of tops) style.top(x, fx, r, rng, area, room);
             for (const r of bottoms) style.bottom(x, r, rng, area, room);
 
@@ -266,6 +274,7 @@
             const secrets = (def.secrets || []).map((s) => {
                 const sw = (s.x1 - s.x0 + 1) * T,
                     shh = (s.y1 - s.y0 + 1) * T;
+
                 const cv = BW.makeCanvas(sw + 2 * T, shh + 2 * T),
                     cx2 = cv.getContext('2d');
 
@@ -276,13 +285,14 @@
 
                     if (pat.setTransform && window.DOMMatrix)
                         pat.setTransform(new DOMMatrix().scale(256 / tex.width, 256 / tex.width));
+
                     cx2.fillStyle = pat;
                 } else cx2.fillStyle = area.fog;
-                
+
                 cx2.fillRect((s.x0 - 0.2) * T, (s.y0 - 0.2) * T, sw + 0.4 * T, shh + 0.4 * T);
                 cx2.fillStyle = BW.rgba(area.deep, 0.62);
                 cx2.fillRect((s.x0 - 0.2) * T, (s.y0 - 0.2) * T, sw + 0.4 * T, shh + 0.4 * T);
-                
+
                 return {
                     id: s.id,
                     canvas: cv,
@@ -303,8 +313,8 @@
 
             const free = (s) => {
                 if (!s) return;
-                if (s.close) s.close();
 
+                if (s.close) s.close();
                 else {
                     s.width = 0;
                     s.height = 0;
@@ -326,22 +336,25 @@
         // A breakable wall drawn as cracked rock in the room's texture.
         drawBreakable(ctx, room, b, t) {
             const area = room.area;
+
             const x0 = b.x0 * T,
                 y0 = b.y0 * T,
                 w = (b.x1 - b.x0 + 1) * T,
                 h = (b.y1 - b.y0 + 1) * T;
-            
+
             const shake = b.shake > 0 ? Math.sin(t * 90) * 3 * (b.shake / 0.25) : 0;
+
             ctx.save();
             ctx.translate(shake, 0);
+
             const tex = BW.Assets.img(area.tex);
 
             if (tex) {
                 const pat = ctx.createPattern(tex, 'repeat');
-                
+
                 if (pat.setTransform && window.DOMMatrix)
                     pat.setTransform(new DOMMatrix().scale(256 / tex.width, 256 / tex.width));
-                
+
                 ctx.fillStyle = pat;
             } else ctx.fillStyle = area.fog;
 
@@ -385,6 +398,7 @@
             const a = gt.anim;
 
             if (a >= 1 && gt.kind !== 'seal') return;
+
             if (gt.kind === 'bars') {
                 const off = a * h;
 
@@ -397,6 +411,7 @@
 
                 for (let i = 0; i < 4; i++) {
                     const bx = x0 + 8 + i * ((w - 16) / 3);
+
                     ctx.fillStyle = '#2c2833';
                     ctx.fillRect(bx - 4, y0 - off, 8, h);
                     ctx.fillStyle = 'rgba(255,230,190,0.18)';
@@ -419,9 +434,10 @@
                 ctx.fillRect(x0 + half + open, y0 + 6, half, h - 10);
                 ctx.strokeStyle = 'rgba(255,230,190,0.2)';
                 ctx.lineWidth = 2;
-                
+
                 for (let i = 0; i < 4; i++) {
                     const bx = x0 + 10 + i * 20;
+
                     ctx.beginPath();
                     ctx.moveTo(bx, y0 + 8);
                     ctx.lineTo(bx, y0 + h - 6);
@@ -438,6 +454,7 @@
 
                 for (const s of [-1, 1]) {
                     const px = s < 0 ? x0 - open : x0 + half + open;
+
                     ctx.fillStyle = '#4a4656';
                     ctx.fillRect(px, y0, half, h);
                     ctx.fillStyle = 'rgba(240,235,255,0.15)';
@@ -459,6 +476,7 @@
                 const y = r.y * T,
                     x0 = r.x0 * T - 4,
                     x1 = (r.x1 + 1) * T + 4;
+
                 // moss blanket
 
                 x.fillStyle = '#1f5a4a';
@@ -466,27 +484,31 @@
                 x.moveTo(x0, y + 10);
 
                 for (let px = x0; px <= x1; px += 10) x.lineTo(px, y - 3 - rng() * 5);
+
                 x.lineTo(x1, y + 12);
-                
+
                 for (let px = x1; px >= x0; px -= 14) x.lineTo(px, y + 9 + rng() * 9);
+
                 x.closePath();
                 x.fill();
                 x.fillStyle = '#3c8f72';
                 x.beginPath();
                 x.moveTo(x0, y + 2);
-                
+
                 for (let px = x0; px <= x1; px += 8) x.lineTo(px, y - 2 - rng() * 4);
+
                 x.lineTo(x1, y + 4);
                 x.lineTo(x0, y + 4);
                 x.closePath();
                 x.fill();
-                
+
                 // grass blades, some in front of the player
                 for (let px = x0 + 4; px < x1 - 4; px += 5 + rng() * 6) {
                     const h = 6 + rng() * 14,
                         lean = (rng() - 0.5) * 8;
+
                     const tgt = rng() < 0.25 ? fx : x;
-                    
+
                     tgt.strokeStyle = rng() < 0.15 ? '#8ff0c8' : rng() < 0.5 ? '#2f7e63' : '#4fae86';
                     tgt.lineWidth = 1.6;
                     tgt.beginPath();
@@ -507,10 +529,10 @@
 
                 // occasional props on wide ledges
                 const len = r.x1 - r.x0 + 1;
-                
+
                 if (len >= 4) {
                     const n = Math.floor(len / 6) + (rng() < 0.5 ? 1 : 0);
-                    
+
                     for (let i = 0; i < n; i++) {
                         const pick = BW.pick([
                             'deco_mos_mush',
@@ -523,6 +545,7 @@
 
                         const px = x0 + 20 + rng() * (x1 - x0 - 40);
                         const sc = 0.8 + rng() * 0.5;
+
                         const hh =
                             {
                                 deco_mos_mush: 60,
@@ -531,11 +554,12 @@
                                 deco_mos_crystal: 40,
                                 deco_mos_rock: 34,
                             }[pick] * sc;
-                        
+
                         const im = BW.Assets.img(pick);
 
                         if (im) {
                             const ww = (hh * im.width) / im.height;
+
                             (rng() < 0.3 ? fx : x).drawImage(im, px - ww / 2, y - hh + 6, ww, hh);
                         }
                     }
@@ -548,7 +572,7 @@
 
                 for (let px = x0 + 6; px < x1 - 4; px += 9 + rng() * 16) {
                     const len = 8 + rng() * (rng() < 0.15 ? 70 : 24);
-                    
+
                     x.strokeStyle = rng() < 0.3 ? 'rgba(120,230,190,0.55)' : 'rgba(30,70,60,0.9)';
                     x.lineWidth = 1.5 + rng() * 1.5;
                     x.beginPath();
@@ -582,11 +606,11 @@
                 x.fillStyle = '#3c8f72';
 
                 for (let px = x0; px < x1; px += 6) x.fillRect(px, y - 1 - rng() * 3, 5, 5);
-                
+
                 x.strokeStyle = 'rgba(20,14,10,0.9)';
                 x.lineWidth = 2;
                 x.strokeRect(x0 - 1, y + 1, x1 - x0 + 2, 15);
-                
+
                 for (let px = x0 + 8; px < x1; px += 30) {
                     x.strokeStyle = 'rgba(30,70,60,0.8)';
                     x.beginPath();
@@ -611,7 +635,7 @@
                 x.strokeStyle = 'rgba(15,10,8,0.9)';
                 x.lineWidth = 2;
                 x.strokeRect(x0, y - 2, x1 - x0, 12);
-                
+
                 for (let px = x0 + 14; px < x1 - 6; px += 38) {
                     x.fillStyle = '#c9a26a';
                     x.beginPath();
@@ -635,16 +659,17 @@
 
                 if (len >= 5 && rng() < 0.7) {
                     const pick = BW.pick(['deco_sp_spool', 'deco_sp_crates', 'deco_sp_gear', 'deco_sp_needle']);
-                    
+
                     const hh =
                         { deco_sp_spool: 54, deco_sp_crates: 62, deco_sp_gear: 50, deco_sp_needle: 80 }[pick] *
                         (0.85 + rng() * 0.3);
-                    
+
                     const im = BW.Assets.img(pick);
                     const px = x0 + 30 + rng() * (x1 - x0 - 60);
-                    
+
                     if (im) {
                         const ww = (hh * im.width) / im.height;
+
                         x.drawImage(im, px - ww / 2, y - hh + 4, ww, hh);
                     }
                 }
@@ -656,17 +681,17 @@
 
                 x.fillStyle = '#2a1f1a';
                 x.fillRect(x0, y - 8, x1 - x0, 8);
-                
+
                 for (let px = x0 + 10; px < x1 - 6; px += 14 + rng() * 26) {
                     const len = 10 + rng() * (rng() < 0.2 ? 90 : 30);
-                    
+
                     x.strokeStyle = `rgba(235,228,210,${0.18 + rng() * 0.3})`;
                     x.lineWidth = 1;
                     x.beginPath();
                     x.moveTo(px, y);
                     x.lineTo(px + (rng() - 0.5) * 6, y + len);
                     x.stroke();
-                    
+
                     if (len > 50 && rng() < 0.5) {
                         x.fillStyle = 'rgba(240,232,215,0.55)';
                         x.beginPath();
@@ -683,7 +708,7 @@
                 BW.drawPlank(x, x0, y, x1 - x0, 14, '#5a4030', '#b38a5c');
                 x.strokeStyle = '#2a1e18';
                 x.lineWidth = 3;
-                
+
                 for (const px of [x0 + 10, x1 - 10]) {
                     x.beginPath();
                     x.moveTo(px, y + 14);
@@ -707,7 +732,7 @@
                 x.strokeStyle = 'rgba(20,20,30,0.85)';
                 x.lineWidth = 2;
                 x.strokeRect(x0, y - 4, x1 - x0, 9);
-                
+
                 for (let px = x0 + 20; px < x1 - 10; px += 40) {
                     x.fillStyle = 'rgba(80,80,100,0.5)';
                     x.fillRect(px, y - 3, 2, 7);
@@ -720,9 +745,10 @@
                     const hh = { deco_bf_candles: 40, deco_bf_bellfallen: 46 }[pick] * (0.85 + rng() * 0.3);
                     const im = BW.Assets.img(pick);
                     const px = x0 + 24 + rng() * (x1 - x0 - 48);
-                    
+
                     if (im) {
                         const ww = (hh * im.width) / im.height;
+
                         x.drawImage(im, px - ww / 2, y - hh + 4, ww, hh);
                     }
                 }
@@ -736,7 +762,7 @@
                 x.fillRect(x0, y - 6, x1 - x0, 6);
                 x.fillStyle = 'rgba(30,30,45,0.5)';
                 x.fillRect(x0, y - 2, x1 - x0, 2);
-                
+
                 for (let px = x0 + 20; px < x1 - 20; px += 40) {
                     x.fillStyle = '#a49c8c';
                     x.beginPath();
@@ -770,7 +796,7 @@
                 x.strokeStyle = 'rgba(20,20,30,0.85)';
                 x.lineWidth = 2;
                 x.strokeRect(x0, y, x1 - x0, 14);
-                
+
                 for (const px of [x0 + 12, x1 - 12]) {
                     x.fillStyle = '#a8a090';
                     x.beginPath();
@@ -790,7 +816,7 @@
             x1 = (r.x1 + 1) * T;
 
         const dark = (area.dress || area.id) === 'belfry' ? '#2a2630' : '#1d1416';
-        
+
         x.fillStyle = dark;
         x.fillRect(x0, y - 12, x1 - x0, 12);
 
@@ -819,9 +845,9 @@
         x.lineWidth = 3;
         x.beginPath();
         x.moveTo(x0, y - 8);
-        
+
         for (let px = x0; px <= x1; px += 16) x.lineTo(px, y - 8 - Math.sin(px * 0.13) * 4);
-        
+
         x.stroke();
     }
 

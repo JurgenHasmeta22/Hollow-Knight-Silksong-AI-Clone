@@ -1,4 +1,5 @@
 'use strict';
+
 // Keyboard + gamepad input mapped to abstract actions. Edges are latched until the next fixed step
 // consumes them, so a quick tap is never lost regardless of frame rate.
 (function (BW) {
@@ -94,40 +95,60 @@
                 this.pressed[a] = false;
                 this.released[a] = false;
             }
+
             window.addEventListener('keydown', (e) => {
                 const acts = KEYMAP[e.code];
+
                 if (acts || e.code === 'F11') {
                     if (e.code !== 'F11') e.preventDefault();
                 }
+
                 if (e.repeat) return;
+
                 this.device = 'kb';
                 this._anyKeyCallbacks.forEach((cb) => cb(e));
+
                 if (!acts) return;
+
                 this._keysHeld = this._keysHeld || {};
+
                 if (this._keysHeld[e.code]) return;
+
                 this._keysHeld[e.code] = true;
+
                 for (const a of acts) {
                     if (this.kbDown[a] === 0) this.latchPress[a] = true;
+
                     this.kbDown[a]++;
                 }
             });
+
             window.addEventListener('keyup', (e) => {
                 const acts = KEYMAP[e.code];
+
                 if (!acts) return;
+
                 e.preventDefault();
+
                 if (!this._keysHeld || !this._keysHeld[e.code]) return;
+
                 this._keysHeld[e.code] = false;
+
                 for (const a of acts) {
                     this.kbDown[a] = Math.max(0, this.kbDown[a] - 1);
+
                     if (this.kbDown[a] === 0) this.latchRelease[a] = true;
                 }
             });
+
             window.addEventListener('blur', () => this.clearAll());
+
             window.addEventListener('gamepadconnected', (e) => {
                 this.padConnected = true;
                 this.padId = e.gamepad.id;
                 BW.note('pad connected');
             });
+
             window.addEventListener('gamepaddisconnected', () => {
                 this.padConnected = false;
                 this.clearPad();
@@ -140,14 +161,18 @@
 
         clearAll() {
             this._keysHeld = {};
+
             for (const a of ACTIONS) {
                 if (this.kbDown[a]) this.latchRelease[a] = true;
+
                 this.kbDown[a] = 0;
             }
+
             this.clearPad();
         },
         clearPad() {
             for (const a of ACTIONS) this.padDown[a] = false;
+
             this.stick.x = 0;
             this.stick.y = 0;
         },
@@ -155,47 +180,63 @@
         pollPad() {
             const pads = navigator.getGamepads ? navigator.getGamepads() : [];
             let pad = null;
+
             for (const p of pads) {
                 if (p && p.connected) {
                     pad = p;
                     break;
                 }
             }
+
             const next = {};
+
             for (const a of ACTIONS) next[a] = false;
+
             if (pad) {
                 this.padConnected = true;
                 this.padId = pad.id || this.padId;
+
                 pad.buttons.forEach((b, i) => {
                     const pressed = typeof b === 'object' ? b.pressed || b.value > 0.5 : b > 0.5;
+
                     if (pressed && PADMAP[i]) for (const a of PADMAP[i]) next[a] = true;
                 });
+
                 const ax = pad.axes[0] || 0,
                     ay = pad.axes[1] || 0;
+
                 this.stick.x = Math.abs(ax) > 0.2 ? ax : 0;
                 this.stick.y = Math.abs(ay) > 0.2 ? ay : 0;
+
                 if (ax < -0.45) next.left = true;
                 if (ax > 0.45) next.right = true;
                 if (ay < -0.5) next.up = true;
                 if (ay > 0.5) next.down = true;
             }
+
             let any = false;
+
             for (const a of ACTIONS) {
                 if (next[a] && !this.padDown[a]) {
                     this.latchPress[a] = true;
                     any = true;
                 }
+
                 if (!next[a] && this.padDown[a]) this.latchRelease[a] = true;
+
                 this.padDown[a] = next[a];
             }
+
             if (any) this.device = 'pad';
         },
 
         // Called once per fixed simulation step (and by menus once per frame).
         poll() {
             this.pollPad();
+
             for (const a of ACTIONS) {
                 const d = this.enabled && (this.kbDown[a] > 0 || this.padDown[a] || this.injected[a]);
+
                 this.pressed[a] = this.enabled && !!this.latchPress[a];
                 this.released[a] = !!this.latchRelease[a];
                 this.down[a] = d;
@@ -212,13 +253,16 @@
         inject(a, isDown) {
             if (isDown && !this.injected[a]) this.latchPress[a] = true;
             if (!isDown && this.injected[a]) this.latchRelease[a] = true;
+
             this.injected[a] = isDown;
         },
 
         // Human readable binding labels for prompts and the controls screen. Pad names follow the chosen controller style.
         label(action, device) {
             const pad = (device || this.device) === 'pad';
+
             if (pad) return BW.Glyphs.words(action);
+
             const K = {
                 left: 'A / ←',
                 right: 'D / →',
@@ -237,6 +281,7 @@
                 confirm: 'Enter / J',
                 back: 'Esc',
             };
+
             return K[action] || action;
         },
     };

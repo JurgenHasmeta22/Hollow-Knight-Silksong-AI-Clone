@@ -1,4 +1,5 @@
 'use strict';
+
 // World content: areas and rooms. Room x/y are positions on the shared world tile grid, so adjacent
 // rooms line up exactly and the map can draw everything in place. Interiors are carved out of solid rock.
 (function (BW) {
@@ -101,6 +102,7 @@
         r.air(40, 18, 41, 19);
         r.ent('spawn', 6, 2);
         r.ent('lantern', 36, 16, { id: 'lan_m1' });
+
         r.ent('sign', 3, 16, {
             title: 'Weathered Tablet',
             text: [
@@ -108,11 +110,13 @@
                 'Weaver, if you read this — mend what we could not.',
             ],
         });
+
         r.ent('sign', 42, 16, {
             title: 'Sealed Hatch',
             text: ['An iron hatch, bolted shut from below.', 'Faint bell-cords vanish into the dark beneath it.'],
             small: true,
         });
+
         r.ent('glint', 23, 11, { id: 'g_m1a', n: 4 });
         r.ent('hint', 7, 15, { act: 'move', text: 'Move' });
         r.ent('hint', 12, 14, { act: 'jump', text: 'Jump' });
@@ -169,6 +173,7 @@
         r.plat(20, 23, 32);
         r.plat(13, 16, 29);
         r.ent('lantern', 6, 25, { id: 'lan_m3' });
+
         r.ent('sign', 24, 37, {
             title: 'Grotto Marker',
             text: [
@@ -177,6 +182,7 @@
                 'Below: the deep roots. East: the Sundered Span.',
             ],
         });
+
         r.deco('statue_moth', 33, 38, { scale: 1.0, layer: 'back', alpha: 0.85 });
         r.light(6, 23, 6, '#ffd59a', { a: 0.25 });
     });
@@ -190,6 +196,7 @@
         r.air(25, 12, 32, 25);
         r.air(23, 13, 24, 25); // the chasm (8 tiles at the top)
         r.thorns(23, 32, 26);
+
         r.ent('sign', 20, 11, {
             title: 'Broken Span',
             text: [
@@ -198,6 +205,7 @@
                 'Only those who learned the Swift Stitch could cross it now.',
             ],
         });
+
         r.ent('crawler', 44, 12);
         r.ent('sentinel', 56, 12);
         r.ent('glint', 38, 12, { id: 'g_m4a', n: 6 });
@@ -264,6 +272,7 @@
         r.ent('lift', 31, 37, { id: 'm7_lift', w: 3, top: 4, bottom: 37, flag: 'bell1' });
         r.ent('toll', 12, 40, { bell: 1 });
         r.ent('sentinel', 22, 40);
+
         r.ent('sign', 5, 40, {
             title: 'Toll-Loom',
             text: [
@@ -272,6 +281,7 @@
                 'The threads hang slack. They could be woven again.',
             ],
         });
+
         r.deco('cords', 12, 0, { h: 30, layer: 'back' });
         r.deco('cords', 32.5, 0, { h: 4, layer: 'back', thin: true });
         r.light(12, 34, 9, '#9ff5dc', { a: 0.25 });
@@ -334,10 +344,12 @@
         r.ent('lantern', 19, 19, { id: 'lan_s2' });
         r.ent('shrine', 31, 19, { ability: 'parry' });
         r.ent('npc', 26, 19, { who: 'odo' });
+
         r.ent('sign', 5, 10, {
             title: 'Guild Notice',
             text: ['GUILD HALL OF THE BELLWEAVERS', 'Mind the shuttles. Mend what frays. Ring at dusk.'],
         });
+
         r.deco('loom', 8, 20, { layer: 'back' });
         r.deco('spools', 23, 20, { layer: 'back' });
         r.light(19, 16, 7, '#ffcf8a', { a: 0.3 });
@@ -379,11 +391,13 @@
         r.plat(35, 38, 5);
         r.plat(33, 37, 3);
         r.ent('shrine', 25, 16, { ability: 'dash' });
+
         r.ent('sign', 3, 16, {
             title: 'Chute',
             text: ['A weaver’s chute, dropping to the Sundered Span below.'],
             small: true,
         });
+
         r.ent('hint', 21, 15, { act: 'dash', text: 'Dash across', range: 5, needs: 'dash' });
         r.light(25, 12, 8, '#ffe2b0', { a: 0.35 });
     });
@@ -404,6 +418,7 @@
         r.solid(1, 14, 6, 15); // a ledge only a dash can reach
         r.ent('pickup', 3, 13, { kind: 'spool', id: 'spool_s5' });
         r.ent('seal', 23, 1, {});
+
         r.ent('sign', 10, 23, {
             title: 'The Belfry Seal',
             text: [
@@ -412,6 +427,7 @@
                 'When both sing, the way above will open.',
             ],
         });
+
         r.ent('flyer', 33, 14);
         r.light(23, 3, 6, '#e7d6ff', { a: 0.25 });
     });
@@ -422,15 +438,18 @@
         r.air(0, 103, 2, 106); // west <- M8 (bottom station)
         r.air(29, 20, 31, 23);
         r.solid(9, 24, 31, 24); // east -> F1 (Ashen Ramparts), off the top station
+
         r.ent('sign', 26, 23, {
             title: 'Rampart Door',
             text: ['A way out of the shaft: a barbican door, hung open.', 'Torchlight flickers beyond.'],
             small: true,
         });
+
         r.ent('lift', 3, 107, { id: 's6_lift', w: 4, top: 24, bottom: 107, flag: 'bell2', speed: 520 });
         r.deco('cords', 5, 0, { h: 107, layer: 'back' });
         r.deco('gears', 18, 30, { layer: 'back' });
         r.deco('gears', 22, 70, { layer: 'back', scale: 0.8 });
+
         r.ent('sign', 1, 106, {
             title: 'Cord Lift',
             text: ['THE CORD LIFT', 'Driven by the second toll-loom. Its cords hang slack while the loom is silent.'],
@@ -452,6 +471,7 @@
         r.solid(13, 14, 19, 15);
         r.solid(32, 29, 36, 31);
         r.solid(40, 26, 46, 31);
+
         r.ent('sign', 38, 31, {
             title: 'Overlook',
             text: [
@@ -459,6 +479,7 @@
                 'Every dusk the Belfry answered the looms below. Now nothing rings at all.',
             ],
         });
+
         r.ent('cache', 43, 25, { id: 'gc_b1', n: 30 });
         r.ent('flyer', 16, 8, { variant: 'pale' });
         r.ent('flyer', 32, 16, { variant: 'pale' });
@@ -498,6 +519,7 @@
         r.ent('shrine', 43, 23, { ability: 'dodge' });
         r.ent('hint', 38, 23, { act: 'dash', text: 'Dash as a blow lands: Shadow Step', range: 5, needs: 'dodge' });
         r.ent('door', 3, 20, {});
+
         r.ent('sign', 25, 23, {
             title: 'Keeper’s Tablet',
             text: [
@@ -506,10 +528,12 @@
                 'The great doors have not opened since the silence.',
             ],
         });
+
         r.ent('sign', 36, 23, {
             title: 'Scratched Plea',
             text: ['Someone carved this in a hurry:', '“The bells did not break. They were stilled.”'],
         });
+
         r.deco('statue_keeper', 12, 24, { layer: 'back', scale: 1.0 });
         r.deco('statue_keeper', 31, 24, { layer: 'back', scale: 1.0, flip: true });
         r.deco('window', 22, 4, { layer: 'back' });
@@ -539,6 +563,7 @@
             r.gate(41, 12, 42, 20, 'arena_sealed', { kind: 'bars', invert: true, fixed: true });
             r.ent('exitdoor', 56, 20, {});
             r.ent('tollwave', 44, 20, {});
+
             r.ent('hint', 47, 16, {
                 act: 'dash',
                 text: 'Run at the toll, jump, then dash across',
@@ -546,6 +571,7 @@
                 needs: 'dash',
                 unless: 'warden_met',
             });
+
             r.ent('sign', 53, 20, {
                 title: 'Warden’s Vow',
                 text: [
@@ -554,6 +580,7 @@
                     'Beneath it, scratched much later: “When it tolls, the floor itself sings. Leap — and stitch across.”',
                 ],
             });
+
             r.ent('warden', 10, 20, { facing: 1 });
             r.ent('greatbell', 20, 2, {});
             r.trigger(1, 2, 37, 20, 'warden');

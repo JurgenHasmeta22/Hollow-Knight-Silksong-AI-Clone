@@ -1,4 +1,5 @@
 'use strict';
+
 // Archive data (Field Guide tab). Control tips and mechanics are always readable (a few unlock with abilities); the
 // bestiary fills in as creatures are met in the world. Progress lives in state.codex and is saved with the game.
 (function (BW) {
@@ -364,7 +365,9 @@
             ],
         },
     ];
+
     const BY_ID = {};
+
     for (const b of BEASTS) BY_ID[b.id] = b;
 
     // Short lessons shown once, in play, at the right moment (also listed in the guide)
@@ -387,25 +390,34 @@
         // each returns true the first time the thing is discovered
         see(st, id) {
             const c = this.data(st);
+
             if (!BY_ID[id] || c.seen[id]) return false;
+
             c.seen[id] = true;
+
             return true;
         },
         kill(st, id) {
             const c = this.data(st);
+
             if (!BY_ID[id]) return;
+
             c.seen[id] = true;
             c.kills[id] = (c.kills[id] || 0) + 1;
         },
         move(st, id, mv) {
             const c = this.data(st),
                 k = id + ':' + mv;
+
             if (c.moves[k]) return false;
+
             c.moves[k] = true;
+
             return true;
         },
         found(st) {
             const c = this.data(st);
+
             return BEASTS.filter((b) => c.seen[b.id]).length;
         },
         tipOpen(st, t) {
@@ -415,21 +427,27 @@
         // fill in sensible values for saves made before the guide existed
         upgrade(d) {
             const o = d.codex || {};
+
             const c = (d.codex = {
                 seen: Object.assign({}, o.seen),
                 kills: Object.assign({}, o.kills),
                 moves: Object.assign({}, o.moves),
                 tips: Object.assign({}, o.tips),
             });
+
             for (const key of Object.keys(d.cleared || {})) {
                 const id = key.split(':')[1];
+
                 if (BY_ID[id] && id !== 'warden') {
                     c.seen[id] = true;
                     c.kills[id] = Math.max(c.kills[id] || 0, 1);
                 }
             }
+
             const f = d.flags || {};
+
             if (f.warden_met) c.seen.warden = true;
+
             if (f.warden_defeated) {
                 c.seen.warden = true;
                 c.kills.warden = Math.max(c.kills.warden || 0, 1);

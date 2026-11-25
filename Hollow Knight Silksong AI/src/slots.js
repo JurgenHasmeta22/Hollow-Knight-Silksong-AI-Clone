@@ -1,8 +1,10 @@
 'use strict';
+
 // Menu screens for manual saves (slot cards), the lantern menu, the Warden rematch briefing and the test saves.
 (function (BW) {
     const M = BW.Menu.prototype;
     const Save = BW.Save;
+
     const orn = BW.menuOrnament,
         needle = BW.menuNeedle;
 
@@ -12,7 +14,7 @@
         const d = new Date(iso);
 
         if (isNaN(d)) return '';
-        
+
         return (
             d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
             '  ' +
@@ -23,9 +25,9 @@
     // ================================================================ slot cards
     M.slotRefresh = function (s) {
         const c = { '-1': Save.summary(Save.readRaw()) };
-        
+
         for (let i = 0; i < Save.SLOTS; i++) c[i] = Save.summary(Save.readSlot(i));
-        
+
         s.data.cache = c;
     };
 
@@ -35,7 +37,7 @@
             mode = s.data.mode;
 
         if (!s.data.cache) this.slotRefresh(s);
-        
+
         const c = s.data.cache,
             out = [];
 
@@ -49,12 +51,12 @@
                         run();
                     },
                 });
-
             else {
                 this.closeAll();
                 run();
             }
         };
+
         if (mode === 'load')
             out.push({
                 slot: -1,
@@ -72,28 +74,27 @@
                 disabled: mode === 'load' && !c[i],
                 act: () => {
                     if (mode === 'load') loadWith(() => g.loadSlot(i));
-                    
                     else if (c[i])
                         this.push('confirm', {
                             title: 'OVERWRITE SAVE',
                             q: `Overwrite slot ${i + 1}? The older save will be replaced.`,
                             yes: () => this.slotWrite(i),
                         });
-
                     else this.slotWrite(i);
                 },
             });
         }
 
         out.push({ label: 'Back', act: () => this.pop() });
+
         return out;
     };
 
     M.slotWrite = function (i) {
         const ok = this.game.saveToSlot(i);
-        
+
         this.flash(ok ? `Saved to slot ${i + 1}.` : 'Could not write the save (storage full or blocked).');
-        
+
         if (this.screen && this.screen.name === 'slots') this.slotRefresh(this.screen);
     };
 
@@ -104,17 +105,18 @@
         const it = items[this.sel];
 
         if (!it || it.slot == null || it.slot < 0 || !it.sum) return false;
-        
+
         inp.consume('heal');
-        
+
         BW.Audio.play('ui_ok');
-        
+
         this.push('confirm', {
             title: 'DELETE SAVE',
             q: `Delete slot ${it.slot + 1} permanently?`,
             yes: () => {
                 Save.eraseSlot(it.slot);
                 this.flash(`Slot ${it.slot + 1} deleted.`);
+
                 if (this.screen && this.screen.name === 'slots') this.slotRefresh(this.screen);
             },
         });
@@ -135,8 +137,9 @@
         ctx.font = `600 38px ${BW.FONT_T}`;
         ctx.fillStyle = '#f2e6cc';
         ctx.fillText(mode === 'save' ? 'SAVE GAME' : 'LOAD GAME', cx, 58);
-        
+
         orn(ctx, cx, 90, 150);
+
         const x = 150,
             w = W - 300,
             h = 74,
@@ -148,6 +151,7 @@
         items.forEach((it, i) => {
             if (it.slot == null) {
                 backY = y0 + i * (h + gap) + 24;
+
                 return;
             }
 
@@ -158,14 +162,14 @@
 
             ctx.save();
             ctx.fillStyle = on ? 'rgba(34,30,24,0.92)' : 'rgba(14,16,22,0.78)';
-            
+
             BW.roundRect(ctx, x, y, w, h, 10);
-            
+
             ctx.fill();
             ctx.lineWidth = on ? 2 : 1;
             ctx.strokeStyle = on ? 'rgba(240,206,140,0.9)' : 'rgba(236,222,190,0.2)';
             ctx.stroke();
-            
+
             if (sum) {
                 ctx.fillStyle = sum.areaColor;
                 ctx.globalAlpha = on ? 0.9 : 0.55;
@@ -189,30 +193,34 @@
             ctx.textAlign = 'center';
             ctx.fillText(it.slot < 0 ? 'AUTO' : String(it.slot + 1), bx, by + 1);
             ctx.textAlign = 'left';
-            
+
             if (!sum) {
                 ctx.font = `italic 500 25px ${BW.FONT_B}`;
                 ctx.fillStyle = on ? 'rgba(230,220,200,0.75)' : 'rgba(200,190,170,0.4)';
                 ctx.fillText(mode === 'save' ? 'Empty \u2014 save here' : 'Empty', x + 96, by);
             } else {
                 const nm = sum.difficulty === 'nightmare';
+
                 ctx.font = `600 27px ${BW.FONT_B}`;
                 ctx.fillStyle = on ? '#fff1d0' : '#e8dcc2';
                 ctx.fillText(sum.place, x + 96, y + 26);
                 ctx.font = `500 19px ${BW.FONT_B}`;
                 ctx.fillStyle = 'rgba(205,190,160,0.85)';
-                
+
                 const diffName = BW.Difficulty.LEVELS[sum.difficulty] ? BW.Difficulty.LEVELS[sum.difficulty].name : '';
+
                 ctx.fillText(sum.area, x + 96, y + 53);
-                
+
                 const aw = ctx.measureText(sum.area).width;
+
                 ctx.fillStyle = nm ? '#ff5a68' : '#e8c98a';
                 ctx.fillText('\u00b7  ' + diffName, x + 96 + aw + 10, y + 53);
-                
+
                 if (sum.ending || sum.warden) {
                     const dw = ctx.measureText('\u00b7  ' + diffName).width;
+
                     ctx.fillStyle = '#ffd98a';
-                    
+
                     ctx.fillText(
                         sum.ending ? '\u2726 Bell rung' : '\u2726 Warden fallen',
                         x + 96 + aw + 10 + dw + 14,
@@ -228,7 +236,7 @@
                 ctx.font = `500 17px ${BW.FONT_B}`;
                 ctx.fillStyle = 'rgba(205,190,160,0.8)';
                 ctx.fillText(when(sum.saved), x + w - 24, y + 52);
-                
+
                 const col = (label, val, rx) => {
                     ctx.textAlign = 'center';
                     ctx.font = `500 16px ${BW.FONT_B}`;
@@ -243,7 +251,7 @@
                 col('GLINTS', String(sum.glints), x + w - 375);
                 col('NOTES', `${sum.notes}/${sum.notesTotal}`, x + w - 300);
                 col('DEATHS', String(sum.deaths), x + w - 225);
-                
+
                 // map progress strip
                 ctx.fillStyle = 'rgba(255,255,255,0.08)';
                 ctx.fillRect(x + 96, y + h - 9, w - 96 - 480, 3);
@@ -267,7 +275,7 @@
         ctx.font = `${on ? 600 : 500} 30px ${BW.FONT_B}`;
         ctx.fillStyle = on ? '#fff1d0' : 'rgba(225,214,192,0.75)';
         ctx.fillText('Back', cx, backY + 12);
-        
+
         if (on) {
             needle(ctx, cx - 76, backY + 12, 1, this.t);
             needle(ctx, cx + 76, backY + 12, -1, this.t);
@@ -277,11 +285,12 @@
         ctx.fillStyle = 'rgba(225,214,192,0.55)';
 
         const sel = items[this.sel];
+
         const hint =
             mode === 'save'
                 ? 'Manual saves keep a full copy of your progress. You resume at your last lantern.'
                 : 'Loading resumes at the lantern you last rested at.';
-        
+
         ctx.fillText(
             hint + (sel && sel.slot >= 0 && sel.sum ? `   ${BW.Input.label('heal')}  delete` : ''),
             cx,
@@ -344,34 +353,36 @@
 
         BW.roundRect(ctx, px + 8, py + 8, pw - 16, ph - 16, 11);
         ctx.stroke();
-        
+
         const gl = ctx.createRadialGradient(cx, py + 90, 6, cx, py + 90, 190);
+
         gl.addColorStop(0, `rgba(255,205,120,${0.4 + 0.06 * Math.sin(t * 4)})`);
         gl.addColorStop(1, 'rgba(255,205,120,0)');
         ctx.globalCompositeOperation = 'lighter';
         ctx.fillStyle = gl;
         ctx.fillRect(px, py, pw, 260);
         ctx.globalCompositeOperation = 'source-over';
-        
+
         BW.Assets.drawImg(ctx, 'obj_lantern_lit', cx, py + 132, { w: 66, h: 112, ay: 1 });
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.font = `600 36px ${BW.FONT_T}`;
         ctx.fillStyle = '#f2e6cc';
         ctx.fillText('LANTERN', cx, py + 172);
-        
+
         const room = g.room && g.room.def;
+
         ctx.font = `italic 500 21px ${BW.FONT_B}`;
         ctx.fillStyle = '#cbbd9f';
         ctx.fillText(room ? `${room.name} \u2014 ${BW.AREAS[room.area].name}` : '', cx, py + 204);
         orn(ctx, cx, py + 226, 140);
-        
+
         ctx.restore();
-        
+
         this.drawList(ctx, '', py + 270, cx, 54);
-        
+
         const it = this.items()[this.sel];
-        
+
         if (it && it.desc) {
             ctx.save();
             ctx.textAlign = 'center';
@@ -409,35 +420,40 @@
             t = this.t;
 
         ctx.save();
-        
+
         const em = ctx.createRadialGradient(cx, H * 0.95, 40, cx, H * 0.95, H * 0.9);
+
         em.addColorStop(0, `rgba(255,120,40,${0.22 + 0.05 * Math.sin(t * 3)})`);
         em.addColorStop(1, 'rgba(0,0,0,0)');
-        
+
         ctx.fillStyle = em;
         ctx.fillRect(0, 0, W, H);
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.font = `600 22px ${BW.FONT_T}`;
         ctx.fillStyle = '#e8c98a';
-        
+
         if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '8px';
+
         ctx.fillText('BOSS REMATCH', cx + 4, 70);
         ctx.font = `600 56px ${BW.FONT_T}`;
         ctx.fillStyle = '#f7ecd6';
         ctx.shadowColor = 'rgba(255,150,60,0.5)';
         ctx.shadowBlur = 24;
-        
+
         if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '3px';
+
         ctx.fillText('THE BELLBOUND WARDEN', cx, 128);
         ctx.shadowBlur = 0;
-        
+
         if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
+
         ctx.font = `italic 500 26px ${BW.FONT_B}`;
         ctx.fillStyle = '#d9cbb0';
         ctx.fillText('Keeper of the Last Toll', cx, 176);
-        
+
         orn(ctx, cx, 206, 200);
+
         // record card
         const w = 760,
             x = cx - w / 2,
@@ -445,7 +461,7 @@
             h = 112;
 
         ctx.fillStyle = 'rgba(14,16,22,0.8)';
-        
+
         BW.roundRect(ctx, x, y, w, h, 12);
         ctx.fill();
         ctx.strokeStyle = 'rgba(236,222,190,0.28)';
@@ -453,6 +469,7 @@
         ctx.stroke();
 
         const stats = st.stats || {};
+
         const cols = [
             ['BEST TIME', stats.rematchBest ? BW.fmtTime(stats.rematchBest) : '\u2014'],
             ['REMATCHES WON', String(stats.rematchWins || 0)],
@@ -462,6 +479,7 @@
 
         cols.forEach((c, i) => {
             const rx = x + (w * (i + 0.5)) / cols.length;
+
             ctx.font = `500 16px ${BW.FONT_B}`;
             ctx.fillStyle = 'rgba(205,190,160,0.65)';
             ctx.fillText(c[0], rx, y + 32);
@@ -480,6 +498,7 @@
 
         ctx.textAlign = 'left';
         ctx.font = `500 24px ${BW.FONT_B}`;
+
         rules.forEach((r, i) => {
             ctx.fillStyle = '#e8c98a';
             ctx.fillText(r[0], cx - 360, 392 + i * 40);
@@ -524,7 +543,7 @@
         ctx.textBaseline = 'middle';
         ctx.font = `italic 500 23px ${BW.FONT_B}`;
         ctx.fillStyle = '#cbbd9f';
-        
+
         BW.wrapText(ctx, it.desc, BW.VW / 2, BW.VH - 120, BW.VW * 0.6, 30);
         ctx.restore();
     };

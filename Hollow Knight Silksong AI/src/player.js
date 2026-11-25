@@ -1,4 +1,5 @@
 'use strict';
+
 // The Bellweaver: movement, needle combat, Silk Dash, mending (heal) and the Silk Lance.
 (function (BW) {
     const P = BW.PHYS,
@@ -21,6 +22,7 @@
         death: ['hero_death', 10, false],
         lance: ['hero_attack', 26, false],
     };
+
     const FALLBACK = {
         hero_fall: 'hero_jump',
         hero_attack_up: 'hero_attack',
@@ -122,9 +124,11 @@
             const g = this.game,
                 room = g.room,
                 st = g.state;
+
             this.px = this.x;
             this.py = this.y;
             this.animT += dt;
+
             for (const k of [
                 'coyoteT',
                 'invulnT',
@@ -142,6 +146,7 @@
                 'counterT',
             ])
                 if (this[k] > 0) this[k] = Math.max(0, this[k] - dt);
+
             this.flash = Math.max(0, this.flash - dt * 5);
             this.glow = Math.max(0, this.glow - dt * 1.5);
             this.sx = BW.damp(this.sx, 1, 14, dt);
@@ -154,24 +159,31 @@
                 this.vx *= Math.exp(-4 * dt);
                 this.moveAndCollide(dt);
                 this.setAnim('death');
+
                 return;
             }
+
             if (this.state === 'cutscene') {
                 this.applyGravityOnly(dt);
                 this.setAnim(this.onGround ? 'idle' : 'fall');
+
                 return;
             }
+
             if (this.state === 'rest') {
                 this.vx = 0;
                 this.applyGravityOnly(dt);
                 this.setAnim('sit');
                 this.restT += dt;
+
                 if (this.restT > 0.35 && !g.seq && (inp.pressed.interact || inp.pressed.up)) {
                     inp.consume('interact');
                     inp.consume('up');
                     g.openLanternMenu();
+
                     return;
                 }
+
                 if (
                     inp.pressed.left ||
                     inp.pressed.right ||
@@ -184,13 +196,16 @@
                     g.onStandUp();
                     inp.consume('jump');
                 }
+
                 return;
             }
 
             // ---- moving platform carry ----
             if (this.platform && this.onGround) {
                 const p = this.platform;
+
                 if (p.stepDx) Phys.moveX(room, this, p.stepDx);
+
                 if (p.stepDy) {
                     this.y += p.stepDy;
                 }
@@ -198,6 +213,7 @@
 
             let dir = (inp.down.right ? 1 : 0) - (inp.down.left ? 1 : 0);
             const locked = this.lockT > 0 || this.state === 'heal' || this.castT > 0;
+
             if (locked) dir = 0;
 
             // ---- heal (mend) ----
@@ -205,12 +221,15 @@
                 this.state = 'normal';
                 this.glow = 0.3;
             } // released early: no cost
+
             if (this.state === 'heal') {
                 this.healT -= dt;
                 this.vx = 0;
+
                 if (Math.random() < 0.6) {
                     const a = Math.random() * Math.PI * 2,
                         r = BW.rand(40, 70);
+
                     g.fx.spawn({
                         x: this.cx + Math.cos(a) * r,
                         y: this.cy + Math.sin(a) * r,
@@ -224,9 +243,11 @@
                         drag: 0,
                     });
                 }
+
                 if (this.healT <= 0) {
                     st.hp = Math.min(st.maxHp, st.hp + 1);
                     st.silk -= 3;
+
                     g.fx.burst(this.cx, this.cy, 18, {
                         color: ['#fff6dc', '#ffd98a'],
                         speed: 220,
@@ -235,10 +256,12 @@
                         kind: 'glow',
                         size: 8,
                     });
+
                     g.fx.ring(this.cx, this.cy, 10, 70, 0.45, '#ffe7b5', 3);
                     BW.Audio.play('heal');
                     this.glow = 1;
                     g.hud.pulse('hp');
+
                     if (inp.down.heal && st.silk >= 3 && st.hp < st.maxHp && this.onGround) {
                         this.healT = 0.55 * BW.Difficulty.get(st).mend;
                         BW.Audio.play('heal_start', { minGap: 0 });
@@ -267,11 +290,14 @@
                 this.dashDir = dir || this.facing;
                 this.facing = this.dashDir;
                 this.vy = 0;
+
                 if (!this.onGround) this.airDashUsed = true;
+
                 this.dodgeWinT = st.abilities.dodge ? P.dashTime + BW.Difficulty.get(st).dodge : 0; // a blow landing inside this window is a Shadow Step
                 this.attackT = 0;
                 this.castT = 0;
                 BW.Audio.play('dash', { vary: 0.05 });
+
                 g.fx.burst(this.cx - this.dashDir * 10, this.cy + 6, 10, {
                     color: ['#ffe7b5', '#fff'],
                     speed: 200,
@@ -281,6 +307,7 @@
                     kind: 'thread',
                     add: true,
                 });
+
                 this.sx = 1.3;
                 this.sy = 0.8;
                 g.stats.dashes = (g.stats.dashes || 0) + 1;
@@ -290,6 +317,7 @@
                 this.dashT -= dt;
                 this.vx = this.dashDir * P.dashSpeed;
                 this.vy = 0;
+
                 if (Math.floor(this.dashT * 120) % 3 === 0)
                     g.fx.ghost(
                         this.spriteFor('dash'),
@@ -301,6 +329,7 @@
                         0.22,
                         BW.HERO_SCALE,
                     );
+
                 g.fx.thread(
                     this.cx - this.dashDir * 30,
                     this.cy + BW.rand(-12, 12),
@@ -308,6 +337,7 @@
                     this.cy + BW.rand(-16, 16),
                     0.25,
                 );
+
                 if (this.dashT <= 0) {
                     this.vx = this.dashDir * P.runSpeed;
                     this.dashCD = P.dashCooldown;
@@ -315,6 +345,7 @@
             } else {
                 // ---- jumping ----
                 const canJump = this.state === 'normal' && this.lockT <= 0 && this.castT <= 0;
+
                 if (canJump && this.jumpBufT > 0 && inp.down.down && this.onGround && this.standingOnOneWay()) {
                     this.dropT = 0.22;
                     this.dropThrough = true;
@@ -332,6 +363,7 @@
                     this.sx = 0.86;
                     this.sy = 1.16;
                     BW.Audio.play('jump', { vary: 0.08, vol: 0.7 });
+
                     g.fx.burst(this.cx, this.y + this.h, 6, {
                         color: g.room.area.moss,
                         speed: 90,
@@ -342,16 +374,21 @@
                         grav: 300,
                     });
                 }
+
                 if (this.jumpHeld && !inp.down.jump && this.vy < 0) {
                     this.vy *= P.jumpCutMul;
                     this.jumpHeld = false;
                 }
+
                 if (this.vy >= 0) this.jumpHeld = false;
 
                 // ---- gravity ----
                 let grav = this.vy < 0 && this.jumpHeld ? P.gravUp : P.gravDown;
+
                 if (this.jumpHeld && Math.abs(this.vy) < P.apexHangV) grav *= P.apexHangMul;
+
                 this.vy = Math.min(this.vy + grav * dt, P.maxFall);
+
                 if (this.castT > 0 && !this.onGround) this.vy = Math.min(this.vy, 60);
 
                 // ---- horizontal ----
@@ -361,6 +398,7 @@
                 } else {
                     const target = dir * P.runSpeed;
                     const acc = this.onGround ? (dir ? P.groundAccel : P.groundDecel) : dir ? P.airAccel : P.airDecel;
+
                     this.vx = BW.approach(this.vx, target, acc * dt);
                 }
             }
@@ -370,6 +408,7 @@
             // ---- landing / leaving ground ----
             if (this.onGround && !this.wasGround) this.onLand();
             if (!this.onGround && this.wasGround && this.vy >= 0) this.coyoteT = P.coyote;
+
             if (this.onGround) {
                 this.groundT += dt;
                 this.airT = 0;
@@ -381,6 +420,7 @@
 
             // ---- attacks ----
             if (this.castT > 0) this.castT = Math.max(0, this.castT - dt);
+
             if (
                 inp.pressed.attack &&
                 this.attackCD <= 0 &&
@@ -389,6 +429,7 @@
                 this.lockT <= 0
             )
                 this.startAttack(inp);
+
             if (this.attackT > 0) {
                 this.attackT -= dt;
                 this.updateAttack();
@@ -454,9 +495,11 @@
                 this.parryFx = 0;
                 BW.Audio.play('windup', { vol: 0.35, rate: 1.8, minGap: 0 });
             }
+
             // ---- hazards ----
             if (this.dashT <= 0 && Phys.touchesHazard(room, this)) {
                 g.onHazard();
+
                 return;
             }
 
@@ -470,9 +513,11 @@
             // ---- footsteps ----
             if (this.onGround && Math.abs(this.vx) > 60 && this.state === 'normal') {
                 this.stepT -= dt;
+
                 if (this.stepT <= 0) {
                     this.stepT = 0.27;
                     BW.Audio.play('step', { vol: 0.5, vary: 0.15 });
+
                     if (Math.random() < 0.5)
                         g.fx.spawn({
                             x: this.cx - this.facing * 6,
@@ -501,28 +546,36 @@
             const room = this.game.room;
             const dx = this.vx * dt;
             const blockedX = Phys.moveX(room, this, dx);
+
             if (blockedX) {
                 // ledge assist: pop up onto a ledge we barely missed
                 if (!this.onGround && this.vy > -200 && dir === BW.sign(dx) && this.dashT <= 0) this.tryMantle(dx);
+
                 if (this.dashT > 0) {
                     /* dash into wall: stop dash early */ this.dashT = Math.min(this.dashT, 0.02);
                 }
+
                 this.vx = 0;
             }
+
             const res = Phys.moveY(room, this, this.vy * dt);
+
             if (res.ceil) {
                 if (!this.cornerCorrect()) {
                     this.vy = Math.max(this.vy, 0);
                     this.jumpHeld = false;
                 }
             }
+
             this.wasGround = this.onGround;
+
             if (res.landed) {
                 this.onGround = true;
                 this.vy = 0;
                 this.platform = res.platform;
             } else if (this.vy !== 0 || dx !== 0) {
                 this.onGround = Phys.onGround(room, this) && this.vy >= 0;
+
                 if (!this.onGround) this.platform = null;
             }
         }
@@ -532,30 +585,43 @@
             const feet = this.y + this.h;
             const tx = dx > 0 ? Math.floor((this.x + this.w + 2) / T) : Math.floor((this.x - 2) / T);
             const ty = Math.floor((feet - 1) / T);
+
             if (!room.solid(tx, ty) || room.solid(tx, ty - 1) || room.solid(tx, ty - 2)) return false;
+
             const ledgeTop = ty * T;
+
             if (feet - ledgeTop > 16) return false;
+
             const oldY = this.y;
+
             this.y = ledgeTop - this.h - 0.5;
+
             if (Phys.overlapsSolid(room, this)) {
                 this.y = oldY;
+
                 return false;
             }
+
             Phys.moveX(room, this, dx > 0 ? 4 : -4);
             this.vy = Math.min(this.vy, 0);
+
             return true;
         }
 
         cornerCorrect() {
             // nudge sideways when the head clips a ceiling corner by a few pixels
             const room = this.game.room;
+
             for (const off of [3, -3, 6, -6, 9, -9, 12, -12]) {
                 const test = { x: this.x + off, y: this.y - 3, w: this.w, h: this.h };
+
                 if (!Phys.overlapsSolid(room, test)) {
                     this.x += off;
+
                     return true;
                 }
             }
+
             return false;
         }
 
@@ -563,32 +629,40 @@
             const room = this.game.room;
             const ty = Math.floor((this.y + this.h + 1) / T);
             let any = false;
+
             for (let tx = Math.floor((this.x + 0.5) / T); tx <= Math.floor((this.x + this.w - 0.5) / T); tx++) {
                 if (room.solid(tx, ty)) return false;
                 if (room.oneway(tx, ty)) any = true;
             }
+
             return any;
         }
 
         isSafeSpot() {
             const room = this.game.room;
             const ty = Math.floor((this.y + this.h + 1) / T);
+
             const tx0 = Math.floor((this.x - T) / T),
                 tx1 = Math.floor((this.x + this.w + T) / T);
+
             for (let tx = tx0; tx <= tx1; tx++) {
                 if (room.hazard(tx, ty - 1) || room.hazard(tx, ty)) return false;
                 if (!room.solid(tx, ty) && !room.oneway(tx, ty)) return false;
             }
+
             return true;
         }
 
         onLand() {
             const g = this.game;
             const impact = Math.min(1, this.airT / 0.6);
+
             this.sx = 1 + 0.18 * impact;
             this.sy = 1 - 0.2 * impact;
+
             if (this.airT > 0.15) {
                 BW.Audio.play('land', { vol: 0.4 + impact * 0.5 });
+
                 g.fx.burst(this.cx, this.y + this.h, 4 + Math.floor(impact * 8), {
                     color: [BW.rgba(g.room.area.moss, 0.8), BW.rgba(g.room.area.rim, 0.5)],
                     speed: 70 + impact * 90,
@@ -599,6 +673,7 @@
                     grav: 380,
                 });
             }
+
             this.jumpHeld = false;
         }
 
@@ -606,8 +681,10 @@
         startAttack(inp) {
             const g = this.game;
             let d = 'side';
+
             if (inp.down.up) d = 'up';
             else if (inp.down.down && !this.onGround) d = 'down';
+
             this.attackDir = d;
             this.attackT = 0.24;
             this.attackCD = this.counterT > 0 ? 0.15 : 0.3;
@@ -616,7 +693,9 @@
             this.pogoDone = false;
             this.state = 'normal';
             BW.Audio.play('swing', { vary: 0.1, vol: 0.8 });
+
             const fxp = this.slashOrigin(d);
+
             g.fx.slash(fxp.x, fxp.y, d, this.facing, { r: d === 'side' ? 64 : 60, w: 22 });
             this.animT = 0;
         }
@@ -624,13 +703,16 @@
         slashOrigin(d) {
             if (d === 'up') return { x: this.cx, y: this.y + 14 };
             if (d === 'down') return { x: this.cx, y: this.y + this.h - 10 };
+
             return { x: this.cx - this.facing * 2, y: this.cy - 4 };
         }
 
         attackBox() {
             const d = this.attackDir;
+
             if (d === 'up') return { x: this.cx - 38, y: this.y - 74, w: 76, h: 92 };
             if (d === 'down') return { x: this.cx - 34, y: this.y + this.h - 18, w: 68, h: 92 };
+
             return this.facing > 0
                 ? { x: this.cx + 2, y: this.cy - 36, w: 84, h: 62 }
                 : { x: this.cx - 86, y: this.cy - 36, w: 84, h: 62 };
@@ -639,9 +721,12 @@
         updateAttack() {
             const g = this.game;
             const age = 0.24 - this.attackT;
+
             if (age < 0.015 || age > 0.13) return;
+
             const box = this.attackBox();
             const res = g.resolvePlayerAttack(box, this.attackDir, this.attackHits);
+
             if (res.hitEnemy || res.hitSolidThing) {
                 if (this.attackDir === 'down' && !this.pogoDone) this.pogo();
                 else if (this.attackDir === 'side' && res.hitEnemy) {
@@ -649,11 +734,13 @@
                     this.recoilT = 0.08;
                 }
             }
+
             if (this.attackDir === 'down' && !this.pogoDone && Phys.hazardInRect(g.room, box)) {
                 this.pogo();
                 g.fx.burst(this.cx, box.y + 50, 6, { color: '#ffffff', kind: 'spark', speed: 300, life: 0.25 });
                 BW.Audio.play('clink', { vol: 0.5 });
             }
+
             if (res.blocked) {
                 this.vx = -this.facing * 260;
                 this.recoilT = 0.14;
@@ -673,6 +760,7 @@
         deflect(srcX, opts) {
             const g = this.game,
                 st = g.state;
+
             this.parryT = 0;
             this.lockT = 0;
             this.guardT = 0.45;
@@ -684,10 +772,14 @@
             this.sy = 0.9;
             st.silk = Math.min(st.silkMax, st.silk + 1);
             g.hud.pulse('silk');
+
             const dirx = srcX != null ? (this.cx < srcX ? 1 : -1) : this.facing;
+
             this.facing = dirx;
+
             const fx = this.cx + dirx * 30,
                 fy = this.cy - 6;
+
             g.hitstop(0.14);
             g.fx.shake(6, 0.18);
             g.fx.flash('#fff3d0', 0.08);
@@ -698,7 +790,9 @@
             BW.Audio.play('glint', { vol: 0.4, minGap: 0 });
             g.stats.parries = (g.stats.parries || 0) + 1;
             g.teach('riposte');
+
             const src = opts && opts.src;
+
             if (src && src.onParried) src.onParried(this);
         }
 
@@ -707,15 +801,19 @@
         perfectDodge(srcX, opts) {
             const g = this.game,
                 st = g.state;
+
             this.dodgeT = 0.5;
             this.dodgeWinT = 0;
             this.counterT = this.counterMax = 1.6;
             this.attackCD = 0;
             st.silk = Math.min(st.silkMax, st.silk + 1);
             g.hud.pulse('silk');
+
             const fy = this.y + this.h,
                 flip = this.facing < 0;
+
             g.fx.ghost(this.spriteFor('idle'), this.frameFor('idle'), this.cx, fy, flip, '#b9a6ff', 1.1, BW.HERO_SCALE);
+
             g.fx.ghost(
                 this.spriteFor('dash'),
                 this.frameFor('dash'),
@@ -726,7 +824,9 @@
                 0.8,
                 BW.HERO_SCALE,
             );
+
             g.fx.ring(this.cx, this.cy, 10, 120, 0.5, '#cdbfff', 3);
+
             g.fx.burst(this.cx, this.cy, 18, {
                 color: ['#ffffff', '#cdbfff', '#ffe7b5'],
                 kind: 'spark',
@@ -734,6 +834,7 @@
                 life: 0.45,
                 add: true,
             });
+
             g.fx.flash('#d9ccff', 0.22);
             g.fx.shake(4, 0.15);
             g.hitstop(0.09);
@@ -742,13 +843,16 @@
             BW.Audio.play('glint', { rate: 0.7, vol: 0.8, minGap: 0 });
             g.stats.dodges = (g.stats.dodges || 0) + 1;
             g.teach('dodge');
+
             const src = opts && opts.src;
+
             if (src && src.onDodged) src.onDodged(this);
         }
 
         hurt(dmg, srcX, opts = {}) {
             const g = this.game,
                 st = g.state;
+
             if (
                 this.invulnT > 0 ||
                 this.guardT > 0 ||
@@ -758,27 +862,37 @@
                 g.godMode
             )
                 return false;
+
             if (this.parryT > 0 && !opts.trap && !opts.noParry) {
                 this.deflect(srcX, opts);
+
                 return true;
             }
+
             if (this.dodgeWinT > 0 && opts.strike && !opts.trap && !opts.noParry) {
                 this.perfectDodge(srcX, opts);
+
                 return true;
             }
+
             const D = BW.Difficulty.get(st);
             // traps scale with the trap setting (none in Story); everything else with the enemy damage setting
             const amount = opts.trap ? Math.round(dmg * D.trap) : BW.Difficulty.hit(st, dmg);
+
             st.hp = Math.max(0, st.hp - amount);
             g.lastHitBy = opts.cause || null;
             this.invulnT = 1.15;
             this.lockT = 0.22;
             this.flash = 1;
+
             if (this.state === 'heal' || this.state === 'rest') this.state = 'normal';
+
             this.dashT = 0;
             this.attackT = 0;
             this.castT = 0;
+
             const dirx = srcX != null ? (this.cx < srcX ? -1 : 1) : -this.facing;
+
             this.vx = dirx * 300;
             this.vy = -420;
             this.jumpHeld = false;
@@ -786,6 +900,7 @@
             g.hitstop(0.11);
             g.fx.shake(9, 0.25);
             g.fx.flash('#ff2a2a', 0.1);
+
             g.fx.burst(this.cx, this.cy, 16, {
                 color: ['#1a1a24', '#ffcf7a', '#ffffff'],
                 speed: 320,
@@ -793,14 +908,19 @@
                 kind: 'shard',
                 size: 4,
             });
+
             BW.Audio.play('hurt');
+
             if (amount > 0) g.hud.pulse('hp', true);
             if (!opts.trap && st.hp > 0 && st.abilities.parry) g.teach('parry');
+
             g.stats.hits = (g.stats.hits || 0) + 1;
+
             if (st.hp <= 0) {
                 st.hp = 0;
                 this.die();
             }
+
             return true;
         }
 
@@ -819,6 +939,7 @@
         }
         pickAnim() {
             let a;
+
             if (this.state === 'heal') a = 'heal';
             else if (this.parryT > 0 || this.guardT > 0.3) a = 'idle';
             else if (this.dashT > 0) a = 'dash';
@@ -828,6 +949,7 @@
             else if (this.lockT > 0) a = 'hurt';
             else if (!this.onGround) a = this.vy < 0 ? 'jump' : 'fall';
             else a = Math.abs(this.vx) > 40 ? 'run' : 'idle';
+
             if (a !== this.anim) {
                 this.anim = a;
                 this.animT = 0;
@@ -837,7 +959,9 @@
         spriteFor(a) {
             let name = ANIM[a][0];
             let guard = 0;
+
             while (!BW.Assets.sprite(name) && FALLBACK[name] && guard++ < 6) name = FALLBACK[name];
+
             return name;
         }
         frameFor(a) {
@@ -848,17 +972,24 @@
             const fps = (s && s.fps) || def[1];
             let f = Math.floor(this.animT * fps);
             const loop = s && s.loop != null ? s.loop : def[2];
+
             if (a === 'jump' || a === 'fall') {
                 // map vertical velocity to frames so the arc reads clearly
                 const t = BW.clamp((this.vy + P.jumpV) / (P.jumpV + P.maxFall), 0, 0.999);
+
                 if (name === ANIM[a][0]) return Math.min(n - 1, Math.floor((a === 'jump' ? t * 2 : (t - 0.5) * 2) * n));
+
                 return Math.min(n - 1, Math.floor(t * n));
             }
+
             if (a === 'attack' || a === 'attack_up' || a === 'attack_down' || a === 'lance') {
                 const dur = a === 'lance' ? 0.2 : 0.24;
+
                 return Math.min(n - 1, Math.floor((this.animT / dur) * n));
             }
+
             if (a === 'dash') return Math.min(n - 1, Math.floor((this.animT / P.dashTime) * n));
+
             return loop ? f % n : Math.min(n - 1, f);
         }
 
@@ -866,15 +997,19 @@
             const g = this.game;
             const x = BW.lerp(this.px, this.x, alpha) + this.w / 2;
             const y = BW.lerp(this.py, this.y, alpha) + this.h;
+
             if (this.invulnT > 0 && this.state !== 'dead' && Math.floor(this.invulnT * 16) % 2 === 0 && this.lockT <= 0)
                 return;
+
             const a = this.anim;
             const name = this.spriteFor(a);
             const fr = this.frameFor(a);
             let rot = this.lean;
+
             if (a === 'attack_down' && name === 'hero_attack') rot += this.facing * 1.1;
             if (a === 'attack_up' && name === 'hero_attack') rot -= this.facing * 0.9;
             if (this.state === 'dead') rot = this.facing * -Math.min(1.4, this.deathT * 2.5);
+
             if (this.glow > 0) {
                 ctx.save();
                 ctx.globalCompositeOperation = 'lighter';
@@ -882,6 +1017,7 @@
                 ctx.drawImage(BW.glowSprite('#ffe7b5'), x - 70, y - 100, 140, 140);
                 ctx.restore();
             }
+
             const ok = BW.Assets.draw(ctx, name, fr, x, y, {
                 flip: this.facing < 0,
                 sx: this.sx,
@@ -890,6 +1026,7 @@
                 flash: this.flash,
                 scale: BW.HERO_SCALE,
             });
+
             if (!ok) drawPlaceholderHero(ctx, x, y, this.facing, this.sx, this.sy, this.flash, a, this.animT);
             if (this.parryT > 0) this.drawParry(ctx, x, y);
             if (this.counterT > 0) this.drawCounter(ctx, x, y);
@@ -898,6 +1035,7 @@
         // Violet halo while the Shadow Step counter window is open
         drawCounter(ctx, x, y) {
             const k = Math.min(1, this.counterT / 0.5) * (0.75 + 0.25 * Math.sin(this.counterT * 18));
+
             ctx.save();
             ctx.globalCompositeOperation = 'lighter';
             ctx.globalAlpha = 0.55 * k;
@@ -917,6 +1055,7 @@
         drawParry(ctx, x, y) {
             const k = this.parryT / this.parryMax,
                 f = this.facing;
+
             ctx.save();
             ctx.globalCompositeOperation = 'lighter';
             ctx.strokeStyle = 'rgba(255,240,200,' + (0.35 + 0.65 * k).toFixed(2) + ')';
@@ -941,7 +1080,9 @@
         ctx.save();
         ctx.translate(x, y);
         ctx.scale(f * sx, sy);
+
         const bob = anim === 'run' ? Math.sin(t * 20) * 2 : 0;
+
         ctx.fillStyle = '#d8a634';
         ctx.beginPath();
         ctx.moveTo(-6, -40 + bob);

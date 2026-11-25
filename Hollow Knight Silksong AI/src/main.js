@@ -1,15 +1,22 @@
 'use strict';
+
 // Entry point. With ?test=1 the loop does not auto-run; the automated play-tests drive it via BW.Test.
 (function (BW) {
     const canvas = document.getElementById('game');
     const test = /[?&]test=1/.test(location.search);
     const game = new BW.Game(canvas);
+
     window.BW_GAME = game;
+
     const ready = game.boot(test);
+
     canvas.focus();
+
     if (!test) return;
+
     const T = BW.T;
     const held = {};
+
     BW.Test = {
         ready,
         game,
@@ -17,6 +24,7 @@
             game.started = true;
             BW.Audio.init();
             game.newGame(difficulty);
+
             if (skipIntro) {
                 game.seq = null;
                 game.seqText = null;
@@ -26,6 +34,7 @@
                 game.letterboxTarget = 0;
                 game.player.state = 'normal';
             }
+
             return this.info();
         },
         teleport(room, tx, ty) {
@@ -39,11 +48,13 @@
             game.player.vx = 0;
             game.player.vy = 0;
             game.player.state = 'normal';
+
             return this.info();
         },
         hold(actions) {
             for (const a of BW.Input.ACTIONS) {
                 const want = !!(actions && actions[a]);
+
                 if (want !== !!held[a]) {
                     BW.Input.inject(a, want);
                     held[a] = want;
@@ -52,15 +63,20 @@
         },
         step(n, actions) {
             if (actions !== undefined) this.hold(actions);
+
             for (let i = 0; i < n; i++) game.tick(BW.DT);
+
             return this.info();
         },
         tap(action, n = 2) {
             this.hold(Object.assign({}, held, { [action]: true }));
             this.step(n);
+
             const h = Object.assign({}, held);
+
             h[action] = false;
             this.hold(h);
+
             return this.info();
         },
         render() {
@@ -69,6 +85,7 @@
         info() {
             const p = game.player,
                 st = game.state;
+
             return {
                 mode: game.mode,
                 room: game.room && game.room.id,
@@ -96,6 +113,7 @@
         },
         boss() {
             const b = game.boss;
+
             return (
                 b && {
                     state: b.state,

@@ -1,4 +1,5 @@
 'use strict';
+
 // Test area: the Ashen Ramparts, dressed with the new fortress art (assets/manifest_fortress.js).
 // Entered from the east side of the Cord Lift's top station (S6 -> F1).
 (function (BW) {
@@ -29,6 +30,7 @@
     // ground-standing prop helper: x in tiles, floor row in tiles, size = drawn height in px
     const prop = (r, name, x, floor, size, extra) =>
         r.deco('deco_ft_' + name, x, floor, Object.assign({ size, layer: 'back' }, extra || {}));
+
     const brazier = (r, x, floor) => {
         prop(r, 'brazier', x, floor, 150);
         r.light(x, floor - 3, 6, '#ffb35c', { a: 0.45 });
@@ -44,10 +46,12 @@
         r.solid(41, 24, 46, 26);
         r.thorns(30, 32, 27);
         r.ent('lantern', 11, 26, { id: 'lan_f1' });
+
         r.ent('sign', 4, 23, {
             title: 'Barbican Plaque',
             text: ['THE ASHEN BARBICAN', 'The garrison kept the Belfry road. Their banners outlived them.'],
         });
+
         r.ent('crawler', 20, 26);
         r.ent('sentinel', 36, 26);
         r.ent('crawler', 51, 26);
@@ -83,6 +87,7 @@
         r.ent('flyer', 36, 12);
         r.ent('flyer', 18, 12);
         r.ent('cache', 59, 21, { id: 'gc_f2', n: 35 });
+
         r.ent('sign', 4, 26, {
             title: 'Siege Gallery',
             text: [
@@ -90,6 +95,7 @@
                 'Mind the pits: the garrison dug them for the besiegers, and never filled them in.',
             ],
         });
+
         prop(r, 'spears', 7, 27, 220);
         prop(r, 'barricade', 28, 31, 110);
         prop(r, 'barricade', 46, 28, 100, { layer: 'front' });
@@ -113,6 +119,7 @@
         r.plat(16, 21, 25);
         r.plat(24, 29, 28);
         r.ent('lantern', 6, 30, { id: 'lan_f3' });
+
         r.ent('sign', 3, 30, {
             title: 'Gilded Terrace',
             text: [
@@ -120,6 +127,7 @@
                 'East, past the portal, a throne room waits. Rest at the lantern first.',
             ],
         });
+
         r.ent('crawler', 22, 30);
         r.ent('cache', 44, 24, { id: 'gc_f3', n: 60 });
         r.deco('deco_ft_portal', 39, 25, { size: 440, layer: 'back' });
@@ -151,6 +159,7 @@
             r.air(12, 3, 50, 24); // arena
             r.gate(10, 16, 11, 24, 'arena_sealed', { kind: 'bars', invert: true, fixed: true });
             r.ent('lantern', 6, 24, { id: 'lan_f4' });
+
             r.ent('sign', 3, 24, {
                 title: 'Throne Warning',
                 text: [
@@ -158,6 +167,7 @@
                     'The Bellbound Warden stands in for the throne\u2019s guardian. Nothing is earned here, and the story save is left untouched.',
                 ],
             });
+
             r.ent('warden', 40, 24, { facing: -1 });
             r.trigger(14, 3, 49, 24, 'warden');
             prop(r, 'banner', 2, 25, 300);
