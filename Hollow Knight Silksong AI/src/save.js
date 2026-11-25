@@ -25,14 +25,16 @@
         lantern: null,          // id of last rested lantern
         lanternRoom: null,
         maxHp: 5,
+        difficulty: 'action',  // story | action | nightmare
         silkMax: 9,
         glints: 0,
-        abilities: { dash: false },
+        abilities: { dash: false, parry: false, dodge: false },   // dash: Silk Dash, parry: Answering Toll, dodge: Shadow Step
         flags: {},              // bells, shortcuts, broken walls, collected pickups, story beats...
         visited: {},            // room id -> true (map discovery)
         lanternsLit: {},
         cleared: {},            // enemies that stay dead until the next lantern rest
         stats: { playTime: 0, deaths: 0 },
+        codex: { seen: {}, kills: {}, moves: {}, tips: {} },   // field guide: creatures met, defeated, boss moves seen, lessons shown
       };
     },
 
@@ -41,18 +43,23 @@
       if (!data || typeof data !== 'object') return null;
       if (data.game && data.game !== 'bellweaver') return null;
       const d = Object.assign(this.defaults(), data);
-      d.abilities = Object.assign({ dash: false }, data.abilities || {});
+      d.abilities = Object.assign({ dash: false, parry: false, dodge: false }, data.abilities || {});
+      // saves from before parry and Shadow Step became shrine abilities keep what they could already do
+      if (data.abilities && data.abilities.parry === undefined) d.abilities.parry = true;
+      if (data.abilities && data.abilities.dodge === undefined) d.abilities.dodge = !!d.abilities.dash;
       d.flags = Object.assign({}, data.flags || {});
       d.visited = Object.assign({}, data.visited || {});
       d.lanternsLit = Object.assign({}, data.lanternsLit || {});
       d.cleared = Object.assign({}, data.cleared || {});
       d.stats = Object.assign({ playTime: 0, deaths: 0 }, data.stats || {});
+      if (BW.Codex) BW.Codex.upgrade(d);
       if (typeof d.version !== 'number') d.version = 1;
       // (future versions add upgrade steps here, e.g. if (d.version < 2) { ...; d.version = 2; })
       if (d.version < SAVE_VERSION) d.version = SAVE_VERSION;
       d.maxHp = BW.clamp(d.maxHp | 0 || 5, 1, 12);
       d.silkMax = BW.clamp(d.silkMax | 0 || 9, 3, 18);
       d.glints = Math.max(0, d.glints | 0);
+      if (!BW.Difficulty.valid(d.difficulty)) d.difficulty = BW.Difficulty.DEFAULT;
       return d;
     },
 
@@ -79,6 +86,48 @@
     },
 
     erase() { const s = storage(); if (s) s.removeItem(KEY); delete memoryStore[KEY]; },
+
+    // ---- Manual slots: each holds a full snapshot of the save, independent of the autosave.
+    SLOTS: 5,
+    slotKey(i) { return 'bellweaver.slot.' + i; },
+    readSlot(i) {
+      const s = storage(), txt = s ? s.getItem(this.slotKey(i)) : memoryStore[this.slotKey(i)];
+      if (!txt) return null;
+      try { const o = JSON.parse(txt); return this.migrate(o) ? o : null; } catch (e) { return null; }
+    },
+    writeSlot(i, data) {
+      const out = Object.assign({}, data, { slotSavedAt: new Date().toISOString() });
+      const txt = JSON.stringify(out), s = storage();
+      if (s) { try { s.setItem(this.slotKey(i), txt); } catch (e) { BW.note('slot save failed'); return false; } } else memoryStore[this.slotKey(i)] = txt;
+      return true;
+    },
+    eraseSlot(i) { const s = storage(); if (s) s.removeItem(this.slotKey(i)); delete memoryStore[this.slotKey(i)]; },
+    // make a snapshot the current autosave (replaces it entirely)
+    adopt(data) {
+      const o = Object.assign({}, data); delete o.slotSavedAt;
+      this.erase();
+      return this.write(o);
+    },
+
+    // Short description of a save for the slot cards.
+    summary(d) {
+      if (!d) return null;
+      const m = this.migrate(d);
+      if (!m) return null;
+      const room = BW.ROOMS && BW.ROOMS[m.lanternRoom || m.lastRoom];
+      const area = room && BW.AREAS[room.area];
+      const total = (BW.ROOM_LIST || []).length || 1;
+      const seen = Object.keys(m.visited).length;
+      const lan = m.lantern && room ? room.name : (m.lastRoom && BW.ROOMS[m.lastRoom] ? BW.ROOMS[m.lastRoom].name : 'Fallen Light');
+      return {
+        place: lan, area: area ? area.name : 'Mosslit Hollow', areaColor: area ? area.mapColor : '#9a7a5a',
+        time: m.stats.playTime || 0, deaths: m.stats.deaths || 0, difficulty: m.difficulty, hearts: m.maxHp, silk: m.silkMax,
+        glints: m.glints, pct: Math.min(100, Math.round(seen / total * 100)),
+        notes: BW.Lore ? BW.Lore.count(m) : 0, notesTotal: BW.Lore ? BW.Lore.NOTES.length : 0,
+        warden: !!m.flags.warden_defeated, ending: !!m.flags.ending_seen,
+        saved: d.slotSavedAt || d.updatedAt || null,
+      };
+    },
 
     exportText() {
       const raw = this.readRaw();
@@ -125,7 +174,7 @@
     },
 
     loadSettings() {
-      const def = { master: 0.85, music: 0.6, sfx: 0.85, shake: true, hints: true, res: 'auto' };
+      const def = { master: 0.85, music: 0.6, sfx: 0.85, shake: true, hints: true, res: 'auto', pad: 'auto' };
       const s = storage();
       try { return Object.assign(def, JSON.parse((s ? s.getItem(SETTINGS_KEY) : memoryStore[SETTINGS_KEY]) || '{}')); } catch (e) { return def; }
     },

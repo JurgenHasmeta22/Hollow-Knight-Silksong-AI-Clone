@@ -71,7 +71,7 @@
     draw(ctx) {
       if (this.a <= 0.01) return;
       const act = this.def.act;
-      const key = act && act !== 'none' ? BW.Input.label(act === 'move' ? 'move' : act) : '';
+      const key = act && act !== 'none' ? { act } : '';
       this.game.hud.worldPrompt(ctx, this.x, this.y - 30 + Math.sin(this.t * 2) * 3, key, this.def.text, this.a);
     }
   };
@@ -185,7 +185,8 @@
         ctx.fillStyle = '#5d5866'; ctx.beginPath(); ctx.ellipse(this.x, this.y - 70, 26, 50, 0, 0, Math.PI * 2); ctx.fill();
       }
       const pulse = taken ? 0.2 : 0.55 + Math.sin(this.t * 2.5) * 0.15;
-      this.game.addLight(this.x, this.y - 96, taken ? 90 : 170, '#ffe2b0', pulse);
+      const tint = { parry: '#ffc6a0', dodge: '#b9a6ff' }[this.def.ability] || '#ffe2b0';
+      this.game.addLight(this.x, this.y - 96, taken ? 90 : 170, tint, pulse);
       if (!taken && Math.random() < 0.25) {
         const a = Math.random() * Math.PI * 2;
         this.game.fx.spawn({ x: this.x + Math.cos(a) * 60, y: this.y - 96 + Math.sin(a) * 40, vx: -Math.cos(a) * 40, vy: -Math.sin(a) * 30, life: 1.2, size: 1.6, color: '#fff0c8', kind: 'thread', add: true, drag: 0.5 });
@@ -265,13 +266,16 @@
   // once with a short sequence, and afterwards lead into the cathedral.
   OBJ.door = class Door extends Obj {
     constructor(g, d) { super(g, d); this.range = 120; this.open = g.state.flags.cathedral_open ? 1 : 0; this.opening = false; }
-    ready() { return !!(this.flags.bell1 && this.flags.bell2); }
+    ready() { return !!(this.flags.bell1 && this.flags.bell2 && this.game.state.abilities.dodge); }
     canInteract() { return this.near(140) && this.game.player.onGround && !this.opening; }
     prompt() { return this.open >= 1 ? 'Enter the cathedral' : this.ready() ? 'Open the great doors' : 'Touch the doors'; }
     interact() {
       if (this.open >= 1) { this.game.enterCathedral(); return; }
       if (this.ready()) { this.game.openCathedralDoors(this); return; }
-      this.game.dialog.open('The Great Doors', ['The doors are cold and do not move.', 'Somewhere beyond them, very faintly, a bell is waiting to be rung.'], { kind: 'sign' }); BW.Audio.play('bellfar', { pitch: 98, vol: 0.6 });
+      const looms = this.flags.bell1 && this.flags.bell2;
+      this.game.dialog.open('The Great Doors', looms
+        ? ['The looms sing, yet the doors hold fast.', 'A faint shrine glows in this antechamber. The weavers sealed the last lesson behind it: learn it before the doors will answer.']
+        : ['The doors are cold and do not move.', 'Somewhere beyond them, very faintly, a bell is waiting to be rung.'], { kind: 'sign' }); BW.Audio.play('bellfar', { pitch: 98, vol: 0.6 });
     }
     update(dt) { super.update(dt); if (this.opening) { this.open = Math.min(1, this.open + dt / 2.6); if (this.open >= 1) this.opening = false; } }
     draw(ctx) {
@@ -472,7 +476,7 @@
       const p = this.pos(this.game.time), pl = this.game.player;
       const hb = pl.hurtbox();
       const cx = BW.clamp(p.x, hb.x, hb.x + hb.w), cy = BW.clamp(p.y, hb.y, hb.y + hb.h);
-      if (Math.hypot(p.x - cx, p.y - cy) < this.r) pl.hurt(1, p.x);
+      if (Math.hypot(p.x - cx, p.y - cy) < this.r) pl.hurt(1, p.x, { trap: true, cause: 'A swinging bell' });
       const side = Math.sign(p.x - this.px0);
       if (side !== this.lastSide && Math.abs(pl.cx - p.x) < 700) BW.Audio.play('flutter', { vol: 0.25, rate: 0.5, minGap: 0.5 });
       this.lastSide = side;
@@ -529,7 +533,7 @@
       if (room.solidPx(this.x, this.y) || this.t > 5) return this.pop();
       const hb = p.hurtbox();
       const cx = BW.clamp(this.x, hb.x, hb.x + hb.w), cy = BW.clamp(this.y, hb.y, hb.y + hb.h);
-      if (Math.hypot(this.x - cx, this.y - cy) < this.r - 2) { if (p.hurt(1, this.x)) this.pop(); }
+      if (Math.hypot(this.x - cx, this.y - cy) < this.r - 2) { if (p.hurt(BW.Difficulty.WEIGHTS.glob, this.x, { cause: BW.ENEMY_NAMES.spitter })) this.pop(); }
       if (Math.random() < 0.4) this.game.fx.spawn({ x: this.x, y: this.y, vx: -this.vx * 0.1, vy: -this.vy * 0.1, life: 0.35, size: 3, color: '#ffd59a', add: true, kind: 'glow' });
     }
     pop() { this.dead = true; this.game.fx.burst(this.x, this.y, 8, { color: ['#ffe2b0', '#fff'], speed: 160, life: 0.3, kind: 'thread', add: true }); BW.Audio.play('spit', { vol: 0.3, rate: 1.5 }); }
@@ -631,6 +635,7 @@
   }
 
   BW.OBJ = OBJ;
+  BW.ObjBase = Obj;
   BW.GlintCoin = GlintCoin;
   BW.EnemyShot = EnemyShot;
   BW.Lance = Lance;

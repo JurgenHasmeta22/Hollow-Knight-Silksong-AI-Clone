@@ -32,7 +32,9 @@
       this.attackT = 0; this.attackCD = 0; this.attackDir = 'side'; this.attackHits = new Set(); this.attackSerial = 0; this.pogoDone = false;
       this.invulnT = 0; this.lockT = 0; this.recoilT = 0;
       this.healT = 0; this.castT = 0; this.castCD = 0;
-      this.state = 'normal';
+      this.parryT = 0; this.parryMax = 0.18; this.parryCD = 0; this.guardT = 0; this.parryFx = 0; this.restT = 0;
+      this.dodgeWinT = 0; this.dodgeT = 0; this.counterT = 0; this.counterMax = 1;
+            this.state = 'normal';
       this.dropT = 0; this.dropThrough = false;
       this.platform = null;
       this.anim = 'idle'; this.animT = 0; this.prevAnim = 'idle';
@@ -52,7 +54,7 @@
       const g = this.game, room = g.room, st = g.state;
       this.px = this.x; this.py = this.y;
       this.animT += dt;
-      for (const k of ['coyoteT', 'invulnT', 'lockT', 'dashCD', 'attackCD', 'castCD', 'recoilT', 'dropT']) if (this[k] > 0) this[k] = Math.max(0, this[k] - dt);
+      for (const k of ['coyoteT', 'invulnT', 'lockT', 'dashCD', 'attackCD', 'castCD', 'recoilT', 'dropT', 'parryT', 'parryCD', 'guardT', 'dodgeWinT', 'dodgeT', 'counterT']) if (this[k] > 0) this[k] = Math.max(0, this[k] - dt);
       this.flash = Math.max(0, this.flash - dt * 5);
       this.glow = Math.max(0, this.glow - dt * 1.5);
       this.sx = BW.damp(this.sx, 1, 14, dt); this.sy = BW.damp(this.sy, 1, 14, dt);
@@ -62,6 +64,8 @@
       if (this.state === 'cutscene') { this.applyGravityOnly(dt); this.setAnim(this.onGround ? 'idle' : 'fall'); return; }
       if (this.state === 'rest') {
         this.vx = 0; this.applyGravityOnly(dt); this.setAnim('sit');
+        this.restT += dt;
+        if (this.restT > 0.35 && !g.seq && (inp.pressed.interact || inp.pressed.up)) { inp.consume('interact'); inp.consume('up'); g.openLanternMenu(); return; }
         if (inp.pressed.left || inp.pressed.right || inp.pressed.jump || inp.pressed.attack || inp.pressed.dash || inp.pressed.down) { this.state = 'normal'; g.onStandUp(); inp.consume('jump'); }
         return;
       }
@@ -94,7 +98,7 @@
           BW.Audio.play('heal');
           this.glow = 1;
           g.hud.pulse('hp');
-          if (inp.down.heal && st.silk >= 3 && st.hp < st.maxHp && this.onGround) { this.healT = 0.55; BW.Audio.play('heal_start', { minGap: 0 }); }
+          if (inp.down.heal && st.silk >= 3 && st.hp < st.maxHp && this.onGround) { this.healT = 0.55 * BW.Difficulty.get(st).mend; BW.Audio.play('heal_start', { minGap: 0 }); }
           else this.state = 'normal';
         }
       }
@@ -109,6 +113,7 @@
       if (inp.pressed.dash && st.abilities.dash && this.dashCD <= 0 && this.dashT <= 0 && this.state === 'normal' && this.lockT <= 0 && (this.onGround || !this.airDashUsed)) {
         this.dashT = P.dashTime; this.dashDir = dir || this.facing; this.facing = this.dashDir;
         this.vy = 0; if (!this.onGround) this.airDashUsed = true;
+        this.dodgeWinT = st.abilities.dodge ? P.dashTime + BW.Difficulty.get(st).dodge : 0;   // a blow landing inside this window is a Shadow Step
         this.attackT = 0; this.castT = 0;
         BW.Audio.play('dash', { vary: 0.05 });
         g.fx.burst(this.cx - this.dashDir * 10, this.cy + 6, 10, { color: ['#ffe7b5', '#fff'], speed: 200, angle: this.dashDir > 0 ? Math.PI : 0, spread: 1.2, life: 0.35, kind: 'thread', add: true });
@@ -180,9 +185,16 @@
         if (!this.onGround) { /* must be grounded */ }
         else if (st.hp >= st.maxHp) g.hud.deny('hp');
         else if (st.silk < 3) { g.hud.deny('silk'); BW.Audio.play('ui_back', { vol: 0.5 }); }
-        else { this.state = 'heal'; this.healT = 0.55; this.attackT = 0; BW.Audio.play('heal_start', { minGap: 0 }); }
+        else { this.state = 'heal'; this.healT = 0.55 * BW.Difficulty.get(st).mend; this.attackT = 0; BW.Audio.play('heal_start', { minGap: 0 }); }
       }
 
+      // ---- parry ----
+      if (inp.pressed.parry && st.abilities.parry && this.state === 'normal' && this.dashT <= 0 && this.attackT <= 0 && this.castT <= 0 && this.lockT <= 0 && this.parryCD <= 0) {
+        this.parryMax = BW.Difficulty.get(st).parry;
+        this.parryT = this.parryMax; this.lockT = this.parryMax;         this.parryCD = 0.65; this.attackCD = Math.max(this.attackCD, this.parryMax + 0.2); // a whiff leaves you open
+        this.vx *= 0.3; this.parryFx = 0;
+        BW.Audio.play('windup', { vol: 0.35, rate: 1.8, minGap: 0 });
+      }
       // ---- hazards ----
       if (this.dashT <= 0 && Phys.touchesHazard(room, this)) { g.onHazard(); return; }
 
@@ -292,7 +304,7 @@
       let d = 'side';
       if (inp.down.up) d = 'up';
       else if (inp.down.down && !this.onGround) d = 'down';
-      this.attackDir = d; this.attackT = 0.24; this.attackCD = 0.3; this.attackHits = new Set(); this.attackSerial++; this.pogoDone = false;
+      this.attackDir = d; this.attackT = 0.24; this.attackCD = this.counterT > 0 ? 0.15 : 0.3; this.attackHits = new Set(); this.attackSerial++; this.pogoDone = false;
       this.state = 'normal';
       BW.Audio.play('swing', { vary: 0.1, vol: 0.8 });
       const fxp = this.slashOrigin(d);
@@ -333,10 +345,64 @@
       this.sx = 0.9; this.sy = 1.12;
     }
 
+    // A well-timed parry: no damage, a little silk, and the attacker is thrown open for a riposte.
+    deflect(srcX, opts) {
+      const g = this.game, st = g.state;
+      this.parryT = 0; this.lockT = 0; this.guardT = 0.45; this.parryCD = 0.1; this.attackCD = 0; this.parryFx = 0.35;
+      this.glow = 1; this.sx = 1.14; this.sy = 0.9;
+      st.silk = Math.min(st.silkMax, st.silk + 1);
+      g.hud.pulse('silk');
+      const dirx = srcX != null ? (this.cx < srcX ? 1 : -1) : this.facing;
+      this.facing = dirx;
+      const fx = this.cx + dirx * 30, fy = this.cy - 6;
+      g.hitstop(0.14);
+      g.fx.shake(6, 0.18);
+      g.fx.flash('#fff3d0', 0.08);
+      g.fx.ring(fx, fy, 8, 90, 0.35, '#fff3d0', 3);
+      g.fx.burst(fx, fy, 16, { color: ['#ffffff', '#ffe7b5'], kind: 'spark', speed: 380, life: 0.35, add: true });
+      BW.Audio.play('parry', { vol: 1, minGap: 0 });
+      BW.Audio.play('clink', { vol: 0.45, rate: 1.7, minGap: 0 });
+      BW.Audio.play('glint', { vol: 0.4, minGap: 0 });
+      g.stats.parries = (g.stats.parries || 0) + 1;
+      g.teach('riposte');
+      const src = opts && opts.src;
+      if (src && src.onParried) src.onParried(this);
+    }
+
+    // Shadow Step: a dash timed to the instant a blow lands. No damage, a shadow of you is left where you stood,
+    // time slows, the attacker is frozen and your strikes come faster for a short counter window.
+    perfectDodge(srcX, opts) {
+      const g = this.game, st = g.state;
+      this.dodgeT = 0.5; this.dodgeWinT = 0; this.counterT = this.counterMax = 1.6; this.attackCD = 0;
+      st.silk = Math.min(st.silkMax, st.silk + 1);
+      g.hud.pulse('silk');
+      const fy = this.y + this.h, flip = this.facing < 0;
+      g.fx.ghost(this.spriteFor('idle'), this.frameFor('idle'), this.cx, fy, flip, '#b9a6ff', 1.1, BW.HERO_SCALE);
+      g.fx.ghost(this.spriteFor('dash'), this.frameFor('dash'), this.cx - this.dashDir * 26, fy, flip, '#b9a6ff', 0.8, BW.HERO_SCALE);
+      g.fx.ring(this.cx, this.cy, 10, 120, 0.5, '#cdbfff', 3);
+      g.fx.burst(this.cx, this.cy, 18, { color: ['#ffffff', '#cdbfff', '#ffe7b5'], kind: 'spark', speed: 320, life: 0.45, add: true });
+      g.fx.flash('#d9ccff', 0.22);
+      g.fx.shake(4, 0.15);
+      g.hitstop(0.09);
+      g.slowT = Math.max(g.slowT, 1.0);
+      BW.Audio.play('dash', { rate: 0.55, vol: 0.9, minGap: 0 });
+      BW.Audio.play('glint', { rate: 0.7, vol: 0.8, minGap: 0 });
+      g.stats.dodges = (g.stats.dodges || 0) + 1;
+      g.teach('dodge');
+      const src = opts && opts.src;
+      if (src && src.onDodged) src.onDodged(this);
+    }
+
     hurt(dmg, srcX, opts = {}) {
       const g = this.game, st = g.state;
-      if (this.invulnT > 0 || this.state === 'dead' || this.state === 'cutscene' || g.godMode) return false;
-      st.hp -= dmg;
+      if (this.invulnT > 0 || this.guardT > 0 || this.dodgeT > 0 || this.state === 'dead' || this.state === 'cutscene' || g.godMode) return false;
+      if (this.parryT > 0 && !opts.trap && !opts.noParry) { this.deflect(srcX, opts); return true; }
+      if (this.dodgeWinT > 0 && opts.strike && !opts.trap && !opts.noParry) { this.perfectDodge(srcX, opts); return true; }
+      const D = BW.Difficulty.get(st);
+      // traps scale with the trap setting (none in Story); everything else with the enemy damage setting
+      const amount = opts.trap ? Math.round(dmg * D.trap) : BW.Difficulty.hit(st, dmg);
+      st.hp = Math.max(0, st.hp - amount);
+      g.lastHitBy = opts.cause || null;
       this.invulnT = 1.15; this.lockT = 0.22; this.flash = 1;
       if (this.state === 'heal' || this.state === 'rest') this.state = 'normal';
       this.dashT = 0; this.attackT = 0; this.castT = 0;
@@ -347,7 +413,8 @@
       g.fx.flash('#ff2a2a', 0.1);
       g.fx.burst(this.cx, this.cy, 16, { color: ['#1a1a24', '#ffcf7a', '#ffffff'], speed: 320, life: 0.5, kind: 'shard', size: 4 });
       BW.Audio.play('hurt');
-      g.hud.pulse('hp', true);
+      if (amount > 0) g.hud.pulse('hp', true);
+      if (!opts.trap && st.hp > 0 && st.abilities.parry) g.teach('parry');
       g.stats.hits = (g.stats.hits || 0) + 1;
       if (st.hp <= 0) { st.hp = 0; this.die(); }
       return true;
@@ -363,6 +430,7 @@
     pickAnim() {
       let a;
       if (this.state === 'heal') a = 'heal';
+      else if (this.parryT > 0 || this.guardT > 0.3) a = 'idle';
       else if (this.dashT > 0) a = 'dash';
       else if (this.castT > 0) a = 'lance';
       else if (this.attackT > 0) a = this.attackDir === 'up' ? 'attack_up' : this.attackDir === 'down' ? 'attack_down' : 'attack';
@@ -417,6 +485,30 @@
       }
       const ok = BW.Assets.draw(ctx, name, fr, x, y, { flip: this.facing < 0, sx: this.sx, sy: this.sy, rot, flash: this.flash, scale: BW.HERO_SCALE });
       if (!ok) drawPlaceholderHero(ctx, x, y, this.facing, this.sx, this.sy, this.flash, a, this.animT);
+      if (this.parryT > 0) this.drawParry(ctx, x, y);
+      if (this.counterT > 0) this.drawCounter(ctx, x, y);
+    }
+
+    // Violet halo while the Shadow Step counter window is open
+    drawCounter(ctx, x, y) {
+      const k = Math.min(1, this.counterT / 0.5) * (0.75 + 0.25 * Math.sin(this.counterT * 18));
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.55 * k;
+      ctx.drawImage(BW.glowSprite('#a28bff'), x - 80, y - 120, 160, 160);
+      ctx.restore();
+      ctx.save(); ctx.globalAlpha = Math.min(1, this.counterT / 0.6) * 0.9; ctx.textAlign = 'center';
+      ctx.font = '600 15px Georgia, serif'; ctx.fillStyle = '#d9ccff'; ctx.shadowColor = '#7a5cff'; ctx.shadowBlur = 8;
+      ctx.fillText('SHADOW STEP', x, y - 118 - (this.counterMax - this.counterT) * 14);
+      ctx.restore();
+    }
+
+    drawParry(ctx, x, y) {
+      const k = this.parryT / this.parryMax, f = this.facing;
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = 'rgba(255,240,200,' + (0.35 + 0.65 * k).toFixed(2) + ')'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.arc(x + f * 10, y - 46, 40 + (1 - k) * 10, f > 0 ? -1.0 : Math.PI - 1.0, f > 0 ? 1.0 : Math.PI + 1.0); ctx.stroke();
+      ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,' + k.toFixed(2) + ')';
+      ctx.beginPath(); ctx.arc(x + f * 10, y - 46, 30 + (1 - k) * 8, f > 0 ? -0.8 : Math.PI - 0.8, f > 0 ? 0.8 : Math.PI + 0.8); ctx.stroke();
+      ctx.restore();
     }
   }
 

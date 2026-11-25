@@ -2,7 +2,7 @@
 // Keyboard + gamepad input mapped to abstract actions. Edges are latched until the next fixed step
 // consumes them, so a quick tap is never lost regardless of frame rate.
 (function (BW) {
-  const ACTIONS = ['left', 'right', 'up', 'down', 'jump', 'attack', 'dash', 'lance', 'heal', 'interact', 'map', 'pause', 'confirm', 'back'];
+  const ACTIONS = ['left', 'right', 'up', 'down', 'jump', 'attack', 'dash', 'lance', 'heal', 'parry', 'interact', 'map', 'pause', 'confirm', 'back'];
 
   const KEYMAP = {
     ArrowLeft: ['left'], KeyA: ['left'],
@@ -13,6 +13,7 @@
     KeyJ: ['attack', 'confirm'], KeyX: ['attack'],
     KeyK: ['dash'], ShiftLeft: ['dash'], ShiftRight: ['dash'], KeyC: ['dash'],
     KeyL: ['lance'],
+    KeyI: ['parry'],
     KeyQ: ['heal'],
     KeyE: ['interact'],
     KeyM: ['map'], Tab: ['map'],
@@ -26,9 +27,9 @@
     1: ['dash', 'back'],      // B / Circle
     2: ['attack'],            // X / Square
     3: ['lance'],             // Y / Triangle
-    4: ['heal'],              // LB
-    5: ['dash'],              // RB
-    6: ['heal'],              // LT
+    4: ['parry'],             // LB / L1
+    5: ['parry'],             // RB / R1 (kept as a second parry button for muscle memory)
+    6: ['heal'],              // LT / L2
     7: ['dash'],              // RT
     8: ['map'],               // Back / View / Share
     9: ['pause'],             // Start / Menu / Options
@@ -90,7 +91,7 @@
       const next = {};
       for (const a of ACTIONS) next[a] = false;
       if (pad) {
-        this.padConnected = true;
+        this.padConnected = true; this.padId = pad.id || this.padId;
         pad.buttons.forEach((b, i) => {
           const pressed = typeof b === 'object' ? (b.pressed || b.value > 0.5) : b > 0.5;
           if (pressed && PADMAP[i]) for (const a of PADMAP[i]) next[a] = true;
@@ -132,18 +133,15 @@
       this.injected[a] = isDown;
     },
 
-    // Human readable binding labels for prompts and the controls screen.
-    label(action) {
-      const pad = this.device === 'pad';
+    // Human readable binding labels for prompts and the controls screen. Pad names follow the chosen controller style.
+    label(action, device) {
+      const pad = (device || this.device) === 'pad';
+      if (pad) return BW.Glyphs.words(action);
       const K = {
         left: 'A / ←', right: 'D / →', up: 'W / ↑', down: 'S / ↓', move: 'A D / ← →', jump: 'Space', attack: 'J', dash: 'K / Shift',
-        lance: 'L', heal: 'Q', interact: 'E', map: 'M', pause: 'Esc', confirm: 'Enter / J', back: 'Esc',
+        lance: 'L', heal: 'Q', parry: 'I', interact: 'E', map: 'M', pause: 'Esc', confirm: 'Enter / J', back: 'Esc',
       };
-      const P = {
-        left: 'Left', right: 'Right', up: 'Up', down: 'Down', move: 'Left Stick', jump: 'A', attack: 'X', dash: 'B / RT', lance: 'Y',
-        heal: 'LB / LT', interact: 'Up', map: 'View', pause: 'Menu', confirm: 'A', back: 'B',
-      };
-      return (pad ? P : K)[action] || action;
+      return K[action] || action;
     },
   };
 

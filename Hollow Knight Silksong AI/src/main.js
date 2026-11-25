@@ -13,10 +13,10 @@
   BW.Test = {
     ready,
     game,
-    newGame(skipIntro = true) {
+    newGame(skipIntro = true, difficulty) {
       game.started = true; BW.Audio.init();
-      game.newGame();
-      if (skipIntro) { game.seq = null; game.seqText = null; game.fade = 0; game.letterboxTarget = 0; game.player.state = 'normal'; }
+      game.newGame(difficulty);
+      if (skipIntro) { game.seq = null; game.seqText = null; game.seqCard = null; game.deathCard = null; game.fade = 0; game.letterboxTarget = 0; game.player.state = 'normal'; }
       return this.info();
     },
     teleport(room, tx, ty) {

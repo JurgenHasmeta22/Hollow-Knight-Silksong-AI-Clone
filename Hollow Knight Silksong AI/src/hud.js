@@ -34,7 +34,7 @@
         if (this.glintShown < st.glints) { this.glintShown = Math.min(st.glints, this.glintShown + Math.max(1, (st.glints - this.glintShown) * dt * 6)); this.glintFlash = 0.3; }
         else this.glintShown = st.glints;
         this.glintFlash = Math.max(0, this.glintFlash - dt);
-        if (st.hp < this.shownHp) { for (let i = st.hp; i < this.shownHp; i++) this.crack.push({ i, t: 0 }); }
+        if (Math.ceil(st.hp) < Math.ceil(this.shownHp)) { for (let i = Math.ceil(st.hp); i < Math.ceil(this.shownHp); i++) this.crack.push({ i, t: 0 }); }
         this.shownHp = st.hp;
       }
       for (const c of this.crack) c.t += dt;
@@ -83,14 +83,21 @@
       bellGrad.addColorStop(0, '#fff1cf'); bellGrad.addColorStop(0.5, '#e7b65c'); bellGrad.addColorStop(1, '#a8752e');
       for (let i = 0; i < st.maxHp; i++) {
         const x = hx + i * 32 + hshake, y = hy;
-        const full = i < st.hp;
+        const frac = BW.clamp(st.hp - i, 0, 1), full = frac >= 1;
         ctx.save(); ctx.translate(x, y);
-        const pop = full && this.pulses.hp > 0 && i === st.hp - 1 ? 1 + this.pulses.hp * 0.35 : 1;
+        const pop = frac > 0 && this.pulses.hp > 0 && i === Math.ceil(st.hp) - 1 ? 1 + this.pulses.hp * 0.35 : 1;
         ctx.scale(pop, pop);
         ctx.fillStyle = 'rgba(5,6,10,0.7)'; BW.bellIcon(ctx, 0, 1.5, 12.5);
         if (full) {
           ctx.fillStyle = bellGrad; BW.bellIcon(ctx, 0, 0, 11);
           ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.fillRect(-4, -6, 2, 8);
+        } else if (frac > 0) {
+          // a wounded bell: the empty shell with the remaining part filled from the bottom
+          ctx.strokeStyle = 'rgba(200,190,170,0.55)'; ctx.lineWidth = 1.5; ctx.fillStyle = 'rgba(40,36,44,0.9)'; BW.bellIcon(ctx, 0, 0, 11);
+          ctx.beginPath(); ctx.moveTo(-3, -7); ctx.lineTo(1, -1); ctx.lineTo(-2, 4); ctx.lineTo(2, 9); ctx.stroke();
+          ctx.save(); ctx.beginPath(); ctx.rect(-16, 13 - 27 * frac, 32, 27 * frac); ctx.clip();
+          ctx.fillStyle = bellGrad; BW.bellIcon(ctx, 0, 0, 11);
+          ctx.restore();
         } else {
           ctx.strokeStyle = 'rgba(200,190,170,0.55)'; ctx.lineWidth = 1.5; ctx.fillStyle = 'rgba(40,36,44,0.9)'; BW.bellIcon(ctx, 0, 0, 11);
           ctx.beginPath(); ctx.moveTo(-3, -7); ctx.lineTo(1, -1); ctx.lineTo(-2, 4); ctx.lineTo(2, 9); ctx.stroke();
@@ -109,8 +116,8 @@
       ctx.fillStyle = this.glintFlash > 0 ? '#ffffff' : '#efe6d2';
       ctx.fillText(String(Math.floor(this.glintShown)), hx + 18, gy + 1);
       // hurt vignette
-      if (this.hurtPulse > 0 || st.hp === 1) {
-        const k = Math.max(this.hurtPulse * 0.6, st.hp === 1 ? 0.18 + Math.sin(this.game.time * 4) * 0.08 : 0);
+      if (this.hurtPulse > 0 || (st.hp > 0 && st.hp <= 1)) {
+        const k = Math.max(this.hurtPulse * 0.6, st.hp > 0 && st.hp <= 1 ? 0.18 + Math.sin(this.game.time * 4) * 0.08 : 0);
         const g = ctx.createRadialGradient(BW.VW / 2, BW.VH / 2, BW.VH * 0.4, BW.VW / 2, BW.VH / 2, BW.VH * 0.95);
         g.addColorStop(0, 'rgba(120,0,0,0)'); g.addColorStop(1, `rgba(120,10,10,${k})`);
         ctx.fillStyle = g; ctx.fillRect(0, 0, BW.VW, BW.VH);
@@ -184,20 +191,25 @@
       ctx.restore();
     }
 
-    // World-space control prompt (called during the world pass)
+    // World-space control prompt (called during the world pass). key is plain text, or { act } to draw the
+    // active device's keycap / controller glyphs for that action.
     worldPrompt(ctx, x, y, key, text, a) {
       ctx.save(); ctx.globalAlpha *= a; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const G = BW.Glyphs, act = key && key.act, KH = 24;
       ctx.font = `600 19px ${FONT_B}`;
       const tw = ctx.measureText(text || '').width;
       ctx.font = `700 15px ${FONT_T}`;
-      const kw = key ? ctx.measureText(key).width + 18 : 0;
+      const kw = !key ? 0 : act ? G.actionWidth(ctx, act, KH) : ctx.measureText(key).width + 18;
       const w = tw + kw + (key && text ? 12 : 0) + 22;
       ctx.fillStyle = 'rgba(6,8,12,0.72)'; roundRect(ctx, x - w / 2, y - 17, w, 34, 9); ctx.fill();
       ctx.strokeStyle = 'rgba(240,226,196,0.35)'; ctx.lineWidth = 1; ctx.stroke();
       let cx = x - w / 2 + 11;
       if (key) {
-        ctx.fillStyle = '#efe2c6'; roundRect(ctx, cx, y - 11, kw, 22, 5); ctx.fill();
-        ctx.fillStyle = '#1b1712'; ctx.font = `700 15px ${FONT_T}`; ctx.fillText(key, cx + kw / 2, y + 1);
+        if (act) G.drawAction(ctx, act, cx, y, KH);
+        else {
+          ctx.fillStyle = '#efe2c6'; roundRect(ctx, cx, y - 11, kw, 22, 5); ctx.fill();
+          ctx.fillStyle = '#1b1712'; ctx.font = `700 15px ${FONT_T}`; ctx.fillText(key, cx + kw / 2, y + 1);
+        }
         cx += kw + 12;
       }
       if (text) { ctx.textAlign = 'left'; ctx.font = `600 19px ${FONT_B}`; ctx.fillStyle = '#f2e8d4'; ctx.fillText(text, cx, y + 1); }

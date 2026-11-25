@@ -26,7 +26,7 @@ Click the game once (or press any key) so the browser allows sound. A 16:9 windo
 
 **Saves from the Stage 1 build load as they are.** Stage 2 only adds new progress flags, so the save format didn't change. If you finished Stage 1, choose **Continue**. You'll wake at the lantern in the Cathedral Antechamber, a few steps from the great doors.
 
-**Want to go straight to the boss?** `saves/before-the-warden.json` is a ready-made save at that lantern, with the exploration finished. Import it with **Save Data → Import Save File**.
+**Want to go straight to the boss?** Open **Save Data → Test Saves** and pick one: *Before the Warden* (Action), *Before the Warden — Nightmare*, *Warden Defeated* or *Great Bell Rung*. Each has every room visited, every lantern lit, the dash, parry and Shadow Step, 12 bells, 18 silk, 999 glints, all lore notes and a full Archive, and rests you at the Cathedral Antechamber lantern. `saves/before-the-warden.json` is a similar file you can import with **Save Data → Import Save File**.
 
 ---
 
@@ -40,14 +40,97 @@ Click the game once (or press any key) so the browser allows sound. A 16:9 windo
 | Needle strike | J | X |
 | Down strike in air (bounces off enemies and thorns) | S + J | Down + X |
 | Silk Dash (once learned) | K or Shift | B or RT |
+| Shadow Step (once learned; the same button, pressed just as a blow lands) | K or Shift | B or RT |
 | Silk Lance (costs 3 silk) | L | Y |
-| Mend: hold to heal 1 (costs 3 silk) | Hold Q | Hold LB / LT |
+| Parry (once learned; time it as a blow lands) | I | LB / L1 (RB also works) |
+| Mend: hold to heal 1 (costs 3 silk) | Hold Q | Hold LT / L2 |
 | Interact / talk / rest / open doors | E or ↑ | Up |
+| Lantern menu (while resting at a lantern) | E or ↑ | Up |
 | Drop through a ledge | S + Space | Down + A |
 | Map | M or Tab | View / Back |
 | Pause | Esc | Menu / Start |
 
-The game detects gamepads automatically (standard layout: Xbox, PlayStation and most others), and on-screen prompts switch to match the device you used last.
+The game detects gamepads automatically (standard layout: Xbox, PlayStation and most others), and on-screen prompts switch to match the device you used last. Button icons follow your controller: **Options → Controller Icons** (also on the Controls screen) cycles **Auto** (detects the pad), **Xbox**, **PlayStation**, **Switch** and **Generic** (numbered buttons). The Controls screen, Archive tip chips, world prompts and tutorial hints all show the keyboard key and the matching pad button.
+
+---
+
+## Difficulty
+
+Pick one under **New Game**. Saves from older builds load as **Action**. You can switch between Story and Action later in **Options → Difficulty** (enemy changes apply from the next room you enter).
+
+**Nightmare is permanent.** Choosing it shows a warning screen first, and once chosen it can never be changed to another difficulty. Nightmare only looks different in the menus (blood-red entry and warning screen); gameplay visuals are the same on every difficulty.
+
+| | Story | Action | Nightmare |
+|---|---|---|---|
+| Enemies per room | as placed | about 1.5× | about 3× |
+| Enemy health | 75% | 100% | 175% |
+| Damage from a hit | ¼ bell (weak hits ¼, heavy ½) | ½ bell (heavy ¾ to 1) | 1 bell (heavy 1½ to 2) |
+| Enemy speed | normal | normal | 120% |
+| Mend channel time | normal | normal | 140% |
+| Thorns and swinging bells | no damage (you are still set back) | 1 | 2 |
+| Warden health | 75% | 160% | 240% |
+| Warden damage | normal | 150% | 125% |
+| Parry window | 0.36 s (22 frames) | 0.28 s (17 frames) | 0.20 s (12 frames) |
+| Shadow Step window | 0.37 s | 0.31 s | 0.25 s |
+| Shadow Step reach (how close the blow must be) | 160 px | 120 px | 90 px |
+
+**Damage by enemy and attack.** The base hit is ¼ / ½ / 1 bell (Story / Action / Nightmare) multiplied by a weight, rounded to the nearest ¼ bell (never below ¼):
+
+| Source | Weight | Story / Action / Nightmare |
+|---|---|---|
+| Flyer or spitter body touch | 0.5 | ¼ / ¼ / ½ |
+| Crawler body, lunge; flyer dive; spitter glob; Warden sweep, shockwave, Peal, thread rain | 1 | ¼ / ½ / 1 |
+| Hopper leap; Warden slam, leap landing, charge | 1.5 | ½ / ¾ / 1½ |
+| Sentinel thrust | 2 | ½ / 1 / 2 |
+| Falling debris | 0.5 | ¼ / ¼ / ½ |
+
+Pale variants hit 0.5 harder (capped at 2). The Bestiary shows each creature's strike cost on your current difficulty. The Warden's own blows are further multiplied by its damage setting (Action 150%, Nightmare 125% on top of the 1-bell base), so on Action its sweep costs ¾ bell and its slam 1¼; on Nightmare its sweep costs 1¼ and its slam 2. The Warden's damage weights in the table above apply before that multiplier.
+
+**Enemy health bars.** A named health bar appears over an enemy when you get close or hit it, with a pale trail showing the damage just dealt. The Warden uses its own boss bar.
+
+**Death screen.** When you fall, a "YOU DIED" card shows what felled you and your death count, then you rise at your last lantern (press confirm to skip the wait).
+
+---
+
+## Parry
+
+Press **I** (LB / L1) just before a blow lands. A good parry takes no damage, gives +1 silk, throws the attacker back and leaves it dazed for about a second, during which your strikes deal double damage. A miss leaves you open for a moment. You can't parry thorns, swinging bells, or the Warden's shockwaves, the Peal, falling debris and silk spears. Parrying the Warden's own strikes cuts them short and cracks its poise; two parries stagger it.
+
+A parry has its own sound: a bright steel strike with a ringing tail, layered over the shield clink (synthesised in `audio.js` as `SYNTH.parry`; dropping a `parry` sample into the SFX pack would override it). You learn it at the **Shrine of the Answering Toll** in the Weavers' Hall (the lantern room with Odo), early in the journey. Once learned, a tip is taught in the Glowmoss Path, and the first time an enemy hurts you and the first time you parry one a short tip appears (turn off with **Options → Control Hints**).
+
+## Shadow Step (perfect dodge)
+
+You learn it at the **Shrine of the Unwoven Step** in the Cathedral Antechamber, and the Cathedral's great doors will not open until you have. It needs the Silk Dash. Press **Dash** the moment a blow is launched at you. If a lunge, dive, pike thrust or one of the Warden's sweep, slam, leap landing or charge is in flight within reach of you (see the reach row above) during your dash or the window after it, you slip it cleanly, whichever way you dash: no damage, +1 silk, time slows, a violet shadow of you is left behind and the attacker is frozen for about 1.2 seconds. Your strikes then come faster for a short counter window and a frozen foe takes extra damage (the Warden takes 1.6×). A dash that isn't timed to a blow is just a dash, and it does not work on thorns, swinging bells, spitter globs or the Warden's shockwaves, Peal, debris and silk spears. Dodging the Warden's sweep or slam leaves it open like a parry does and cracks its poise; dodging its charge stops it short. The tip is taught the first time you do it and lives in the Archive.
+
+## Archive
+
+Open **Archive** from the pause menu (it is not on the title screen).
+
+- **Tips & Mechanics**: how to move, strike, Mend, parry, dash, Shadow Step, use the Lance, rest and travel between lanterns, plus hazards, difficulty and the map. Entries that depend on an ability (Parry, Silk Dash, Shadow Step) appear once you learn it.
+- **Bestiary**: every creature starts as `???`. Meeting one in the world writes its lore, behaviour, health and stats. Defeating one adds the hunter's notes (how to fight it). The Warden's entry is written when you meet it; each of its attacks stays `???` until you have seen it, and its strategy is completed when you defeat it.
+- **Lore**: the 16 notes you have read, each with its author and where it was found. Unread ones show a hint about where to look.
+
+Entries are stored in the save. Saves from older builds are filled in from the enemies you had already cleared.
+
+## Map
+
+Press **M** (View) to open the map. Explored rooms are drawn to scale with walls, ledges, thorns and gates. Rooms next to ones you have explored show as dashed **?** outlines, and gold chevrons mark exits you have not taken yet. Pins show lanterns (lit or unlit), toll-looms, the shrine, the Lamplighter, the Belfry seal, the Cathedral doors and lore notes (a solid scroll once read, a faint outline while unread in a room you have seen); a pulsing star marks your current objective once you have found the place (an edge arrow points to it when it is off screen). The side panel tracks rooms explored per region and holds the legend; the footer repeats the current objective.
+
+Controls: pan with the arrows or left stick, **L / Y** cycles zoom (1×, 2×, 3.4×; zoomed views follow you and show room names), **Q / LT** re-centres, **M / Esc** closes.
+
+## Fast travel, saving and rematches
+
+Lanterns you have kindled stay lit. While resting at one, press **E** or **↑** to open the **lantern menu**:
+
+- **Travel**: pick any other kindled lantern. You arrive rested, healed and saved there, and it becomes your respawn point.
+- **Save Game**: write the moment into one of five manual slots.
+- **Boss Rematch** (after the Warden has fallen): fight it again from any lantern. A rematch gives no glints or rewards, does not change your story save, and records only your best time and win count. Losing or winning returns you to the lantern.
+
+The game still autosaves when you rest, travel or fall. **Load Game** (title and pause menus) lists the five slots and the autosave; **Q / LT** on a slot deletes it (with confirmation). **Save Game** is also in the pause menu. Each slot keeps its own difficulty, so the Nightmare lock applies per save.
+
+## Story and lore
+
+The game opens with a short run of intro chapters, plus an interlude card the first time you enter each region. Sixteen lore notes lie in the world (one needs the Warden defeated). Read one with **E** / **↑**; read notes are listed under **Pause → Archive → Lore** and are marked on the map.
 
 ---
 
@@ -64,9 +147,9 @@ The game detects gamepads automatically (standard layout: Xbox, PlayStation and 
 - **Combat and resources:**
   - Directional needle strikes, pogo down-strikes, hit-stop, knockback and invulnerability frames.
   - Hits build **silk**, which is spent on **Mend** (heal) or the **Silk Lance**.
-- **Silk Dash:** found halfway through. It works on the ground and in mid-air.
+- **Three learnable abilities, all earned before the boss:** **Parry** (Shrine of the Answering Toll, Weavers' Hall), **Silk Dash** (found halfway through; works on the ground and in mid-air) and **Shadow Step** (Shrine of the Unwoven Step, Cathedral Antechamber, required to open the great doors). Saves from before this change keep what they could already do.
 - **Rest lanterns, upgrades and Odo:** lanterns heal and save. You can find Lifethreads, a Silk Spool and glint currency, and Odo the lamplighter gives hints and runs a small shop.
-- **Map and saving:** a discovered-room map, plus local saves with export and import.
+- **Map and saving:** a discovered-room map with exits, pins, objective marker, zoom and pan, plus local saves with export and import.
 
 **What Stage 2 added**
 - **The great doors open.** Once both looms sing, the sealed doors of the Cathedral of the Last Toll swing open in a short sequence.
@@ -119,6 +202,7 @@ src/                game code (classic scripts, no build step)
   input.js          keyboard + gamepad
   audio.js          music / ambience streaming, SFX, synth fallbacks
   save.js           versioned save format, export / import, migration
+  difficulty.js     Story / Action / Nightmare presets and extra-enemy placement
   world.js          room DSL, tile collision
   rooms.js          the world: areas and all rooms (incl. the cathedral)
   fx.js             particles, slashes, screen shake
@@ -126,9 +210,15 @@ src/                game code (classic scripts, no build step)
   enemies.js        enemy behaviours
   objects.js        lanterns, pickups, NPC, shrine, toll-looms, lifts, doors, the Great Bell
   boss.js           the Bellbound Warden and its attack hazards
+  codex.js / guide.js  Archive data (tips, bestiary, unlocks) and its menu screen (tips, bestiary, lore tabs)
+  lore.js           intro chapters, region interludes, collectible lore notes
+  slots.js          manual save slot, lantern menu and boss rematch screens
+  testsaves.js      ready-made test saves (Save Data → Test Saves)
   terrain.js        pre-rendered terrain
   background.js     parallax, atmosphere, lighting
-  hud.js / menus.js HUD, dialog, menus, map
+  hud.js / menus.js HUD, dialog, menus
+  glyphs.js         keyboard keycaps and Xbox / PlayStation / Switch / generic button icons
+  map.js            the world map screen (exits, pins, objective, zoom and pan)
   game.js           game loop, rooms, camera, sequences
   cathedral.js      doors, boss entrance, arena, victory, Great Bell, ending and credits
 assets/

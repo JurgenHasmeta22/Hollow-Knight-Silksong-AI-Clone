@@ -221,6 +221,15 @@
     heal(ctx, d, t) { [523, 659, 784, 1046].forEach((f, i) => tone(ctx, d, t + i * 0.04, 0.7, 'sine', f, f, 0.08, 0.05)); },
     lance(ctx, d, t) { noise(ctx, d, t, 0.3, 'bandpass', 2400, 600, 1.5, 0.35); tone(ctx, d, t, 0.25, 'triangle', 880, 440, 0.15); },
     clink(ctx, d, t) { tone(ctx, d, t, 0.3, 'square', 1800, 1700, 0.08); tone(ctx, d, t, 0.25, 'sine', 2600, 2500, 0.15); noise(ctx, d, t, 0.05, 'highpass', 5000, 3000, 0.5, 0.2); },
+    // A parry: steel meeting steel. A bright transient, an inharmonic ring that hangs in the air, a rising "shing"
+    // sweep and a low body thump, so it never reads as the plain clink of a blocked blow.
+    parry(ctx, d, t) {
+      noise(ctx, d, t, 0.05, 'highpass', 6500, 3500, 0.6, 0.6, 0.001);
+      noise(ctx, d, t + 0.01, 0.34, 'bandpass', 2400, 9500, 4, 0.2, 0.01);
+      tone(ctx, d, t, 0.16, 'triangle', 260, 70, 0.5, 0.002);
+      for (const [m, a, dur] of [[1, 0.5, 0.9], [2.76, 0.34, 0.65], [5.4, 0.22, 0.4], [8.93, 0.12, 0.22]]) tone(ctx, d, t, dur, 'sine', 1175 * m, 1175 * m * 0.997, a * 0.4, 0.001);
+      tone(ctx, d, t + 0.02, 0.5, 'sine', 3136, 3120, 0.06, 0.004);
+    },
     spit(ctx, d, t) { noise(ctx, d, t, 0.15, 'lowpass', 1200, 300, 2, 0.3); tone(ctx, d, t, 0.12, 'sine', 300, 600, 0.12); },
     die(ctx, d, t) { noise(ctx, d, t, 0.35, 'lowpass', 2500, 150, 0.6, 0.5); tone(ctx, d, t, 0.3, 'triangle', 300, 70, 0.3); },
     break(ctx, d, t) { noise(ctx, d, t, 0.6, 'lowpass', 1800, 100, 0.5, 0.6); tone(ctx, d, t, 0.4, 'sine', 90, 40, 0.5); },

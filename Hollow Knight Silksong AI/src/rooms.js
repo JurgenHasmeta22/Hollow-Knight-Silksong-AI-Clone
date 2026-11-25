@@ -72,6 +72,7 @@
     r.ent('glint', 55, 17, { id: 'g_m2a', n: 4 });
     r.ent('hint', 11, 26, { act: 'attack', text: 'Needle strike', range: 6 });
     r.ent('hint', 19, 25, { act: 'none', text: 'Thorns wound — leap over them', range: 4 });
+    r.ent('hint', 33, 26, { act: 'parry', text: 'Parry: press as a blow lands', range: 5, needs: 'parry' });
     r.light(5, 11, 4, '#7ff2d0', { a: 0.4 });
   });
 
@@ -199,10 +200,11 @@
     r.solid(10, 14, 12, 19); r.solid(13, 17, 15, 19);
     r.air(33, 16, 33, 19);                       // east -> S3
     r.ent('lantern', 19, 19, { id: 'lan_s2' });
+    r.ent('shrine', 31, 19, { ability: 'parry' });
     r.ent('npc', 26, 19, { who: 'odo' });
     r.ent('sign', 5, 10, { title: 'Guild Notice', text: ['GUILD HALL OF THE BELLWEAVERS', 'Mind the shuttles. Mend what frays. Ring at dusk.'] });
     r.deco('loom', 8, 20, { layer: 'back' });
-    r.deco('spools', 30, 20, { layer: 'back' });
+    r.deco('spools', 23, 20, { layer: 'back' });
     r.light(19, 16, 7, '#ffcf8a', { a: 0.3 });
     r.light(27, 15, 5, '#ffcf8a', { a: 0.2 });
   });
@@ -297,6 +299,8 @@
     r.air(47, 20, 47, 23);                       // east <- B2
     r.solid(1, 21, 8, 23);
     r.ent('lantern', 15, 23, { id: 'lan_b3' });
+    r.ent('shrine', 43, 23, { ability: 'dodge' });
+    r.ent('hint', 38, 23, { act: 'dash', text: 'Dash as a blow lands: Shadow Step', range: 5, needs: 'dodge' });
     r.ent('door', 3, 20, {});
     r.ent('sign', 25, 23, { title: 'Keeper’s Tablet', text: ['THE CATHEDRAL OF THE LAST TOLL', 'Here the keepers laid down their mallets.', 'The great doors have not opened since the silence.'] });
     r.ent('sign', 36, 23, { title: 'Scratched Plea', text: ['Someone carved this in a hurry:', '“The bells did not break. They were stilled.”'] });

@@ -44,10 +44,32 @@
     const p = this.player;
     p.state = 'cutscene'; p.vx = 0;
     this.startTransition(() => {
+      this.endRematch();
       this.loadRoom('B3', { x: 5 * T, y: 21 * T - P.h });
       p.state = 'normal'; p.facing = 1; p.vx = 0; p.vy = 0; p.onGround = true;
       p.safeX = p.x; p.safeY = p.y; p.safeRoom = 'B3';
     }, 0.45, 0.5);
+  };
+
+  // Warden rematch, started from any lantern. The story save is parked and the fight runs on a copy of the
+  // flags with the victory undone; everything earned or counted is skipped, and endRematch() restores the save.
+  G.startRematch = function () {
+    const p = this.player, st = this.state;
+    if (!this.canRematch()) return;
+    p.state = 'cutscene'; p.vx = 0;
+    BW.Audio.play('gate', { vol: 0.35, rate: 1.4 });
+    this.startTransition(() => {
+      const f = Object.assign({}, st.flags);
+      delete f.warden_defeated; delete f.great_bell; delete f.ending_seen;
+      st.flagsReal = st.flags; st.flags = f;
+      this.rematch = true; this.rematchT0 = st.stats.playTime || 0;
+      st.hp = st.maxHp;
+      const ex = BW.ROOMS.C1.ents.find((e) => e.type === 'exitdoor');
+      this.loadRoom('C1', { x: (ex.x + 0.5) * T - 80 - P.w / 2, y: (ex.y + 1) * T - P.h });
+      p.state = 'normal'; p.facing = -1; p.vx = 0; p.vy = 0; p.onGround = true;
+      p.safeX = p.x; p.safeY = p.y; p.safeRoom = 'C1';
+      this.hud.toast('Warden Rematch', 'Nothing is earned here. Dying costs nothing.', 3.4);
+    }, 0.45, 0.6);
   };
 
   // portcullis between the vestibule and the arena
@@ -69,15 +91,21 @@
     if (!b || b.state !== 'bound' || st.flags.warden_defeated) return;
     const first = !st.flags.warden_met;
     st.flags.warden_met = true;
-    st.stats.wardenAttempts = (st.stats.wardenAttempts || 0) + 1;
+    if (!this.rematch) st.stats.wardenAttempts = (st.stats.wardenAttempts || 0) + 1;
+    this.codexSee('warden');
     this.saveGame();
     this.startSequence(wardenIntro(this, b, first));
   };
 
   G.onWardenDefeated = function (b) {
     const st = this.state;
+    if (this.rematch) {
+      if (this.player.state !== 'dead') this.startSequence(rematchSequence(this, b));
+      return;
+    }
     st.flags.warden_defeated = true;
     st.stats.wardenWinTime = st.stats.wardenWinTime || st.stats.playTime;
+    BW.Codex.kill(st, 'warden');
     this.saveGame();
     // a trade of final blows: the victory still counts, the player wakes at the lantern and finds the bell waiting
     if (this.player.state === 'dead') return;
@@ -259,6 +287,67 @@
     g.startEnding();
   }
 
+  // Rematch win: no bell, no ending. A result card, then back to the lantern the fight started from.
+  function* rematchSequence(g, b) {
+    const p = g.player, st = g.state;
+    g.hitstop(0.3); g.slowT = 1.4; g.fx.flash('#ffffff', 0.7); g.fx.shake(9, 0.6);
+    BW.Audio.playMusic(null, 2.5);
+    g.seq.hideHud = true; g.letterboxTarget = 1;
+    p.state = 'cutscene'; p.vx = 0; p.dashT = 0; p.attackT = 0;
+    g.camFocus = { x: b.cx, y: b.y + 70 };
+    yield () => b.state === 'remains';
+    g.hazards = [];
+    if (g.bossBar) g.bossBar.out = true;
+    yield 1.1;
+    const time = Math.max(0, (st.stats.playTime || 0) - (g.rematchT0 || 0));
+    const prev = st.stats.rematchBest;
+    const record = !prev || time < prev;
+    st.stats.rematchWins = (st.stats.rematchWins || 0) + 1;
+    if (record) st.stats.rematchBest = time;
+    const c = g.rematchCard = { a: 0, t: 0, time, best: st.stats.rematchBest, record, wins: st.stats.rematchWins, diff: BW.Difficulty.get(st) };
+    BW.Audio.play('bellfar', { pitch: 130.8, vol: 0.9, minGap: 0 });
+    for (let i = 0; i <= 36; i++) { c.a = i / 36; c.t += 1 / 60; yield 1 / 60; }
+    while (c.t < 7) { c.t += 1 / 60; yield 1 / 60; if (c.t > 2 && (BW.Input.pressed.confirm || BW.Input.pressed.jump)) break; }
+    g.fade = 0;
+    for (let i = 0; i <= 30; i++) { g.fade = i / 30; yield 1 / 60; }
+    g.letterboxTarget = 0; g.camFocus = null;
+    st.hp = st.maxHp; st.silk = 0;
+    g.respawnAtLantern(true);   // also restores the real flags
+    g.saveGame();
+    g.rematchCard = null;
+    g.seq.hideHud = false;
+    g.fade = 0;
+  }
+
+  G.drawRematchCard = function (ctx) {
+    const c = this.rematchCard, W = BW.VW, H = BW.VH, cx = W / 2, t = c.t;
+    ctx.save(); ctx.globalAlpha = c.a;
+    ctx.fillStyle = 'rgba(6,6,10,0.86)'; ctx.fillRect(0, 0, W, H);
+    const gl = ctx.createRadialGradient(cx, H * 0.4, 20, cx, H * 0.4, H * 0.8);
+    gl.addColorStop(0, 'rgba(232,170,80,0.22)'); gl.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = gl; ctx.fillRect(0, 0, W, H);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = `italic 500 26px ${BW.FONT_B}`; ctx.fillStyle = '#d9cbb0'; ctx.fillText('The Bellbound Warden falls once more', cx, H * 0.27);
+    ctx.save(); ctx.font = `600 78px ${BW.FONT_T}`; ctx.fillStyle = '#f7ecd6'; ctx.shadowColor = 'rgba(232,170,80,0.55)'; ctx.shadowBlur = 28;
+    if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '6px';
+    ctx.fillText('REMATCH CLEARED', cx, H * 0.38); ctx.restore();
+    const lw = 120 + Math.min(1, t / 1.2) * 300;
+    ctx.strokeStyle = 'rgba(240,200,140,0.8)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(cx - lw, H * 0.38 + 56); ctx.lineTo(cx - 14, H * 0.38 + 56); ctx.moveTo(cx + 14, H * 0.38 + 56); ctx.lineTo(cx + lw, H * 0.38 + 56); ctx.stroke();
+    ctx.fillStyle = '#efe0c0'; ctx.save(); ctx.translate(cx, H * 0.38 + 56); ctx.rotate(Math.PI / 4); ctx.fillRect(-4, -4, 8, 8); ctx.restore();
+    const rows = [['Fight time', BW.fmtTime(c.time)], ['Best time', BW.fmtTime(c.best)], ['Rematches won', String(c.wins)], ['Difficulty', c.diff.name]];
+    rows.forEach((r, i) => {
+      const y = H * 0.38 + 110 + i * 40, a = Math.min(1, Math.max(0, (t - 0.5 - i * 0.18) / 0.4));
+      ctx.globalAlpha = c.a * a;
+      ctx.textAlign = 'right'; ctx.font = `500 25px ${BW.FONT_B}`; ctx.fillStyle = 'rgba(225,214,192,0.7)'; ctx.fillText(r[0], cx - 20, y);
+      ctx.textAlign = 'left'; ctx.fillStyle = '#fff1d0'; ctx.fillText(r[1], cx + 20, y);
+    });
+    ctx.globalAlpha = c.a; ctx.textAlign = 'center';
+    if (c.record && t > 1.4) { ctx.font = `600 24px ${BW.FONT_T}`; ctx.fillStyle = `rgba(255,214,120,${0.7 + 0.3 * Math.sin(t * 5)})`; ctx.fillText('\u2726  NEW BEST TIME  \u2726', cx, H * 0.38 + 290); }
+    ctx.font = `italic 500 21px ${BW.FONT_B}`; ctx.fillStyle = 'rgba(225,214,192,0.6)'; ctx.fillText('A rematch earns nothing. The Hollow remembers only that you could.', cx, H * 0.86);
+    if (t > 2) { ctx.font = `500 19px ${BW.FONT_B}`; ctx.fillStyle = `rgba(230,220,200,${0.45 + 0.2 * Math.sin(t * 3)})`; ctx.fillText(`${BW.Input.label('confirm')}  return to the lantern`, cx, H - 50); }
+    ctx.restore();
+  };
+
   function* ringSequence(g, bell) {
     const p = g.player;
     p.state = 'cutscene'; p.vx = 0;
@@ -313,7 +402,8 @@
       add('Your journey', 'head', 50);
       add(`Time  ${BW.fmtTime(st.stats.clearTime || st.stats.playTime || 0)}     Deaths  ${st.stats.deaths || 0}`, 'line', 40);
       add(`Rooms discovered  ${rooms} / ${BW.ROOM_LIST.length}     Upgrades  ${upgrades} / 4     Secrets  ${secrets} / ${secretKeys.length}`, 'line', 40);
-      add(`Attempts against the Warden  ${st.stats.wardenAttempts || 1}`, 'line', 150);
+      add(`Attempts against the Warden  ${st.stats.wardenAttempts || 1}`, 'line', 40);
+      add(`Lore notes  ${BW.Lore.count(st)} / ${BW.Lore.NOTES.length}`, 'line', 150);
       add('Thank you for playing', 'logo2', 0);
       return L;
     }
@@ -445,7 +535,7 @@
   BW.drawPealHint = function (ctx, g) {
     if (!(g.pealHint > 0) || !g.state.abilities.dash) return;
     const p = g.player, a = Math.min(1, g.pealHint / 0.4, (2.4 - g.pealHint) / 0.3 + 0.2);
-    g.hud.worldPrompt(ctx, p.cx, p.y - 46, BW.Input.label('dash'), 'Jump, then dash across the toll', Math.max(0, a));
+    g.hud.worldPrompt(ctx, p.cx, p.y - 46, { act: 'dash' }, 'Jump, then dash across the toll', Math.max(0, a));
   };
 
   BW.Ending = Ending;

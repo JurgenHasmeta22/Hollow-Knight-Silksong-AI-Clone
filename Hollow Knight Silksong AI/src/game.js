@@ -41,8 +41,9 @@
       this.menu.push('title');
       const unlock = () => {
         BW.Audio.init();
-        if (!this.started && this.mode === 'title') { this.started = true; BW.Audio.playMusic('mus_title', 3); }
+        if (!this.started && this.mode === 'title') { this.started = true; this.titleArm = true; BW.Audio.playMusic('mus_title', 3); }
       };
+      this.wakeTitle = unlock;
       window.addEventListener('pointerdown', unlock);
       BW.Input.onAnyKey(unlock);
       this.canvas.addEventListener('pointerdown', () => this.canvas.focus());
@@ -111,9 +112,10 @@
     }
 
     // ================================================================ game start / save
-    newGame() {
+    newGame(difficulty) {
       BW.Save.erase();
       const d = BW.Save.defaults();
+      d.difficulty = BW.Difficulty.valid(difficulty) ? difficulty : BW.Difficulty.DEFAULT;
       this.state = Object.assign(d, { hp: d.maxHp, silk: 0 });
       this.stats = {};
       BW.Save.write(this.persist());
@@ -127,11 +129,45 @@
     continueGame() {
       const d = BW.Save.load();
       if (!d) { this.menu.flash('No save found.'); return; }
+      this.clearOverlays();
       this.state = Object.assign(d, { hp: d.maxHp, silk: 0 });
       this.stats = {};
       this.mode = 'play'; this.menu.closeAll();
       this.respawnAtLantern(true);
       BW.Audio.playMusic(this.room.area.music, 2.5);
+    }
+
+    // everything that belongs to a running session and must not leak into a loaded or restarted one
+    clearOverlays() {
+      this.endRematch();
+      this.seq = null; this.seqCard = null; this.deathCard = null; this.loreSlide = null; this.seqText = null; this.rematchCard = null;
+      this.transition = null; this.dialog.active = false; this.hud.announce = null;
+      this.ending = null; this.whiteFade = 0; this.bossBar = null; this.bossTitle = null; this.boss = null; this.hazards = [];
+      this.arenaCam = false; this.camFocus = null; this.letterboxTarget = 0; this.lastArea = null;
+    }
+
+    // ---- manual save slots
+    saveToSlot(i) {
+      if (!this.state) return false;
+      const ok = BW.Save.writeSlot(i, this.persist());
+      if (ok) { this.hud.savedBlip(); BW.Audio.play('save', { vol: 0.8 }); }
+      return ok;
+    }
+    loadSlot(i) {
+      const d = BW.Save.readSlot(i);
+      if (!d) { this.menu.flash('That slot is empty.'); return; }
+      BW.Save.adopt(d);
+      this.continueGame();
+    }
+
+    // ---- lantern menu (travel, save, boss rematch)
+    openLanternMenu() { BW.Audio.play('ui_ok'); this.menu.push('lantern'); }
+    // the Warden can be fought again once beaten; nothing is earned and the story save is left alone
+    canRematch() { return !!(this.state && this.state.flags.warden_defeated && !this.rematch); }
+    endRematch() {
+      const st = this.state;
+      if (st && st.flagsReal) { st.flags = st.flagsReal; delete st.flagsReal; }
+      this.rematch = false;
     }
 
     onSaveImported() { /* title menu shows Continue again */ }
@@ -140,16 +176,41 @@
       const s = this.state;
       return {
         game: 'bellweaver', version: BW.Save.SAVE_VERSION, createdAt: s.createdAt,
-        lantern: s.lantern, lanternRoom: s.lanternRoom, maxHp: s.maxHp, silkMax: s.silkMax, glints: s.glints,
-        abilities: s.abilities, flags: s.flags, visited: s.visited, lanternsLit: s.lanternsLit, cleared: s.cleared, stats: s.stats,
+        lantern: s.lantern, lanternRoom: s.lanternRoom, maxHp: s.maxHp, difficulty: s.difficulty, silkMax: s.silkMax, glints: s.glints,
+        abilities: s.abilities, flags: s.flagsReal || s.flags, visited: s.visited, lanternsLit: s.lanternsLit, cleared: s.cleared, stats: s.stats, codex: s.codex,
         lastRoom: this.room ? this.room.id : s.lastRoom,
       };
     }
     saveGame() { if (this.state) { BW.Save.write(this.persist()); } }
 
+    // ---- field guide discoveries and one-time lessons
+    codexSee(kind) {
+      if (!this.state || !BW.Codex.see(this.state, kind)) return;
+      this.hud.toast('Archive updated', BW.ENEMY_NAMES[kind] + ' discovered', 3.2);
+      BW.Audio.play('glint', { vol: 0.5, minGap: 0 });
+    }
+    codexKill(kind) {
+      if (!this.state) return;
+      const first = !(this.state.codex && this.state.codex.kills[kind]);
+      BW.Codex.kill(this.state, kind);
+      if (first) this.hud.toast('Archive updated', "Hunter's notes on " + BW.ENEMY_NAMES[kind], 3.2);
+    }
+    codexMove(boss, move) {
+      if (this.state && BW.Codex.move(this.state, boss, move)) {
+        const m = BW.Codex.BY_ID[boss].moves.find((x) => x[0] === move);
+        if (m) this.hud.toast('Archive updated', m[1] + ' recorded', 2.8);
+      }
+    }
+    teach(id) {
+      const L = BW.Codex.LESSONS[id], c = this.state && BW.Codex.data(this.state);
+      if (!L || !c || c.tips[id] || BW.settings.hints === false) return;
+      c.tips[id] = true;
+      this.hud.toast(L.title, L.sub(), 3.4);
+    }
+
     toTitle() {
-      this.mode = 'title'; this.room = null; this.seq = null; this.transition = null; this.dialog.active = false; this.hud.announce = null;
-      this.ending = null; this.whiteFade = 0; this.bossBar = null; this.bossTitle = null; this.boss = null; this.hazards = []; this.arenaCam = false; this.camFocus = null;
+      this.mode = 'title'; this.room = null;
+      this.clearOverlays();
       this.menu.closeAll(); this.menu.push('title');
       BW.Audio.playMusic('mus_title', 2); BW.Audio.playAmbience(null, 1);
     }
@@ -160,6 +221,7 @@
       if (f.ending_seen) return 'The Great Bell rings again and the Hollow is mended. Explore freely: every bell remembers its voice.';
       if (f.warden_defeated) return 'The Warden has fallen. Rethread the Great Bell beneath the cathedral vault.';
       if (f.warden_met) return 'The Bellbound Warden guards the Great Bell. Rest at the antechamber lantern, then face it again.';
+      if (f.reached_cathedral && !f.cathedral_open && !this.state.abilities.dodge) return 'The great doors will not answer yet. Touch the shrine in this antechamber to learn the last of the weavers\u2019 lessons.';
       if (f.cathedral_open) return 'The great doors stand open. Enter the Cathedral of the Last Toll.';
       if (f.reached_cathedral) return 'You reached the Cathedral of the Last Toll. Open its great doors.';
       if (bells === 2) return 'Both toll-looms sing. The Belfry Seal above the Gatehouse is open — climb into the Silent Belfry.';
@@ -200,6 +262,15 @@
         }
         else if (BW.OBJ[e.type]) { const o = new BW.OBJ[e.type](this, e); if (!o.dead) this.objects.push(o); }
       }
+      for (const n of BW.Lore.NOTES) {
+        if (n.room !== id || (n.when && !flags[n.when])) continue;
+        this.objects.push(new BW.OBJ.note(this, { type: 'note', id: n.id, x: n.x, y: n.y }));
+      }
+      for (const e of BW.Difficulty.extras(room, flags, this.state)) {
+        const key = BW.enemyPersistKey(id, e);
+        if (key && this.state.cleared && this.state.cleared[key]) continue;
+        this.enemies.push(new BW.ENEMY_TYPES[e.type](this, e));
+      }
       for (const s of this.terrain.secrets) if (flags['sec_' + s.id]) s.a = 0;
       this.bg.setRoom(room);
       const p = this.player;
@@ -222,7 +293,7 @@
       const area = room.area;
       if (this.lastArea !== area.id) {
         BW.Audio.playMusic(area.music, 2.5); BW.Audio.playAmbience(area.amb, 2.5);
-        if (this.lastArea && !opts.silent) this.hud.areaTitle(area.name, '');
+        if (this.lastArea && !opts.silent) { this.hud.areaTitle(area.name, ''); BW.Lore.interlude(this, area.id); }
         this.lastArea = area.id;
       }
       this.onEnterRoom(room);
@@ -231,6 +302,7 @@
     }
 
     respawnAtLantern(sit) {
+      this.endRematch();
       const st = this.state;
       st.cleared = {};
       let roomId = st.lanternRoom, lid = st.lantern;
@@ -299,7 +371,9 @@
       this.hud.update(dt);
       if (this.mode === 'title') {
         this.titleT += dt;
-        if (this.started) this.menu.update(dt, inp);
+        // The press that wakes the title screen must not also activate the first menu item
+        if (!this.started && this.wakeTitle && inp.device === 'pad' && BW.Input.ACTIONS.some((a) => inp.pressed[a])) this.wakeTitle();
+        if (this.started) { if (this.titleArm) this.titleArm = false; else this.menu.update(dt, inp); }
         return;
       }
       if (this.mode === 'ending') { if (this.ending) this.ending.update(dt, inp); return; }
@@ -308,7 +382,7 @@
       if (this.state) this.state.stats.playTime = (this.state.stats.playTime || 0) + dt;
 
       // menus
-      if (this.menu.open) { this.menu.update(dt, inp); return; }
+      if (this.menu.open) { if (this.player.state === 'rest') this.player.restT = 0; this.menu.update(dt, inp); return; }
       if (!this.seq && !this.dialog.active && !this.hud.announce && !this.transition) {
         if (inp.pressed.pause) { this.menu.push('pause'); BW.Audio.play('ui_ok'); return; }
         if (inp.pressed.map) { this.menu.push('map'); BW.Audio.play('ui_ok'); return; }
@@ -368,14 +442,25 @@
         if (g.closing) { g.anim = Math.max(0, g.anim - dt / 0.4); if (g.anim <= 0) g.closing = false; }
       }
       for (const b of room.breakables) b.shake = Math.max(0, b.shake - dt);
+      // Shadow Step: a dash pressed while a committed strike is within reach slips it, even if the dash carries you out of its path
+      if (p.dodgeWinT > 0 && p.dodgeT <= 0 && p.invulnT <= 0 && p.guardT <= 0 && p.state !== 'dead' && p.state !== 'cutscene' && !this.godMode) {
+        const hb = p.hurtbox(), R = BW.Difficulty.get(this.state).reach;
+        const zone = { x: hb.x - R, y: hb.y - R * 0.6, w: hb.w + R * 2, h: hb.h + R * 1.2 };
+        for (const e of this.enemies) {
+          if (e.dead || !e.harmful || e.parried > 0 || !e.isStriking()) continue;
+          const boxes = [e.hurtbox()].concat(e.attackBoxes() || []);
+          if (boxes.some((b) => BW.overlap(zone, b))) { p.perfectDodge(e.cx, { src: e, strike: true }); break; }
+        }
+      }
       // contact damage
       if (p.state !== 'dead' && p.invulnT <= 0) {
         const hb = p.hurtbox();
         for (const e of this.enemies) {
-          if (e.dead || !e.harmful) continue;
-          if (BW.overlap(hb, e.hurtbox())) { p.hurt(1, e.cx); break; }
+          if (e.dead || !e.harmful || e.parried > 0) continue;
+          const w = BW.Difficulty.weightOf(e), strike = e.isStriking();
+          if (BW.overlap(hb, e.hurtbox())) { p.hurt(w, e.cx, { src: e, strike, cause: BW.enemyName(e) }); break; }
           const ab = e.attackBoxes();
-          if (ab) for (const b of ab) if (BW.overlap(hb, b)) { p.hurt(1, e.cx); break; }
+          if (ab) for (const b of ab) if (BW.overlap(hb, b)) { p.hurt(w, e.cx, { src: e, strike: true, cause: BW.enemyName(e) }); break; }
         }
       }
       // boss hazards (shockwaves, the peal, silk spears, debris)
@@ -383,7 +468,7 @@
         const hb = p.hurtbox();
         outer: for (const h of this.hazards) {
           const bs = h.boxes(); if (!bs) continue;
-          for (const b of bs) if (BW.overlap(hb, b)) { p.hurt(h.dmg || 1, h.hitX(p)); break outer; }
+          for (const b of bs) if (BW.overlap(hb, b)) { p.hurt((h.dmg || 1) * BW.Difficulty.get(this.state).bossDmg, h.hitX(p), { noParry: true, cause: BW.ENEMY_NAMES.warden }); break outer; }
         }
       }
       // secrets reveal
@@ -523,13 +608,15 @@
     onHazard() {
       const p = this.player, st = this.state;
       if (this.hazardBusy) return;
-      this.hazardBusy = true;
-      const fatal = !this.godMode && st.hp <= 1;
-      if (!this.godMode) st.hp -= 1;
+      this.hazardBusy = true; this.lastHitBy = 'The thorns';
+      const trap = BW.Difficulty.get(st).trap;
+      const fatal = !this.godMode && trap > 0 && st.hp <= trap;
+      if (!this.godMode) st.hp = Math.max(0, st.hp - trap);
       p.flash = 1; p.vx = 0; p.vy = 0;
-      BW.Audio.play('hurt'); this.fx.shake(8, 0.25); this.fx.flash('#ff2a2a', 0.2);
+      BW.Audio.play('hurt'); this.fx.shake(8, 0.25);
+      if (trap > 0) this.fx.flash('#ff2a2a', 0.2);
       this.fx.burst(p.cx, p.cy, 18, { color: ['#1a1a24', '#ffcf7a', '#ffffff'], speed: 300, life: 0.5, kind: 'shard', size: 4 });
-      this.hud.pulse('hp', true);
+      if (trap > 0) this.hud.pulse('hp', true);
       this.hitstop(0.15);
       if (fatal) { st.hp = 0; this.hazardBusy = false; p.die(); return; }
       p.state = 'cutscene';
@@ -543,7 +630,7 @@
 
     onPlayerDeath() {
       const st = this.state;
-      st.stats.deaths = (st.stats.deaths || 0) + 1;
+      if (!this.rematch) st.stats.deaths = (st.stats.deaths || 0) + 1;
       this.slowT = 0.9; this.fx.shake(10, 0.4); this.fx.flash('#ffffff', 0.4);
       BW.Audio.play('die', { rate: 0.6 }); BW.Audio.duckMusic(0.3, 3);
       this.fx.burst(this.player.cx, this.player.cy, 30, { color: ['#ffe7b5', '#fff', '#d8a634'], kind: 'thread', speed: 300, life: 1.2, add: true });
@@ -560,12 +647,13 @@
         if (!BW.ENEMY_TYPES[e.type] || e.type === 'warden') continue;
         this.enemies.push(new BW.ENEMY_TYPES[e.type](this, e));
       }
+      for (const e of BW.Difficulty.extras(room, flags, this.state)) this.enemies.push(new BW.ENEMY_TYPES[e.type](this, e));
     }
 
     // ================================================================ checkpoints & progression
     restAt(lantern) {
       const st = this.state, p = this.player;
-      p.state = 'rest'; p.vx = 0; p.attackT = 0;
+      p.state = 'rest'; p.vx = 0; p.attackT = 0; p.restT = 0;
       p.x = lantern.x - 34 - p.w / 2;
       st.hp = st.maxHp;
       const first = !lantern.lit;
@@ -581,6 +669,31 @@
       this.hud.pulse('hp');
     }
     onStandUp() { /* nothing yet: hook for later stages */ }
+
+    // lanterns the player has kindled before, in room-list order
+    litLanterns() {
+      const lit = this.state.lanternsLit || {}, out = [];
+      for (const r of BW.ROOM_LIST) for (const e of r.ents) if (e.type === 'lantern' && lit[e.id]) out.push({ id: e.id, roomId: r.id, name: r.name, area: BW.AREAS[r.area].name });
+      return out;
+    }
+    canTravel() { return this.litLanterns().some((l) => l.id !== this.state.lantern); }
+
+    openTravel() {
+      if (!this.canTravel()) { this.hud.toast('No other lanterns lit', 'Kindle more lanterns to travel between them'); BW.Audio.play('ui_back', { vol: 0.5 }); return; }
+      BW.Audio.play('ui_ok');
+      this.menu.push('travel');
+    }
+
+    travelTo(roomId, lid) {
+      const st = this.state;
+      this.startTransition(() => {
+        st.lantern = lid; st.lanternRoom = roomId; st.hp = st.maxHp;
+        this.respawnAtLantern(true);
+        this.saveGame();
+        this.hud.toast('Travelled', 'Health restored · progress saved');
+      }, 0.5, 0.55);
+      BW.Audio.play('save', { vol: 0.7, rate: 0.8 });
+    }
 
     collectUpgrade(kind, x, y) {
       const st = this.state;
@@ -598,8 +711,9 @@
     }
 
     acquireAbility(shrine) {
-      if (this.state.abilities.dash) return;
-      this.startSequence(shrineSequence(this, shrine));
+      const key = shrine.def.ability || 'dash';
+      if (this.state.abilities[key]) return;
+      this.startSequence(shrineSequence(this, key));
     }
 
     rethreadLoom(loom) { this.startSequence(loomSequence(this, loom)); }
@@ -638,6 +752,8 @@
         pages.push('Oh! A Bellweaver? I thought the guild had gone quiet for good. I’m Odo. I keep these lamps lit, for whoever still walks the halls.');
         pages.push('The Belfry has been sealed since the bells stopped. Two old toll-looms bind its seal. Rethread them both and the way up should open.');
         pages.push('One loom hangs in the deep roots below the Hollow. The other lies past the Sundered Span… and nobody has crossed that in a long while.');
+      } else if (!st.abilities.parry) {
+        pages.push('Before you go further, touch the shrine at the far end of this hall. The weavers called it the Answering Toll: it teaches you to turn a blow aside.');
       } else if (!st.abilities.dash) {
         pages.push('The weavers had a shrine past the Loom Gallery, where they learned their swiftest stitch. Down through the gallery floor, if memory serves.');
       } else if (!f.bell2) {
@@ -745,9 +861,14 @@
       ctx.translate(-camX, -camY);
       if (!this.seq && !this.hud.announce && !this.dialog.active) for (const o of this.objects) if (o.type === 'hint') o.draw(ctx, alpha);
       if (!this.seq) BW.drawPealHint(ctx, this);
+      if (!this.seq) for (const e of this.enemies) e.drawBar(ctx, alpha);
+      if (!this.seq && this.player.state === 'rest' && this.player.restT > 0.35 && !this.transition) {
+        const pl = this.player;
+        this.hud.worldPrompt(ctx, pl.x + pl.w / 2, pl.y - 36, { act: 'interact' }, 'Lantern', 1);
+      }
       if (this.interactTarget && !this.seq) {
         const o = this.interactTarget;
-        this.hud.worldPrompt(ctx, o.x, o.y - (o.type === 'toll' ? 330 : o.type === 'shrine' ? 210 : o.type === 'npc' ? 130 : o.type === 'door' ? 160 : 128), BW.Input.label('interact'), o.prompt(), 1);
+        this.hud.worldPrompt(ctx, o.x, o.y - (o.type === 'toll' ? 330 : o.type === 'shrine' ? 210 : o.type === 'npc' ? 130 : o.type === 'door' ? 160 : o.type === 'note' ? 70 : 128), { act: 'interact' }, o.prompt(), 1);
       }
       // screen space
       ctx.setTransform(k, 0, 0, k, 0, 0);
@@ -761,9 +882,105 @@
       this.dialog.draw(ctx);
       this.hud.drawAnnounce(ctx);
       if (this.fade > 0) { ctx.fillStyle = `rgba(0,0,0,${this.fade})`; ctx.fillRect(0, 0, BW.VW, BW.VH); }
+      if (this.seqCard) this.drawSeqCard(ctx);
+      if (this.deathCard) this.drawDeathCard(ctx);
       if (this.seqText) this.drawSeqText(ctx);   // story text sits above the black fade
+      if (this.loreSlide) BW.Lore.drawSlide(ctx, this.loreSlide);
+      if (this.rematchCard) this.drawRematchCard(ctx);
       if (this.whiteFade > 0) { ctx.fillStyle = `rgba(255,250,240,${this.whiteFade})`; ctx.fillRect(0, 0, BW.VW, BW.VH); }
       if (this.menu.open) this.menu.draw(ctx);
+    }
+
+    drawDeathCard(ctx) {
+      const c = this.deathCard, cx = BW.VW / 2, t = c.t, VW = BW.VW, VH = BW.VH;
+      const ease = (u) => { u = BW.clamp(u, 0, 1); return 1 - Math.pow(1 - u, 3); };
+      const nm = c.diff.lock;
+      ctx.save(); ctx.globalAlpha = c.a;
+      ctx.fillStyle = '#040206'; ctx.fillRect(0, 0, VW, VH);
+      const vg = ctx.createRadialGradient(cx, VH * 0.46, VH * 0.12, cx, VH * 0.5, VH * 0.95);
+      vg.addColorStop(0, nm ? 'rgba(130,0,18,0.55)' : 'rgba(96,10,20,0.45)'); vg.addColorStop(0.6, 'rgba(30,2,8,0.5)'); vg.addColorStop(1, 'rgba(0,0,0,0.95)');
+      ctx.fillStyle = vg; ctx.fillRect(0, 0, VW, VH);
+      // embers drifting up
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 44; i++) {
+        const x = ((i * 173.3) % VW) + Math.sin(t * 0.7 + i) * 26, y = VH + 20 - ((i * 61.7 + t * (16 + (i % 5) * 7)) % (VH + 40));
+        const f = 0.25 + 0.25 * Math.sin(t * 3 + i * 1.7);
+        ctx.fillStyle = `rgba(255,${90 + (i % 4) * 25},70,${Math.max(0, f)})`; ctx.beginPath(); ctx.arc(x, y, 1 + (i % 3) * 0.7, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.restore();
+      // the broken bell
+      const be = ease(t / 1.1), by = VH * 0.27 - (1 - be) * 24;
+      ctx.save(); ctx.translate(cx, by); ctx.globalAlpha = c.a * be;
+      ctx.globalCompositeOperation = 'lighter';
+      const gl = ctx.createRadialGradient(0, 8, 0, 0, 8, 130); gl.addColorStop(0, `rgba(255,70,60,${0.28 + 0.06 * Math.sin(t * 2.4)})`); gl.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = gl; ctx.fillRect(-140, -120, 280, 280);
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.strokeStyle = 'rgba(235,225,205,0.55)'; ctx.lineWidth = 2;   // the snapped thread
+      ctx.beginPath(); ctx.moveTo(0, -150); ctx.lineTo(0, -88); ctx.lineTo(5, -80); ctx.moveTo(-5, -74); ctx.lineTo(0, -66); ctx.stroke();
+      const bg = ctx.createLinearGradient(0, -50, 0, 50); bg.addColorStop(0, '#6a5a52'); bg.addColorStop(0.55, '#3b2f33'); bg.addColorStop(1, '#1a1318');
+      ctx.fillStyle = bg; BW.bellIcon(ctx, 0, 0, 52);
+      ctx.strokeStyle = '#ff4a3c'; ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.shadowColor = '#ff2a20'; ctx.shadowBlur = 14;
+      ctx.beginPath(); ctx.moveTo(-8, -40); ctx.lineTo(4, -20); ctx.lineTo(-6, -2); ctx.lineTo(8, 18); ctx.lineTo(-2, 38); ctx.stroke();
+      ctx.restore();
+      // title
+      const ta = BW.clamp((t - 0.45) / 0.9, 0, 1), sp = 6 + 16 * ease(t / 3.6), ty = VH * 0.54;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.save(); ctx.globalAlpha = c.a * ta; ctx.translate(cx + sp / 2, ty); const pop = 1 + 0.07 * (1 - ease((t - 0.45) / 1.6)); ctx.scale(pop, pop);
+      ctx.font = `700 104px ${BW.FONT_T}`;
+      if (ctx.letterSpacing !== undefined) ctx.letterSpacing = sp + 'px';
+      ctx.shadowColor = 'rgba(210,20,40,0.85)'; ctx.shadowBlur = 36;
+      const tg = ctx.createLinearGradient(0, -50, 0, 50); tg.addColorStop(0, '#f0525e'); tg.addColorStop(0.55, '#c4202f'); tg.addColorStop(1, '#7c0f1c');
+      ctx.fillStyle = tg; ctx.fillText('YOU DIED', 0, 0);
+      ctx.shadowBlur = 0; ctx.lineWidth = 1.2; ctx.strokeStyle = 'rgba(255,190,170,0.35)'; ctx.strokeText('YOU DIED', 0, 0);
+      if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
+      ctx.restore();
+      // rule with a diamond
+      const ra = ease((t - 1) / 1.1), rw = 360 * ra, ry = VH * 0.635;
+      if (ra > 0) {
+        ctx.save(); ctx.globalAlpha = c.a * ra;
+        for (const s of [-1, 1]) { const lg = ctx.createLinearGradient(cx, 0, cx + s * rw, 0); lg.addColorStop(0, 'rgba(214,60,70,0.9)'); lg.addColorStop(1, 'rgba(214,60,70,0)'); ctx.strokeStyle = lg; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(cx + s * 16, ry); ctx.lineTo(cx + s * rw, ry); ctx.stroke(); }
+        ctx.fillStyle = '#d6404d'; ctx.beginPath(); ctx.moveTo(cx, ry - 7); ctx.lineTo(cx + 7, ry); ctx.lineTo(cx, ry + 7); ctx.lineTo(cx - 7, ry); ctx.closePath(); ctx.fill();
+        ctx.restore();
+      }
+      // cause, flavour, tally
+      const fa = (d) => c.a * BW.clamp((t - d) / 0.8, 0, 1);
+      ctx.save(); ctx.globalAlpha = fa(1.6);
+      ctx.font = `600 16px ${BW.FONT_T}`; ctx.fillStyle = '#a98a86'; if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '7px';
+      ctx.fillText('FELLED BY', cx + 3, VH * 0.69);
+      if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
+      ctx.font = `italic 600 38px ${BW.FONT_B}`; ctx.fillStyle = '#f1dcd4'; ctx.fillText(c.cause, cx, VH * 0.745);
+      ctx.restore();
+      ctx.save(); ctx.globalAlpha = fa(2.1);
+      ctx.font = `italic 500 24px ${BW.FONT_B}`; ctx.fillStyle = '#b8a39d'; ctx.fillText('Your silk unravels, and the thread leads you back to the lantern.', cx, VH * 0.805);
+      ctx.font = `600 18px ${BW.FONT_T}`; ctx.fillStyle = nm ? '#e0505c' : '#c9b49a';
+      ctx.fillText(`${c.diff.name.toUpperCase()}   \u00b7   DEATHS ${c.deaths}`, cx, VH * 0.86);
+      ctx.restore();
+      if (t > 2.6) {
+        ctx.save(); ctx.globalAlpha = c.a * (0.55 + 0.35 * Math.sin(t * 3.2)) * BW.clamp((t - 2.6) / 0.6, 0, 1);
+        ctx.font = `500 22px ${BW.FONT_B}`; ctx.fillStyle = '#e8d6ce'; ctx.fillText(`Press ${BW.Input.label('confirm')} to rise`, cx, VH * 0.93);
+        ctx.restore();
+      }
+      ctx.restore();
+    }
+
+    drawSeqCard(ctx) {
+      const c = this.seqCard, cx = BW.VW / 2;
+      ctx.save(); ctx.globalAlpha = c.a;
+      ctx.fillStyle = '#0a0105'; ctx.fillRect(0, 0, BW.VW, BW.VH);
+      const vg = ctx.createRadialGradient(cx, BW.VH / 2, BW.VH * 0.2, cx, BW.VH / 2, BW.VH * 0.95);
+      vg.addColorStop(0, 'rgba(120,0,16,0.35)'); vg.addColorStop(1, 'rgba(0,0,0,0.85)');
+      ctx.fillStyle = vg; ctx.fillRect(0, 0, BW.VW, BW.VH);
+      BW.drawNightmareIcon(ctx, cx, BW.VH * 0.34, 96, c.t);
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = `600 72px ${BW.FONT_T}`; ctx.fillStyle = `rgba(214,40,58,${0.88 + 0.12 * Math.sin(c.t * 9) * Math.sin(c.t * 2.3)})`;
+      ctx.shadowColor = 'rgba(200,0,30,0.8)'; ctx.shadowBlur = 24;
+      if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '12px';
+      ctx.fillText('NIGHTMARE', cx, BW.VH * 0.62);
+      if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '0px';
+      ctx.shadowBlur = 0;
+      ctx.font = `italic 500 30px ${BW.FONT_B}`; ctx.fillStyle = '#e6c9c4';
+      ctx.fillText('There is no turning back.', cx, BW.VH * 0.72);
+      ctx.restore();
     }
 
     drawSeqText(ctx) {
@@ -809,18 +1026,16 @@
   // ---------------------------------------------------------------- scripted sequences
   function* introSequence(g) {
     g.seq.hideHud = true; g.letterboxTarget = 1; g.fade = 1;
-    const lines = [
-      'The bells of the old moth-city have been silent for a hundred dusks.',
-      'Without their toll, the threads that bind the deep places have begun to fray.',
-      'The last Bellweaver descends, needle in hand, to mend what was left undone.',
-    ];
-    for (const l of lines) {
-      g.seqText = { text: l, a: 0 };
-      for (let i = 0; i < 30; i++) { g.seqText.a = i / 30; yield 1 / 60; if (BW.Input.pressed.confirm || BW.Input.pressed.jump) break; }
-      g.seqText.a = 1;
-      let w = 0; while (w < 2.6) { w += 1 / 60; yield 1 / 60; if (BW.Input.pressed.confirm || BW.Input.pressed.jump || BW.Input.pressed.attack) break; }
-      for (let i = 30; i >= 0; i--) { g.seqText.a = i / 30; yield 1 / 60; }
+    if (BW.Difficulty.get(g.state).lock) {
+      const c = g.seqCard = { a: 0, t: 0 };
+      BW.Audio.play('land', { rate: 0.5, vol: 0.9 });
+      for (let i = 0; i < 40; i++) { c.a = i / 40; c.t += 1 / 60; yield 1 / 60; }
+      c.a = 1;
+      while (c.t < 4.2) { c.t += 1 / 60; yield 1 / 60; if (c.t > 1.2 && (BW.Input.pressed.confirm || BW.Input.pressed.jump)) break; }
+      for (let i = 40; i >= 0; i--) { c.a = i / 40; c.t += 1 / 60; yield 1 / 60; }
+      g.seqCard = null;
     }
+    yield* BW.Lore.play(g, BW.Lore.INTRO);
     g.seqText = null;
     g.fade = 0; g.player.state = 'cutscene';
     BW.Audio.play('dash', { rate: 0.5, vol: 0.6 });
@@ -836,50 +1051,86 @@
 
   function* deathSequence(g) {
     g.seq.hideHud = false;
-    yield 1.5;
+    yield 1.4;
     g.fade = 0;
     for (let i = 0; i <= 30; i++) { g.fade = i / 30; yield 1 / 60; }
     const st = g.state;
+    g.seq.hideHud = true;
+    const c = g.deathCard = { a: 0, t: 0, cause: g.lastHitBy || 'The dark', deaths: st.stats.deaths || 0, diff: BW.Difficulty.get(st) };
+    BW.Audio.play('bellfar', { pitch: 82.4, vol: 0.8, minGap: 0 });
+    for (let i = 0; i <= 30; i++) { c.a = i / 30; c.t += 1 / 60; yield 1 / 60; }
+    // the world is rebuilt behind the card
     st.hp = st.maxHp; st.silk = 0;
     g.respawnAtLantern(true);
     g.saveGame();
-    yield 0.25;
-    for (let i = 30; i >= 0; i--) { g.fade = i / 30; yield 1 / 60; }
+    while (c.t < 7) { c.t += 1 / 60; yield 1 / 60; if (c.t > 2.6 && (BW.Input.pressed.confirm || BW.Input.pressed.jump)) break; }
     g.fade = 0;
+    for (let i = 30; i >= 0; i--) { c.a = i / 30; c.t += 1 / 60; yield 1 / 60; }
+    g.deathCard = null; g.seq.hideHud = false;
   }
 
-  function* shrineSequence(g, shrine) {
-    const p = g.player;
+  const ABILITY_INFO = {
+    dash: {
+      kicker: 'Learned the Swift Stitch', title: 'Silk Dash', glow: ['#fff6dc', '#ffd98a'], ring: '#ffe7b5', note: 261.6,
+      lines: (pad) => [`Press ${pad ? 'B or RT' : 'K or Shift'} to dash — on the ground or in mid-air.`, 'One air dash per jump; it recharges when you land or strike downward.', 'Dashing never costs silk.'],
+      toast: ['Try it: dash across the gap', 'dash'],
+      icon: (ctx, x, y, t) => {
+        ctx.strokeStyle = '#fff1d0'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+        for (let i = 0; i < 4; i++) { ctx.globalAlpha = 1 - i * 0.22; ctx.beginPath(); ctx.moveTo(-70 + i * 10 + Math.sin(t * 3) * 8, -12 + i * 8); ctx.lineTo(60 + Math.sin(t * 3) * 8, -12 + i * 8); ctx.stroke(); }
+      },
+    },
+    parry: {
+      kicker: 'Learned the Answering Toll', title: 'Parry', glow: ['#fff0dc', '#ffb48a'], ring: '#ffc6a0', note: 329.6,
+      lines: (pad) => [`Press ${pad ? 'LB' : 'I'} just as a blow lands to turn it aside.`, 'A clean parry costs you nothing, breaks the foe\u2019s rhythm and opens it to a counter.', 'Mistime it and you are left open — and the sound rings differently when you get it right.'],
+      toast: ['Try it: parry a blow as it lands', 'parry'],
+      icon: (ctx, x, y, t) => {
+        ctx.strokeStyle = '#ffd9bd'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+        const k = 1 + Math.sin(t * 4) * 0.06;
+        ctx.beginPath(); ctx.arc(0, 0, 46 * k, -2.4, 0.9); ctx.stroke();
+        ctx.globalAlpha = 0.6; ctx.beginPath(); ctx.moveTo(-40, -44); ctx.lineTo(40, 44); ctx.moveTo(40, -44); ctx.lineTo(-40, 44); ctx.stroke();
+      },
+    },
+    dodge: {
+      kicker: 'Learned the Unwoven Step', title: 'Shadow Step', glow: ['#f1ecff', '#a994ff'], ring: '#b9a6ff', note: 392,
+      lines: (pad) => [`Dash (${pad ? 'B or RT' : 'K or Shift'}) just as a blow is about to land to slip through it.`, 'You take no damage, a shadow of you remains, and the foe is frozen for a moment.', 'Strike it while it is stunned for a free combo. Needs the Silk Dash.'],
+      toast: ['Try it: dash as a blow lands', 'dash'],
+      icon: (ctx, x, y, t) => {
+        for (let i = 0; i < 3; i++) {
+          ctx.globalAlpha = 0.9 - i * 0.28; ctx.fillStyle = i ? '#7e6ad8' : '#f1ecff';
+          ctx.beginPath(); ctx.ellipse(-50 + i * 38 + Math.sin(t * 3) * 5, 0, 16, 40, 0, 0, Math.PI * 2); ctx.fill();
+        }
+      },
+    },
+  };
+
+  function* shrineSequence(g, key) {
+    const A = ABILITY_INFO[key], p = g.player;
     p.state = 'cutscene'; p.vx = 0; g.letterboxTarget = 1; g.seq.hideHud = true;
     BW.Audio.duckMusic(0.25, 6);
     BW.Audio.play('shrine');
     for (let i = 0; i < 150; i++) {
       const a = Math.random() * Math.PI * 2, r = BW.rand(120, 260);
       g.fx.spawn({ x: p.cx + Math.cos(a) * r, y: p.cy + Math.sin(a) * r, vx: -Math.cos(a) * r * 1.6, vy: -Math.sin(a) * r * 1.6, life: 0.6, size: 1.6, color: '#fff0c8', kind: 'thread', add: true, drag: 0 });
-      if (i % 30 === 0) g.fx.ring(p.cx, p.cy, 200, 10, 0.5, '#ffe7b5', 2);
+      if (i % 30 === 0) g.fx.ring(p.cx, p.cy, 200, 10, 0.5, A.ring, 2);
       p.glow = Math.min(1, i / 100);
       yield 1 / 60;
     }
     g.fx.flash('#fff6e0', 0.9); g.fx.shake(6, 0.4);
-    g.fx.burst(p.cx, p.cy, 40, { color: ['#fff6dc', '#ffd98a'], kind: 'glow', speed: 380, life: 0.9, add: true, size: 10 });
-    BW.Audio.play('bell', { pitch: 261.6, vol: 0.6 });
-    g.state.abilities.dash = true;
+    g.fx.burst(p.cx, p.cy, 40, { color: A.glow, kind: 'glow', speed: 380, life: 0.9, add: true, size: 10 });
+    BW.Audio.play('bell', { pitch: A.note, vol: 0.6 });
+    g.state.abilities[key] = true;
     g.saveGame();
     yield 0.5;
     let closed = false;
     g.hud.showAnnounce({
-      kicker: 'Learned the Swift Stitch', title: 'Silk Dash',
-      lines: [`Press ${BW.Input.device === 'pad' ? 'B or RT' : 'K or Shift'} to dash — on the ground or in mid-air.`, 'One air dash per jump; it recharges when you land or strike downward.', 'Dashing never costs silk.'],
-      icon: (ctx, x, y, t) => {
-        ctx.save(); ctx.translate(x, y); ctx.strokeStyle = '#fff1d0'; ctx.lineWidth = 3; ctx.lineCap = 'round';
-        for (let i = 0; i < 4; i++) { ctx.globalAlpha = 1 - i * 0.22; ctx.beginPath(); ctx.moveTo(-70 + i * 10 + Math.sin(t * 3) * 8, -12 + i * 8); ctx.lineTo(60 + Math.sin(t * 3) * 8, -12 + i * 8); ctx.stroke(); }
-        ctx.restore();
-      },
+      kicker: A.kicker, title: A.title,
+      lines: A.lines(BW.Input.device === 'pad'),
+      icon: (ctx, x, y, t) => { ctx.save(); ctx.translate(x, y); A.icon(ctx, x, y, t); ctx.restore(); },
       onClose: () => { closed = true; },
     });
     yield () => closed;
     g.letterboxTarget = 0; g.seq.hideHud = false; p.state = 'normal'; p.glow = 0.6;
-    g.hud.toast('Try it: dash across the gap', `${BW.Input.label('dash')}`);
+    g.hud.toast(A.toast[0], `${BW.Input.label(A.toast[1])}`);
   }
 
   function* loomSequence(g, loom) {

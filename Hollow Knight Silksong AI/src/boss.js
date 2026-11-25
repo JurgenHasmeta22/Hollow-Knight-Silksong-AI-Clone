@@ -34,7 +34,7 @@
 
   class Warden extends BW.Enemy {
     constructor(game, def) {
-      super(game, def, { w: 110, h: 230, hp: TUNE.hp, glints: 0, kb: 0 });
+      super(game, def, { w: 110, h: 230, hp: TUNE.hp, glints: 0, kb: 0, fixedHp: true });
       const a = game.room.def.arena || { x0: 1, x1: 40, floor: 21 };
       this.ax0 = a.x0 * T; this.ax1 = (a.x1 + 1) * T; this.floorY = a.floor * T;
       this.boss = true; this.facing = def.facing || 1;
@@ -69,6 +69,14 @@
       return null;
     }
 
+    // The weight of the blow the Warden is dealing: crushing moves outweigh a graze
+    isStriking() { const s = this.state; return s === 'sweep' || s === 'slam' || s === 'leap_land' || s === 'charge'; }
+    hitWeight() {
+      const W = BW.Difficulty.WEIGHTS.warden, s = this.state;
+      const w = s === 'sweep' ? W.sweep : s === 'slam' ? W.slam : s === 'leap_land' ? W.leap_land : s === 'charge' ? W.charge : W.body;
+      return w * BW.Difficulty.get(this.game.state).bossDmg;
+    }
+
     // ---------------------------------------------------------------- damage
     damage(n, dir, src) {
       if (this.dead || this.state === 'remains') return null;
@@ -78,7 +86,8 @@
         g.fx.burst(this.cx + (src ? BW.sign(src.cx - this.cx) * 40 : 0), this.cy - 30, 8, { color: ['#ffffff', '#ffe9a8'], kind: 'spark', speed: 380, life: 0.22 });
         return 'blocked';
       }
-      n *= TUNE.hitMult;
+      n *= TUNE.hitMult / BW.Difficulty.get(g.state).bossHp;
+      if (this.dodged > 0) n *= 1.6;
       this.hp -= n; this.flash = 0.55; this.poise += n; this.chipT = 0.45;
       this.sx = 0.97; this.sy = 1.025;
       if (++this.hitCount % 4 === 0) BW.Audio.play('bellfar', { pitch: BW.pick([110, 131, 147, 165]), vol: 0.7, minGap: 0.1 });
@@ -86,6 +95,29 @@
       if (this.hp <= 0) { this.hp = 0; this.die(); return 'kill'; }
       if (this.poise >= TUNE.poise[this.phase - 1] && STAGGERABLE[this.state]) this.startStagger();
       return 'hit';
+    }
+
+    // A parry cracks the Warden's poise and cuts the blow short.
+    onParried(p) {
+      if (this.dead || this.invuln) return;
+      const g = this.game;
+      this.flash = 0.6; this.poise += 9;
+      const rec = { sweep: 'sweep_rec', slam: 'slam_rec', leap_land: 'leap_rec' }[this.state];
+      if (rec) { this.setState(rec); this.vx = 0; this.combo = 1; }
+      if (this.poise >= TUNE.poise[this.phase - 1] && (STAGGERABLE[this.state] || rec)) this.startStagger();
+      g.fx.shake(8, 0.25);
+      g.fx.burst(this.cx + BW.sign(p.cx - this.cx) * 50, this.cy - 40, 14, { color: ['#ffffff', '#ffe9a8'], kind: 'spark', speed: 420, life: 0.3, add: true });
+    }
+
+    // The player slipped a blow with a perfectly timed dash (Shadow Step): the Warden loses its footing for a counter.
+    onDodged(p) {
+      if (this.dead || this.invuln) return;
+      this.dodged = 1.6; this.flash = 0.5; this.poise += 6;
+      const rec = { sweep: 'sweep_rec', slam: 'slam_rec', leap_land: 'leap_rec' }[this.state];
+      if (rec) { this.setState(rec); this.vx = 0; this.combo = 1; }
+      else if (this.state === 'charge') { this.vx = 0; this.setState('charge_hit'); this.pose = 'stagger'; this.sx = 0.9; }
+      if (this.poise >= TUNE.poise[this.phase - 1] && (STAGGERABLE[this.state] || rec)) this.startStagger();
+      this.game.fx.shake(6, 0.2);
     }
 
     // ---------------------------------------------------------------- scripted moments
@@ -156,6 +188,7 @@
     startAttack(a) {
       const ph = this.phase - 1, g = this.game;
       this.face(); this.vx = 0;
+      g.codexMove('warden', a);
       switch (a) {
         case 'sweep': this.setState('sweep_wind'); this.pose = 'swingback'; this.glint = 1; BW.Audio.play('windup', { rate: 0.7, vol: 0.9 }); break;
         case 'slam': this.setState('slam_wind'); this.pose = 'raise'; this.glint = 1; BW.Audio.play('windup', { rate: 0.5, vol: 1 }); BW.Audio.play('clink', { rate: 0.5, vol: 0.35 }); break;
@@ -181,6 +214,7 @@
       this.heat = BW.approach(this.heat, this.phase === 2 && s !== 'remains' ? 1 : 0, dt * 0.7);
       this.eye = BW.damp(this.eye, s === 'remains' || s === 'bound' ? 0 : (s === 'dying' ? Math.max(0, 1 - t / 3.5) : 1), 4, dt);
       this.glint = Math.max(0, this.glint - dt * 1.4);
+      if (this.dodged > 0) this.dodged -= dt;
       if (this.chip > this.hp) { this.chipT -= dt; if (this.chipT <= 0) this.chip = Math.max(this.hp, this.chip - dt * 26); } else this.chip = this.hp;
       for (const c of this.cords) if (c.snap >= 0) c.snap += dt;
       if (this.heat > 0.3 && Math.random() < dt * 14 && s !== 'remains') {
@@ -508,7 +542,7 @@
 
   // A crest of broken stone and light running along the floor. Jump it.
   class Shockwave extends Hazard {
-    constructor(game, x, floorY, dir, speed) { super(game); this.x = x; this.fy = floorY; this.dir = dir; this.speed = speed; this.fade = null; }
+    constructor(game, x, floorY, dir, speed) { super(game); this.dmg = BW.Difficulty.WEIGHTS.warden.shockwave; this.x = x; this.fy = floorY; this.dir = dir; this.speed = speed; this.fade = null; }
     boxes() { return this.fade != null ? null : [{ x: this.x - 22, y: this.fy - 44, w: 44, h: 44 }]; }
     hitX(p) { return p.cx - this.dir * 10; }
     update(dt) {
@@ -540,7 +574,7 @@
   // jump alone; run at it, jump, and Silk Dash across. In phase two it echoes back once off the wall.
   class PealWave extends Hazard {
     constructor(game, x, floorY, dir, o) {
-      super(game);
+      super(game); this.dmg = BW.Difficulty.WEIGHTS.warden.peal;
       this.dir = dir; this.fy = floorY; this.speed = o.speed; this.len = o.len; this.h = o.h || 62; this.echo = !!o.echo;
       this.front = x; this.back = x; this.wall = false; this.vis = 0;
     }
@@ -607,7 +641,7 @@
   // Phase two: silk spears rain from the vault in every column except a marked opening.
   class ThreadRain extends Hazard {
     constructor(game, x0, x1, floorY, playerX, o) {
-      super(game);
+      super(game); this.dmg = BW.Difficulty.WEIGHTS.warden.rain;
       this.fy = floorY; this.top = 2 * T + 6; this.tele = o.tele;
       const col = o.col, n = Math.floor((x1 - x0) / col);
       const mid = (x0 + x1) / 2, toMid = playerX < mid ? 1 : -1;
@@ -687,7 +721,7 @@
 
   // A chunk of the vault shaken loose; its shadow and a trickle of dust mark where it will land.
   class Debris extends Hazard {
-    constructor(game, x, floorY, delay) { super(game); this.x = x; this.fy = floorY; this.delay = delay; this.y = 2 * T + 20; this.vy = 0; this.r = 17; this.rot = Math.random() * 6; this.shape = [0.9, 1.1, 0.8, 1.0, 1.15, 0.85]; }
+    constructor(game, x, floorY, delay) { super(game); this.dmg = BW.Difficulty.WEIGHTS.warden.debris; this.x = x; this.fy = floorY; this.delay = delay; this.y = 2 * T + 20; this.vy = 0; this.r = 17; this.rot = Math.random() * 6; this.shape = [0.9, 1.1, 0.8, 1.0, 1.15, 0.85]; }
     boxes() { return this.t >= this.delay ? [{ x: this.x - this.r, y: this.y - this.r, w: this.r * 2, h: this.r * 2 }] : null; }
     hitX(p) { return this.x; }
     update(dt) {

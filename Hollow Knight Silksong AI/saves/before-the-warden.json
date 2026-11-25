@@ -10,7 +10,9 @@
   "silkMax": 12,
   "glints": 142,
   "abilities": {
-    "dash": true
+    "dash": true,
+    "parry": true,
+    "dodge": true
   },
   "flags": {
     "odo_met": true,
