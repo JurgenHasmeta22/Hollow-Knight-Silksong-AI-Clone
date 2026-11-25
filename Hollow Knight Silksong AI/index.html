@@ -1,62 +1,123 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bellweaver</title>
-<meta name="description" content="Bellweaver — an original hand-painted 2D action-exploration game.">
-<link rel="icon" href="assets/img/props/item_lifethread.webp">
-<style>
-  @font-face { font-family: 'Cinzel'; src: url('assets/fonts/Cinzel.woff2') format('woff2'); font-weight: 400 900; font-display: block; }
-  @font-face { font-family: 'Cormorant Garamond'; src: url('assets/fonts/CormorantGaramond.woff2') format('woff2'); font-weight: 300 700; font-style: normal; font-display: block; }
-  @font-face { font-family: 'Cormorant Garamond'; src: url('assets/fonts/CormorantGaramond-Italic.woff2') format('woff2'); font-weight: 300 700; font-style: italic; font-display: block; }
-  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
-  body { display: flex; align-items: center; justify-content: center; }
-  canvas { display: block; outline: none; background: #000; }
-  #loading { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
-    color: #e9dfca; font-family: 'Cinzel', serif; letter-spacing: 0.3em; font-size: 22px; background: #05080a; }
-  #loading .track { width: 260px; height: 2px; background: rgba(233,223,202,0.2); }
-  #loading-bar { width: 0; height: 100%; background: #f1d7a0; transition: width 0.2s; }
-  #loading small { font-family: 'Cormorant Garamond', serif; letter-spacing: 0.05em; font-size: 16px; opacity: 0.6; }
-</style>
-</head>
-<body>
-<canvas id="game" tabindex="0"></canvas>
-<div id="loading">BELLWEAVER<div class="track"><div id="loading-bar"></div></div><small>gathering thread…</small></div>
-<script src="assets/manifest.js"></script>
-<script src="assets/manifest_fortress.js"></script>
-<script src="assets/audio/music.js"></script>
-<script src="assets/audio/sfx_pack.js"></script>
-<script src="src/core.js"></script>
-<script src="src/input.js"></script>
-<script src="src/audio.js"></script>
-<script src="src/save.js"></script>
-<script src="src/graphics.js"></script>
-<script src="src/assets.js"></script>
-<script src="src/world.js"></script>
-<script src="src/rooms.js"></script>
-<script src="src/fortress.js"></script>
-<script src="src/fx.js"></script>
-<script src="src/player.js"></script>
-<script src="src/difficulty.js"></script>
-<script src="src/xp.js"></script>
-<script src="src/enemies.js"></script>
-<script src="src/objects.js"></script>
-<script src="src/boss.js"></script>
-<script src="src/codex.js"></script>
-<script src="src/lore.js"></script>
-<script src="src/terrain.js"></script>
-<script src="src/background.js"></script>
-<script src="src/hud.js"></script>
-<script src="src/glyphs.js"></script>
-<script src="src/menus.js"></script>
-<script src="src/guide.js"></script>
-<script src="src/map.js"></script>
-<script src="src/slots.js"></script>
-<script src="src/testsaves.js"></script>
-<script src="src/game.js"></script>
-<script src="src/cathedral.js"></script>
-<script src="src/gallery.js"></script>
-<script src="src/main.js"></script>
-</body>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Bellweaver</title>
+        <meta name="description" content="Bellweaver — an original hand-painted 2D action-exploration game." />
+        <link rel="icon" href="assets/img/props/item_lifethread.webp" />
+        <style>
+            @font-face {
+                font-family: 'Cinzel';
+                src: url('assets/fonts/Cinzel.woff2') format('woff2');
+                font-weight: 400 900;
+                font-display: block;
+            }
+            @font-face {
+                font-family: 'Cormorant Garamond';
+                src: url('assets/fonts/CormorantGaramond.woff2') format('woff2');
+                font-weight: 300 700;
+                font-style: normal;
+                font-display: block;
+            }
+            @font-face {
+                font-family: 'Cormorant Garamond';
+                src: url('assets/fonts/CormorantGaramond-Italic.woff2') format('woff2');
+                font-weight: 300 700;
+                font-style: italic;
+                font-display: block;
+            }
+            html,
+            body {
+                margin: 0;
+                height: 100%;
+                background: #000;
+                overflow: hidden;
+            }
+            body {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            canvas {
+                display: block;
+                outline: none;
+                background: #000;
+            }
+            #loading {
+                position: fixed;
+                inset: 0;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 18px;
+                color: #e9dfca;
+                font-family: 'Cinzel', serif;
+                letter-spacing: 0.3em;
+                font-size: 22px;
+                background: #05080a;
+            }
+            #loading .track {
+                width: 260px;
+                height: 2px;
+                background: rgba(233, 223, 202, 0.2);
+            }
+            #loading-bar {
+                width: 0;
+                height: 100%;
+                background: #f1d7a0;
+                transition: width 0.2s;
+            }
+            #loading small {
+                font-family: 'Cormorant Garamond', serif;
+                letter-spacing: 0.05em;
+                font-size: 16px;
+                opacity: 0.6;
+            }
+        </style>
+    </head>
+    <body>
+        <canvas id="game" tabindex="0"></canvas>
+        <div id="loading">
+            BELLWEAVER
+            <div class="track"><div id="loading-bar"></div></div>
+            <small>gathering thread…</small>
+        </div>
+        <script src="assets/manifest.js"></script>
+        <script src="assets/manifest_fortress.js"></script>
+        <script src="assets/audio/music.js"></script>
+        <script src="assets/audio/sfx_pack.js"></script>
+        <script src="src/core.js"></script>
+        <script src="src/input.js"></script>
+        <script src="src/audio.js"></script>
+        <script src="src/save.js"></script>
+        <script src="src/graphics.js"></script>
+        <script src="src/assets.js"></script>
+        <script src="src/world.js"></script>
+        <script src="src/rooms.js"></script>
+        <script src="src/fortress.js"></script>
+        <script src="src/fx.js"></script>
+        <script src="src/player.js"></script>
+        <script src="src/difficulty.js"></script>
+        <script src="src/xp.js"></script>
+        <script src="src/enemies.js"></script>
+        <script src="src/objects.js"></script>
+        <script src="src/boss.js"></script>
+        <script src="src/codex.js"></script>
+        <script src="src/lore.js"></script>
+        <script src="src/terrain.js"></script>
+        <script src="src/background.js"></script>
+        <script src="src/hud.js"></script>
+        <script src="src/glyphs.js"></script>
+        <script src="src/menus.js"></script>
+        <script src="src/guide.js"></script>
+        <script src="src/map.js"></script>
+        <script src="src/slots.js"></script>
+        <script src="src/testsaves.js"></script>
+        <script src="src/game.js"></script>
+        <script src="src/cathedral.js"></script>
+        <script src="src/gallery.js"></script>
+        <script src="src/main.js"></script>
+    </body>
 </html>
