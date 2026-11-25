@@ -22,6 +22,21 @@
       return { label: 'Controller Icons', type: 'choice', get: () => BW.Glyphs.styleName(), set: (d) => { st.pad = O[(O.indexOf(st.pad || 'auto') + d + O.length) % O.length]; this.game.applySettings(); } };
     }
 
+    // A left/right choice backed by one settings key; `after` can replace the default step handler.
+    cycle(label, key, order, names, after) {
+      const g = this.game, st = BW.settings;
+      const cur = () => { const v = st[key]; return order.indexOf(v) >= 0 || key === 'quality' ? v : order[0]; };
+      return {
+        label, type: 'choice', get: () => names[cur()] || String(cur()),
+        set: after || ((d) => {
+          const i = Math.max(0, order.indexOf(cur()));
+          st[key] = order[(i + d + order.length) % order.length];
+          if (key === 'res') g.autoCap = null;
+          g.applySettings();
+        }),
+      };
+    }
+
     items() {
       const g = this.game, s = this.screen; if (!s) return [];
       const st = BW.settings;
@@ -35,13 +50,14 @@
             { label: 'Options', act: () => this.push('options') },
             { label: 'Controls', act: () => this.push('controls') },
             { label: 'Save Data', act: () => this.push('savedata') },
+            ...(this.titleCleared() ? [{ label: 'Credits', act: () => g.titleCredits() }] : []),
           ];
         }
         case 'pause': return [
           { label: 'Resume', act: () => this.closeAll() },
           { label: 'Map', act: () => this.push('map') },
           { label: 'Archive', act: () => this.push('guide', { tab: 0, page: 0, scroll: 0 }) },
-          { label: 'Controls', act: () => this.push('controls') },
+          { label: 'Gallery', act: () => this.push('gallery', { tab: 0, i: [0, 0, 0] }) },
           { label: 'Options', act: () => this.push('options') },
           { label: 'Save Game', act: () => this.push('slots', { mode: 'save' }) },
           { label: 'Load Game', act: () => this.push('slots', { mode: 'load' }) },
@@ -60,15 +76,40 @@
           { label: 'Turn back', act: () => this.pop() },
         ];
         case 'options': return [
+          { label: 'Audio', act: () => this.push('opt_audio') },
+          { label: 'Graphics', act: () => this.push('opt_graphics') },
+          { label: 'Gameplay', act: () => this.push('opt_game') },
+          { label: 'Controls', act: () => this.push('controls') },
+          { label: 'Back', act: () => this.pop() },
+        ];
+        case 'opt_audio': return [
           { label: 'Master Volume', type: 'slider', get: () => st.master, set: (v) => { st.master = v; g.applySettings(); } },
-          { label: 'Music Volume', type: 'slider', get: () => st.music, set: (v) => { st.music = v; g.applySettings(); } },
-          { label: 'Effects Volume', type: 'slider', get: () => st.sfx, set: (v) => { st.sfx = v; g.applySettings(); BW.Audio.play('swing'); } },
+          { label: 'Music', type: 'slider', get: () => st.music, set: (v) => { st.music = v; g.applySettings(); } },
+          { label: 'Sound Effects', type: 'slider', get: () => st.sfx, set: (v) => { st.sfx = v; g.applySettings(); BW.Audio.play('swing'); } },
+          { label: 'Ambience', type: 'slider', get: () => st.ambience, set: (v) => { st.ambience = v; g.applySettings(); } },
+          { label: 'Interface Sounds', type: 'slider', get: () => st.ui, set: (v) => { st.ui = v; g.applySettings(); BW.Audio.play('ui_move'); } },
+          { label: 'Mute When Unfocused', type: 'toggle', get: () => st.muteBlur !== false, set: (v) => { st.muteBlur = v; g.applySettings(); } },
+          { label: 'Back', act: () => this.pop() },
+        ];
+        case 'opt_graphics': return [
+          this.cycle('Quality', 'quality', ['low', 'medium', 'high'], { low: 'Low', medium: 'Medium', high: 'High', custom: 'Custom' }, (d) => {
+            const o = ['low', 'medium', 'high'], i = o.indexOf(st.quality);
+            BW.Gfx.usePreset(st, o[i < 0 ? (d > 0 ? 2 : 0) : (i + d + o.length) % o.length]); g.autoCap = null; g.applySettings();
+          }),
+          this.cycle('Resolution', 'res', ['auto', '1080', '900', '720'], { auto: 'Auto', 1080: '1080p', 900: '900p', 720: '720p' }),
+          this.cycle('Lighting', 'lighting', ['full', 'simple', 'off'], { full: 'Full', simple: 'Simple', off: 'Off' }),
+          this.cycle('Particles', 'particles', ['high', 'medium', 'low'], { high: 'High', medium: 'Medium', low: 'Low' }),
+          this.cycle('Ambient Effects', 'ambient', ['on', 'reduced', 'off'], { on: 'On', reduced: 'Reduced', off: 'Off' }),
+          this.cycle('Backdrop Detail', 'backdrop', ['high', 'low'], { high: 'High', low: 'Low' }),
+          this.cycle('Frame Limit', 'fpsCap', [0, 30, 60], { 0: 'Off', 30: '30', 60: '60' }),
+          this.cycle('FPS Counter', 'fpsCounter', ['off', 'fps', 'full'], { off: 'Off', fps: 'FPS', full: 'Detailed' }),
+          { label: 'Fullscreen', type: 'toggle', get: () => !!document.fullscreenElement, set: () => g.toggleFullscreen() },
+          { label: 'Back', act: () => this.pop() },
+        ];
+        case 'opt_game': return [
           { label: 'Screen Shake', type: 'toggle', get: () => st.shake, set: (v) => { st.shake = v; g.applySettings(); } },
           { label: 'Control Hints', type: 'toggle', get: () => st.hints, set: (v) => { st.hints = v; g.applySettings(); } },
-          this.padItem(),
-          { label: 'Fullscreen', type: 'toggle', get: () => !!document.fullscreenElement, set: () => g.toggleFullscreen() },
-          { label: 'Resolution', type: 'choice', get: () => ({ auto: 'Auto', 1080: '1080p', 900: '900p', 720: '720p' })[st.res || 'auto'], set: (d) => { const o = ['auto', '1080', '900', '720']; st.res = o[(o.indexOf(st.res || 'auto') + d + o.length) % o.length]; g.autoCap = null; g.applySettings(); g.resize(); } },
-          ...(g.mode === 'play' && g.state ? [{ label: 'Difficulty', type: 'choice', get: () => BW.Difficulty.get(g.state).name + (BW.Difficulty.get(g.state).lock ? ' (locked)' : ''), set: (d) => {
+          this.padItem(),          ...(g.mode === 'play' && g.state ? [{ label: 'Difficulty', type: 'choice', get: () => BW.Difficulty.get(g.state).name + (BW.Difficulty.get(g.state).lock ? ' (locked)' : ''), set: (d) => {
             const cur = BW.Difficulty.get(g.state);
             if (cur.lock) { this.flash('Nightmare cannot be changed once chosen.'); return; }
             const o = BW.Difficulty.ORDER.filter((id) => !BW.Difficulty.LEVELS[id].lock), i = o.indexOf(cur.id);
@@ -114,6 +155,8 @@
       this.t += dt; this.msgT = Math.max(0, this.msgT - dt);
       const s = this.screen; if (!s) return;
       if (s.name === 'map') { this.mapUpdate(dt, inp); return; }
+      if (s.name === 'gallery') { this.galleryUpdate(dt, inp); return; }
+      if (s.name === 'pause' && inp.pressed.map && this.t > 0.1) { BW.Audio.play('ui_ok'); this.push('map'); return; }
       const items = this.items();
       if (s.name === 'guide') this.guideNav(inp);
       if (s.name === 'slots' && this.slotsKeys(inp, items)) return;
@@ -152,6 +195,7 @@
       const s = this.screen; if (!s) return;
       if (s.name === 'title') return this.drawTitleMenu(ctx);
       if (s.name === 'map') return this.drawMap(ctx);
+      if (s.name === 'gallery') return this.galleryDraw(ctx);
       ctx.save();
       ctx.fillStyle = 'rgba(3,4,8,0.78)'; ctx.fillRect(0, 0, BW.VW, BW.VH);
       ctx.restore();
@@ -163,6 +207,7 @@
       else if (s.name === 'slots') this.drawSlots(ctx);
       else if (s.name === 'lantern') this.drawLantern(ctx);
       else if (s.name === 'rematch') this.drawRematch(ctx);
+      else if (s.name.startsWith('opt_')) this.drawList(ctx, { opt_audio: 'AUDIO', opt_graphics: 'GRAPHICS', opt_game: 'GAMEPLAY' }[s.name] || 'OPTIONS', BW.VH * 0.29, BW.VW / 2, 46);
       else this.drawList(ctx, s.name === 'options' ? 'OPTIONS' : s.name === 'savedata' ? 'SAVE DATA' : s.name === 'testsaves' ? 'TEST SAVES' : s.name === 'difficulty' ? 'CHOOSE DIFFICULTY' : s.name === 'travel' ? 'TRAVEL BETWEEN LANTERNS' : '', BW.VH * 0.32);
       if (s.name === 'testsaves') this.drawBottomDesc(ctx);
       if (s.name === 'difficulty') {
@@ -265,6 +310,7 @@
         ['Abilities learned', `${['dash', 'parry', 'dodge'].filter((a) => st.abilities[a]).length} / 3`],
         ['Health bells', `${st.maxHp}`],
         ['Silk capacity', `${st.silkMax}`],
+        ['Level', (() => { const x = BW.XP.progress(st.xp | 0); return x.max ? `${x.level} (max)` : `${x.level}  \u00b7  ${x.into} / ${x.span} XP`; })()],
         ['Glints', `${st.glints}`],
         ['Rooms discovered', `${BW.ROOM_LIST.filter((r) => st.visited[r.id]).length} / ${BW.ROOM_LIST.length}`],
         ['Lore notes', `${BW.Lore.count(st)} / ${BW.Lore.NOTES.length}`],
@@ -273,7 +319,7 @@
       for (const [k, v] of rows) {
         ctx.fillStyle = 'rgba(225,214,192,0.75)'; ctx.fillText(k, x + 26, yy);
         ctx.textAlign = 'right'; ctx.fillStyle = '#fff1d0'; ctx.fillText(v, x + w - 26, yy); ctx.textAlign = 'left';
-        yy += 34;
+        yy += 31;
       }
       ctx.restore();
     }
@@ -363,12 +409,11 @@
         ctx.save(); ctx.textAlign = 'center'; ctx.font = `500 28px ${BW.FONT_B}`; ctx.fillStyle = `rgba(240,230,210,${Math.min(1, Math.max(0, tt - 1.8)) * (0.5 + Math.sin(tt * 2.5) * 0.35)})`;
         ctx.fillText('Press any key or button', BW.VW / 2, BW.VH * 0.66); ctx.restore();
       } else {
-        ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(BW.VW / 2 - 220, 345, 440, 345); ctx.restore();
+        ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(BW.VW / 2 - 220, 345, 440, this.titleCleared() ? 362 : 345); ctx.restore();
         this.drawList(ctx, '', 372);
       }
       ctx.save(); ctx.font = `500 17px ${BW.FONT_B}`; ctx.fillStyle = 'rgba(230,220,200,0.5)'; ctx.textAlign = 'right';
-      ctx.fillText(`Stage ${BW.BUILD_STAGE} build · v${BW.VERSION}`, BW.VW - 24, BW.VH - 22);
-      ctx.textAlign = 'left'; ctx.fillText('An original game · art and audio generated with Higgsfield', 24, BW.VH - 22);
+      ctx.fillText(`v${BW.VERSION} Alpha`, BW.VW - 24, BW.VH - 22);
       ctx.restore();
       this.drawMsg(ctx);
     }

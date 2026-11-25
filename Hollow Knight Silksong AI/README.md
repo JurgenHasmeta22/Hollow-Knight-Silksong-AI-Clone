@@ -4,7 +4,7 @@
 
 An original, hand-painted 2D action-exploration game that runs in the browser. You play the last Bellweaver, a small moth-knight with a silver needle. She climbs from the glowing caves of **Mosslit Hollow**, through the abandoned looms of **the Spindleworks**, up to **the Silent Belfry**. There she rethreads the two toll-looms that keep its seal shut, then opens the great doors of the **Cathedral of the Last Toll**.
 
-**This is the complete game (Stage 2):** the full exploration adventure, the final boss and the ending.
+**This is the complete game (v0.9.0 Alpha):** the full exploration adventure, the final boss and the ending.
 
 ---
 
@@ -47,10 +47,29 @@ Click the game once (or press any key) so the browser allows sound. A 16:9 windo
 | Interact / talk / rest / open doors | E or ↑ | Up |
 | Lantern menu (while resting at a lantern) | E or ↑ | Up |
 | Drop through a ledge | S + Space | Down + A |
-| Map | M or Tab | View / Back |
+| Map | M or Tab | Share / Create / View / Back (or touchpad click) |
 | Pause | Esc | Menu / Start |
 
-The game detects gamepads automatically (standard layout: Xbox, PlayStation and most others), and on-screen prompts switch to match the device you used last. Button icons follow your controller: **Options → Controller Icons** (also on the Controls screen) cycles **Auto** (detects the pad), **Xbox**, **PlayStation**, **Switch** and **Generic** (numbered buttons). The Controls screen, Archive tip chips, world prompts and tutorial hints all show the keyboard key and the matching pad button.
+The game detects gamepads automatically (standard layout: Xbox, PlayStation and most others), and on-screen prompts switch to match the device you used last. The full list of controls is at **Options → Controls** (also on the title screen), and the same screen is where **Controller Icons** cycles **Auto** (detects the pad), **Xbox**, **PlayStation**, **Switch** and **Generic** (numbered buttons). The Controls screen, Archive tip chips, world prompts and tutorial hints all show the keyboard key and the matching pad button.
+
+## Experience and levels
+
+Defeating creatures earns **XP**, and so does finding things: glint stashes and loose glints, Lifethreads and Silk Spools, lore notes, hidden nooks, toll-looms and the stitches taught at the shrines. Lanterns give none, and neither do boss rematches. The level and an XP bar sit under the glints in the HUD, with a `+N XP` pop-up on every gain, and the pause Journal shows your progress.
+
+| Source | XP |
+|---|---|
+| Moss Crawler / Lantern-moth | 8 |
+| Glow Spitter | 12 |
+| Cave-cricket | 14 |
+| Pike Sentinel | 20 (pale variants earn 1.5×) |
+| Glint pile / glint cache | 6 / 10 (once) |
+| Lore note, hidden nook | 15, 20 (once) |
+| Lifethread / Silk Spool | 40 each (once) |
+| Toll-loom | 60 each (once) |
+| Shrine stitch | 80 each (once) |
+| The Bellbound Warden | 350 |
+
+There are ten levels (50 XP to reach level 2, then 30 more for each next one, 1,530 in total). Every level makes every strike and Lance hit 4% stronger (up to +36%) and fully restores health and silk. Creatures come back when you rest, so they can be farmed a little, but each level asks for more than the last. Rematches give no XP. Saves from older builds start at level 1.
 
 ---
 
@@ -62,17 +81,17 @@ Pick one under **New Game**. Saves from older builds load as **Action**. You can
 
 | | Story | Action | Nightmare |
 |---|---|---|---|
-| Enemies per room | as placed | about 1.5× | about 3× |
+| Enemies per room | as placed | about 1.25× | about 3× |
 | Enemy health | 75% | 100% | 175% |
 | Damage from a hit | ¼ bell (weak hits ¼, heavy ½) | ½ bell (heavy ¾ to 1) | 1 bell (heavy 1½ to 2) |
 | Enemy speed | normal | normal | 120% |
 | Mend channel time | normal | normal | 140% |
 | Thorns and swinging bells | no damage (you are still set back) | 1 | 2 |
-| Warden health | 75% | 160% | 240% |
-| Warden damage | normal | 150% | 125% |
-| Parry window | 0.36 s (22 frames) | 0.28 s (17 frames) | 0.20 s (12 frames) |
-| Shadow Step window | 0.37 s | 0.31 s | 0.25 s |
-| Shadow Step reach (how close the blow must be) | 160 px | 120 px | 90 px |
+| Warden health | 75% | 210% | 360% |
+| Warden damage | normal | 125% | 125% |
+| Parry window | 0.36 s (22 frames) | 0.32 s (19 frames) | 0.20 s (12 frames) |
+| Shadow Step window | 0.37 s | 0.35 s | 0.25 s |
+| Shadow Step reach (how close the blow must be) | 160 px | 135 px | 90 px |
 
 **Damage by enemy and attack.** The base hit is ¼ / ½ / 1 bell (Story / Action / Nightmare) multiplied by a weight, rounded to the nearest ¼ bell (never below ¼):
 
@@ -84,7 +103,7 @@ Pick one under **New Game**. Saves from older builds load as **Action**. You can
 | Sentinel thrust | 2 | ½ / 1 / 2 |
 | Falling debris | 0.5 | ¼ / ¼ / ½ |
 
-Pale variants hit 0.5 harder (capped at 2). The Bestiary shows each creature's strike cost on your current difficulty. The Warden's own blows are further multiplied by its damage setting (Action 150%, Nightmare 125% on top of the 1-bell base), so on Action its sweep costs ¾ bell and its slam 1¼; on Nightmare its sweep costs 1¼ and its slam 2. The Warden's damage weights in the table above apply before that multiplier.
+Pale variants hit 0.5 harder (capped at 2). The Bestiary shows each creature's strike cost on your current difficulty. The Warden's own blows are further multiplied by its damage setting (Action and Nightmare 125% on top of the base hit); the Warden's damage weights in the table above apply before that multiplier.
 
 **Enemy health bars.** A named health bar appears over an enemy when you get close or hit it, with a pale trail showing the damage just dealt. The Warden uses its own boss bar.
 
@@ -94,9 +113,18 @@ Pale variants hit 0.5 harder (capped at 2). The Bestiary shows each creature's s
 
 ## Parry
 
-Press **I** (LB / L1) just before a blow lands. A good parry takes no damage, gives +1 silk, throws the attacker back and leaves it dazed for about a second, during which your strikes deal double damage. A miss leaves you open for a moment. You can't parry thorns, swinging bells, or the Warden's shockwaves, the Peal, falling debris and silk spears. Parrying the Warden's own strikes cuts them short and cracks its poise; two parries stagger it.
+Press **I** (LB / L1) just before a blow lands. A good parry takes no damage, gives +1 silk, throws the attacker back and leaves it dazed for about a second, during which your strikes deal double damage. A miss leaves you open for a moment. You can't parry thorns, swinging bells, or the Warden's shockwaves, the Peal, falling debris and silk spears. Parrying the Warden's own strikes cuts them short and fills its **poise** bar (a segmented bar under its health bar), and so does a Shadow Step (a gold **PARRY** or violet **SHADOW STEP** call-out floats over it with the poise built); ordinary strikes add very little, and almost nothing on Nightmare, so parries and Shadow Steps are the way to fill the bar. Poise only drains after a few quiet seconds. On Action and Nightmare its health is very high, so staggering it is how the fight is won. **Full poise staggers it** (about 3.4 s, roughly triple damage, reached after about three or four parries and Shadow Steps, stars, a ring and a "Staggered" call-out), and **a parry plus a Shadow Step within about 6 seconds, with poise at least 60% up (the diamond on the bar), breaks its guard**: "Guard broken", about 5.2 s of stun at about four times the damage. Running away or trading blows no longer wins the fight; weave parries and Shadow Steps together, then punish.
 
 A parry has its own sound: a bright steel strike with a ringing tail, layered over the shield clink (synthesised in `audio.js` as `SYNTH.parry`; dropping a `parry` sample into the SFX pack would override it). You learn it at the **Shrine of the Answering Toll** in the Weavers' Hall (the lantern room with Odo), early in the journey. Once learned, a tip is taught in the Glowmoss Path, and the first time an enemy hurts you and the first time you parry one a short tip appears (turn off with **Options → Control Hints**).
+## Options
+
+**Audio:** master, music, sound effects, ambience and interface volumes, plus mute when the window loses focus.
+
+**Graphics:** a Low / Medium / High quality preset (or Custom), resolution, lighting (full / simple / off), particles, ambient effects, backdrop detail, a frame limit (off / 30 / 60), an FPS counter (FPS or detailed with frame time) and fullscreen.
+
+**Gameplay:** screen shake, control hints, controller icons and (in play) difficulty.
+
+Settings are saved on this device.
 
 ## Shadow Step (perfect dodge)
 
@@ -112,9 +140,17 @@ Open **Archive** from the pause menu (it is not on the title screen).
 
 Entries are stored in the save. Saves from older builds are filled in from the enemies you had already cleared.
 
+## Gallery
+
+Open **Gallery** from the pause menu. **Left / Right** switches category and **Up / Down** browses; everything is read-only, so nothing you do here touches your save or the world.
+
+- **Realms**: full-screen backdrops of Mosslit Hollow, the Spindleworks, the Silent Belfry and the Cathedral (unlocked by visiting each region), plus the title art and, after the ending, the dawn over the Hollow. Each plays its own music and shows how many of its rooms you have found.
+- **Creatures**: large animated portraits of every creature in the Bestiary, plus Odo and the Bellweaver, with their lore. Unmet ones are black silhouettes marked `???`.
+- **Memories**: replay story moments you have already seen: the prologue, the region interludes, the shrines, the toll-looms, the Warden's tale, the vow broken, and the ending with its epilogue and credits. Press confirm to watch; **Esc / Back** skips and returns to the Gallery.
+
 ## Map
 
-Press **M** (View) to open the map. Explored rooms are drawn to scale with walls, ledges, thorns and gates. Rooms next to ones you have explored show as dashed **?** outlines, and gold chevrons mark exits you have not taken yet. Pins show lanterns (lit or unlit), toll-looms, the shrine, the Lamplighter, the Belfry seal, the Cathedral doors and lore notes (a solid scroll once read, a faint outline while unread in a room you have seen); a pulsing star marks your current objective once you have found the place (an edge arrow points to it when it is off screen). The side panel tracks rooms explored per region and holds the legend; the footer repeats the current objective.
+Press **M**, **Share / Create / View** or the touchpad click to open the map, from the game or from the pause menu. Explored rooms are drawn to scale with walls, ledges, thorns and gates. Rooms next to ones you have explored show as dashed **?** outlines, and gold chevrons mark exits you have not taken yet. Pins show lanterns (lit or unlit), toll-looms, the shrine, the Lamplighter, the Belfry seal, the Cathedral doors and lore notes (a solid scroll once read, a faint outline while unread in a room you have seen); a pulsing star marks your current objective once you have found the place (an edge arrow points to it when it is off screen). The side panel tracks rooms explored per region and holds the legend; the footer repeats the current objective.
 
 Controls: pan with the arrows or left stick, **L / Y** cycles zoom (1×, 2×, 3.4×; zoomed views follow you and show room names), **Q / LT** re-centres, **M / Esc** closes.
 
@@ -174,7 +210,7 @@ The game opens with a short run of intro chapters, plus an interlude card the fi
 - **A real ending:**
   - The defeat sequence and a reward.
   - Rethreading the Great Bell, which tolls for the first time since the silence and turns the cathedral to dawn light.
-  - An illustrated epilogue and credits with your stats.
+  - An illustrated epilogue and credits with your stats. Once the game is beaten, **Credits** also appears on the title screen and rolls them again.
   - The choice to return to exploring or go back to the title.
   - Completion is saved and marked on the title screen. Afterwards the Belfry's bells ring now and then, and you can ring the Great Bell again.
 
@@ -203,6 +239,8 @@ src/                game code (classic scripts, no build step)
   audio.js          music / ambience streaming, SFX, synth fallbacks
   save.js           versioned save format, export / import, migration
   difficulty.js     Story / Action / Nightmare presets and extra-enemy placement
+  xp.js             experience curve, levels and the strike-power bonus
+  graphics.js       Quality presets and the per-frame render settings (BW.gfx)
   world.js          room DSL, tile collision
   rooms.js          the world: areas and all rooms (incl. the cathedral)
   fx.js             particles, slashes, screen shake
@@ -221,6 +259,7 @@ src/                game code (classic scripts, no build step)
   map.js            the world map screen (exits, pins, objective, zoom and pan)
   game.js           game loop, rooms, camera, sequences
   cathedral.js      doors, boss entrance, arena, victory, Great Bell, ending and credits
+  gallery.js        Gallery screen (realms, creatures, replayable story memories) and the read-only replay mode
 assets/
   manifest.js       generated sprite / image manifest
   img/ audio/ fonts/

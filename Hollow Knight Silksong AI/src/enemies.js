@@ -23,6 +23,7 @@
       this.gravity = o.gravity !== false; this.onGround = false;
       this.kb = o.kb != null ? o.kb : 1;
       this.glints = o.glints || 2;
+      this.xp = Math.round((o.xp || 6) * (def.variant === 'pale' ? 1.5 : 1));
       this.variant = def.variant;
       this.persistKey = BW.enemyPersistKey(game.room && game.room.id, def);
       this.harmful = true;
@@ -103,6 +104,7 @@
       g.spawnGlints(this.cx, this.cy, this.glints);
       g.stats.kills = (g.stats.kills || 0) + 1;
       if (!this.boss) g.codexKill(this.kind);
+      if (!this.noXp) g.gainXp(this.xp);
     }
 
     update(dt) {
@@ -134,7 +136,7 @@
         if (res.landed) { if (!this.onGround) this.onLandE && this.onLandE(); this.vy = 0; this.onGround = true; } else this.onGround = Phys.onGround(room, this) && this.vy >= 0;
         if (res.ceil) this.vy = Math.max(0, this.vy);
         if (this.onGround && this.stun <= 0 && this.state !== 'lunge' && this.state !== 'leap') this.vx *= Math.exp(-10 * dt);
-        if (Phys.touchesHazard(room, this)) { this.hp = 0; this.kill(0); }
+        if (Phys.touchesHazard(room, this)) { this.hp = 0; this.noXp = true; this.kill(0); }
       } else {
         if (Phys.moveX(room, this, this.vx * dt)) { this.vx *= -0.3; this.hitWall && this.hitWall(); }
         const res = Phys.moveY(room, this, this.vy * dt);
@@ -223,7 +225,7 @@
 
   // ---------------------------------------------------------------- Crawler: patrols, rears up, lunges
   class Crawler extends Enemy {
-    constructor(game, def) { super(game, def, { w: 58, h: 32, hp: 3, glints: 2, kb: 1 }); this.state = 'patrol'; this.canRecover = true; }
+    constructor(game, def) { super(game, def, { w: 58, h: 32, hp: 3, glints: 2, xp: 8, kb: 1 }); this.state = 'patrol'; this.canRecover = true; }
     think(dt) {
       const s = this.state;
       if (this.stun > 0) return;
@@ -258,7 +260,7 @@
 
   // ---------------------------------------------------------------- Flyer: approaches, hovers, dives
   class Flyer extends Enemy {
-    constructor(game, def) { super(game, def, { w: 38, h: 34, hp: 2, glints: 2, kb: 1.3, gravity: false }); this.state = 'idle'; this.target = { x: 0, y: 0 }; this.side = 1; this.canRecover = true; }
+    constructor(game, def) { super(game, def, { w: 38, h: 34, hp: 2, glints: 2, xp: 8, kb: 1.3, gravity: false }); this.state = 'idle'; this.target = { x: 0, y: 0 }; this.side = 1; this.canRecover = true; }
     think(dt) {
       const s = this.state, p = this.game.player;
       const flap = Math.sin(this.t * 14);
@@ -317,7 +319,7 @@
 
   // ---------------------------------------------------------------- Sentinel: shielded front, pike thrust
   class Sentinel extends Enemy {
-    constructor(game, def) { super(game, def, { w: 46, h: 80, hp: 6, glints: 5, kb: 0.25 }); this.state = 'patrol'; this.turnT = 0; this.canRecover = true; }
+    constructor(game, def) { super(game, def, { w: 46, h: 80, hp: 6, glints: 5, xp: 20, kb: 0.25 }); this.state = 'patrol'; this.turnT = 0; this.canRecover = true; }
     blocks(dir, src) {
       if (this.state === 'recover' || dir === 'down' || dir === 'lance' || !src) return false;
       return BW.sign(src.cx - this.cx) === this.facing;
@@ -379,7 +381,7 @@
   // ---------------------------------------------------------------- Spitter: swells, then fires a silk glob
   class Spitter extends Enemy {
     constructor(game, def) {
-      super(game, def, { w: 56, h: 38, hp: 3, glints: 3, kb: 0.6, gravity: !def.hang });
+      super(game, def, { w: 56, h: 38, hp: 3, glints: 3, xp: 12, kb: 0.6, gravity: !def.hang });
       this.hang = def.hang || 0;
       if (this.hang) { this.anchorX = this.x + this.w / 2; this.anchorY = def.y * T; this.y = this.anchorY + this.hang * T - this.h; this.homeY = this.y; this.swing = 0; }
       this.state = 'idle'; this.cool = BW.rand(0.5, 1.2);
@@ -425,7 +427,7 @@
 
   // ---------------------------------------------------------------- Hopper: crouches, leaps, lands stunned
   class Hopper extends Enemy {
-    constructor(game, def) { super(game, def, { w: 42, h: 42, hp: 4, glints: 3, kb: 0.8 }); this.state = 'idle'; this.cool = BW.rand(0.3, 1.0); this.canRecover = true; }
+    constructor(game, def) { super(game, def, { w: 42, h: 42, hp: 4, glints: 3, xp: 14, kb: 0.8 }); this.state = 'idle'; this.cool = BW.rand(0.3, 1.0); this.canRecover = true; }
     think(dt) {
       const s = this.state, { dx, dy } = this.playerDelta();
       if (this.stun > 0 && s !== 'leap') return;

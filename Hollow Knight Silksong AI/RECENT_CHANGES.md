@@ -183,3 +183,37 @@ Standard action-game windows, scaling by difficulty:
 
 ### Documentation
 - `README.md` was updated for controls, difficulty tables, abilities and the Archive, and `Controls` now lists Shadow Step and Parry as "once learned".
+
+---
+
+## Uncommitted work since `79e505e`
+
+### Options, FPS counter and graphics (`menus.js`, `graphics.js`, `audio.js`)
+- **Options** has submenus for audio (master, music, SFX, ambience), graphics (quality preset and individual effect toggles) and an FPS counter toggle. Settings persist.
+
+### Easier Action difficulty and boss stun (`difficulty.js`, `boss.js`, `player.js`)
+- Action difficulty is gentler. A clean parry and a Shadow Step both leave the Warden stunned longer, and doing both in one opening keeps it down longest, so the best way to win is to use both rather than run away.
+
+### Fixes and performance
+- Lore-note interaction no longer shakes the player or the note icon.
+- A performance pass over the render and update loops to reduce stutter.
+
+### Share button opens the map (`input.js`, `glyphs.js`, `menus.js`)
+- The PlayStation Share / Create button (standard index 8) and the touchpad click (index 17) open the map, including from the pause menu. The prompt label reads **Share** on a DualShock 4 and **Create** on a DualSense.
+
+### Gallery and story replay (`gallery.js`, `menus.js`, `cathedral.js`, `game.js`)
+- **Pause → Gallery** has three tabs: **Realms** (region backdrops with their music, the title art and the ending dawn), **Creatures** (large portraits from the Bestiary, plus Odo and the Bellweaver) and **Memories** (prologue, region interludes, shrines, toll-looms, the Warden, the vow and the ending). Locked entries show as silhouettes with a hint.
+- Memories play in an isolated `replay` game mode that never touches the world or the save. The ending replays through `Ending` with a replay flag that skips its save and flag changes. Back or Pause returns to the Gallery and restores the music.
+
+### Controls and experience (`menus.js`, `xp.js`, `game.js`, `hud.js`)
+- **Controls** is no longer in the pause menu. It was the same screen as **Options → Controls**, which is still there (and on the title screen).
+- **Experience and levels** (`xp.js`): kills, glint stashes, Lifethreads and Silk Spools, lore notes, hidden nooks, toll-looms, shrine stitches and the Warden (350 XP) give XP. Ten levels; each adds 4% strike power and restores health and silk. Shown in the HUD under the glints, in the Journal and in a new Archive tip. Stored as `xp` in the save (older saves start at 0); lanterns and rematches give none.
+- Once the game is beaten, a **Credits** entry appears on the title screen (read-only; the credits roll from your autosave and return to the title).
+- Poise was rebalanced again so staggering is the main way to beat the Warden. Poise cap is 28 / 26; a parry adds 8 and a Shadow Step 7, while a plain strike adds only 0.5 per point of damage (taken from the raw blow, so the Warden's tankiness does not slow it). Two per-difficulty multipliers decide the split: `poise` for parries and Shadow Steps (Story 1.2, Action 1.0, Nightmare 0.9) and `hitPoise` for strikes (1.0, 0.6, 0.3). A parry is worth roughly 20 strikes on Story, 30 on Action and 45 on Nightmare, and it takes about three or four parries and Shadow Steps to stagger the Warden on any difficulty (two on Story for a guard break). Drain starts after 4 s at 1.5/s.
+- A parry or Shadow Step now shows a floating **PARRY** (gold) or **SHADOW STEP** (violet) call-out over the Warden with the poise it built (`+N POISE`), and the poise bar tints to match; ordinary hits show nothing.
+- Warden health (`bossHp`) is now 75% / 210% / 360% (Story / Action / Nightmare), so plain strikes barely matter on the harder modes.
+- Stagger is the damage window: full poise stuns for 3.4 s at 3x damage (was 1.5x); guard break needs a parry plus a Shadow Step within 6 s with poise at least 60% up, and stuns for 5.2 s at 4x. A parry now leaves it open at 1.8x and a Shadow Step at 2.0x.
+- Every stagger now has a hit-stop, bell, flash, ring and "Staggered" call-out, and a star halo.
+- The poise bar is segmented, with a diamond at the guard-break mark, a gold combo-window timer and a drain showing the stagger time left.
+- A thin poise bar sits under the Warden's health bar (the "POISE" label was removed; the Archive explains the bar instead, along with a new "Fighting the Warden" tip). Only the Warden has poise.
+- The title screen now reads `v0.9.0 Alpha` (was "Stage 2 build · v2.0.0") and no longer shows the Higgsfield line; the credits still do. The credits were redesigned: flanked section headings, ornament dividers, italic sub-lines and a ruled two-column stats list.

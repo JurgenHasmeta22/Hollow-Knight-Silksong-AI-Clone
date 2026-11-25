@@ -81,7 +81,24 @@
     { id: 'bars', cat: 'Combat', title: 'Health Bars', keys: [],
       body: () => [
         'A bar appears over a creature when you come close or strike it. The pale trail shows the damage you have just dealt.',
-        'The Warden has its own larger bar, shown for the whole fight.',
+        'The Warden has its own larger bar along the bottom of the screen for the whole fight. Under it sits a thinner, segmented bar: its poise, or guard. Strikes fill it a little, a perfect parry or Shadow Step fills it a lot, and it drains away again if you stop pressing. When it is full the Warden is staggered, and the bar then empties as the stagger runs out.',
+        'The diamond on the poise bar sits at the 60% mark and lights up once you have built enough poise for a parry plus a Shadow Step to break its guard. Poise is a posture bar, not a second life. Only the Warden has one. Ordinary creatures are dazed or frozen by a parry or a Shadow Step instead, and you have no poise bar: your bells and silk are your only meters.',
+      ] },
+    { id: 'boss', cat: 'Combat', title: 'Fighting the Warden', keys: [['Parry', 'parry'], ['Dash', 'dash']],
+      body: () => [
+        'Its attacks come from a shuffled bag, so none repeats straight away. Each one opens with a tell: a glint of the clapper, a crouch or a roar. Learn them from the Warden entry in the Bestiary.',
+        'Below half health it enters a second phase: it is faster, its pauses are shorter and it adds the Thread Rain.',
+        'After most attacks it is left open for a moment. Strike then, and Mend only while it is recovering.',
+        `A perfect parry (${L('parry')}) or a Shadow Step (${L('dash')}) cuts its blow short, floats a PARRY or SHADOW STEP call-out over it and builds a big part of its poise. Plain strikes build very little (almost nothing on Nightmare), so parries and Shadow Steps are the way to fill the bar. It only drains after a few quiet seconds.`,
+        'This is how the Warden is meant to be beaten. On Action and especially Nightmare its health is huge, so plain strikes barely dent it. It takes about three or four clean parries and Shadow Steps to fill the poise bar and stagger it: stunned for over three seconds and every blow lands for roughly three times the damage. Land a parry AND a Shadow Step within about six seconds of each other, with the poise at least 60% up, and its guard breaks: a longer stun and about four times the damage. Running away or trading blows will not win this fight; weave parries and Shadow Steps together, then punish.',
+        'The Peal, the shockwaves, falling debris and silk spears cannot be parried or slipped: jump or dash them instead. Its charge stops short if you dodge it, or if it hits the wall.',
+        'Winning earns a great deal of experience. A rematch from any lantern gives none.',
+      ] },
+    { id: 'xp', cat: 'Combat', title: 'Experience & Levels', keys: [],
+      body: () => [
+        `Defeating creatures earns experience, and so does finding things: glint stashes, Lifethreads and Silk Spools, lore notes, hidden nooks, toll-looms and the stitches taught at shrines. Lanterns give none, and neither do boss rematches. The Warden is worth a great deal.`,
+        `Your level (shown under the glints) goes up to ${BW.XP.MAX}. Each level makes every blow you land ${Math.round(BW.XP.BONUS * 100)}% stronger and restores your health and silk.`,
+        'Only found things are earned once. Creatures return when you rest at a lantern, but each level asks for more than the last.',
       ] },
     { id: 'difficulty', cat: 'Options', title: 'Difficulty', keys: [],
       body: (D) => [
@@ -146,7 +163,7 @@
         'Now it guards the silence itself. It will not strike first, but it will not let the Great Bell be rethreaded.',
       ],
       habits: 'Attacks come from a shuffled bag, so none repeats at once, and each opens with a glint of the clapper or a roar. Below half health the fight changes: it is faster and adds the Thread Rain.',
-      notes: 'Strike in its recovery windows and Mend only while it is recovering. Parrying its own strikes cracks its poise, and two parries stagger it.',
+      notes: 'Strike in its recovery windows and Mend only while it is recovering. Plain strikes barely hurt it on Action and Nightmare: perfect parries and Shadow Steps fill its poise bar, and a staggered Warden takes about triple damage. Land BOTH in quick succession to break its guard for a longer, deadlier stun.',
       moves: [
         ['sweep', 'Clapper Sweep', 'The clapper is drawn back with a glint, then swept low across the floor. Back out of its reach, or parry the strike.'],
         ['slam', 'Toll Slam', 'The clapper rises overhead and crashes down, sending a shockwave along the ground. Jump the wave. A parry cuts the slam short.'],

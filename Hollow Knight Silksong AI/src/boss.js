@@ -17,7 +17,15 @@
     charge: { wind: [0.64, 0.6], speed: [860, 920], stun: [1.15, 1.0] },
     peal: { wind: [1.0, 0.96], speed: [400, 420], len: [440, 440], h: 50, rec: [0.95, 0.78] },
     rain: { tele: 1.1, col: 64, open: 4 },
-    poise: [16, 14], stagger: 1.5,
+    // Poise is the Warden's guard, and the way the fight is meant to be won: parries and Shadow Steps fill it fast, plain
+    // strikes fill it slowly, and it only bleeds away after a few quiet seconds. Full poise = a long stagger in which
+    // blows land for far more damage (`staggerVuln`). Landing BOTH a parry and a Shadow Step within `combo.window`
+    // seconds while poise is at least `combo.need` of the way up shatters the guard: the longest, deadliest opening.
+    // Difficulty scales both the Warden's health (`bossHp`) and how much poise each gain builds (`poise`).
+    poise: [28, 26], stagger: 3.4, strikePoise: 0.5, staggerVuln: 3.0, decay: { delay: 4, rate: 1.5 },
+    parry: { poise: 8, stun: 3.6, vuln: 1.8, vulnT: 2.0 },
+    dodge: { poise: 7, stun: 3.6, vuln: 2.0, vulnT: 2.2 },
+    combo: { window: 6, need: 0.6, stun: 5.2, vuln: 4.0 },
   };
   BW.WARDEN_TUNE = TUNE;
   BW.PEAL_TEACH = { speed: 340, len: 420, h: 46 };   // the vestibule's practice toll
@@ -39,6 +47,7 @@
       this.ax0 = a.x0 * T; this.ax1 = (a.x1 + 1) * T; this.floorY = a.floor * T;
       this.boss = true; this.facing = def.facing || 1;
       this.phase = 1; this.poise = 0; this.bag = []; this.lastAtk = null; this.combo = 0;
+      this.hitCount = 0; this.poiseT = 0; this.tags = []; this.lastKind = null; this.parryT = 0; this.dodgeT = 0; this.vulnT = 0; this.vulnMul = 1; this.stunDur = TUNE.stagger; this.broken = false;
       this.pose = 'bound'; this.heat = 0; this.eye = 0; this.chip = this.hp; this.chipT = 0;
       this.invuln = true; this.harmful = false; this.active = false; this.wait = 0;
       this.walkDist = 0; this.stepT = 0; this.ev = {}; this.glint = 0; this.marker = null; this.leap = null;
@@ -86,9 +95,12 @@
         g.fx.burst(this.cx + (src ? BW.sign(src.cx - this.cx) * 40 : 0), this.cy - 30, 8, { color: ['#ffffff', '#ffe9a8'], kind: 'spark', speed: 380, life: 0.22 });
         return 'blocked';
       }
-      n *= TUNE.hitMult / BW.Difficulty.get(g.state).bossHp;
-      if (this.dodged > 0) n *= 1.6;
-      this.hp -= n; this.flash = 0.55; this.poise += n; this.chipT = 0.45;
+      const D = BW.Difficulty.get(g.state);
+      const pn = n * TUNE.strikePoise;   // from the raw blow, so a tankier Warden is not harder to stagger
+      n *= TUNE.hitMult / D.bossHp;
+      if (this.vulnT > 0) n *= this.vulnMul;
+      this.hp -= n; this.flash = 0.55; this.chipT = 0.45;
+      if (this.state !== 'stagger') this.gainPoise(pn, 'hit');
       this.sx = 0.97; this.sy = 1.025;
       if (++this.hitCount % 4 === 0) BW.Audio.play('bellfar', { pitch: BW.pick([110, 131, 147, 165]), vol: 0.7, minGap: 0.1 });
       if (this.phase === 1 && this.hp <= TUNE.phaseAt) { this.hp = TUNE.phaseAt; this.startTransition(); return 'hit'; }
@@ -97,14 +109,29 @@
       return 'hit';
     }
 
+    // Strikes build poise a little (`hitPoise`); a parry or Shadow Step builds far more (`poise`). Returns what was added.
+    gainPoise(k, kind) {
+      const D = BW.Difficulty.get(this.game.state), a = k * (kind === 'hit' ? D.hitPoise : D.poise);
+      this.poise += a; this.poiseT = TUNE.decay.delay;
+      return a;
+    }
+    // a floating call-out over its head so a parry and a Shadow Step read differently from an ordinary hit
+    addTag(text, sub, color) { this.tags.push({ text, sub, color, t: 0, life: 1.3 }); if (this.tags.length > 4) this.tags.shift(); }
+    poiseFull() { return this.poise >= TUNE.poise[this.phase - 1]; }
+    // a parry and a Shadow Step inside the window, with enough poise built up, break the guard
+    comboReady() { return this.poise >= TUNE.poise[this.phase - 1] * TUNE.combo.need; }
+
     // A parry cracks the Warden's poise and cuts the blow short.
     onParried(p) {
       if (this.dead || this.invuln) return;
       const g = this.game;
-      this.flash = 0.6; this.poise += 9;
+      const K = TUNE.parry;
+      this.flash = 0.6; this.parryT = TUNE.combo.window; this.lastKind = 'parry';
+      this.addTag('PARRY', `+${Math.round(this.gainPoise(K.poise))} POISE`, '#ffd27a');
+      this.vulnT = Math.max(this.vulnT, K.vulnT); this.vulnMul = Math.max(this.vulnMul, K.vuln);
       const rec = { sweep: 'sweep_rec', slam: 'slam_rec', leap_land: 'leap_rec' }[this.state];
       if (rec) { this.setState(rec); this.vx = 0; this.combo = 1; }
-      if (this.poise >= TUNE.poise[this.phase - 1] && (STAGGERABLE[this.state] || rec)) this.startStagger();
+      if ((this.poiseFull() || (this.dodgeT > 0 && this.comboReady())) && (STAGGERABLE[this.state] || rec)) this.startStagger();
       g.fx.shake(8, 0.25);
       g.fx.burst(this.cx + BW.sign(p.cx - this.cx) * 50, this.cy - 40, 14, { color: ['#ffffff', '#ffe9a8'], kind: 'spark', speed: 420, life: 0.3, add: true });
     }
@@ -112,11 +139,18 @@
     // The player slipped a blow with a perfectly timed dash (Shadow Step): the Warden loses its footing for a counter.
     onDodged(p) {
       if (this.dead || this.invuln) return;
-      this.dodged = 1.6; this.flash = 0.5; this.poise += 6;
+      const K = TUNE.dodge;
+      this.flash = 0.5; this.dodgeT = TUNE.combo.window; this.lastKind = 'dodge';
+      this.addTag('SHADOW STEP', `+${Math.round(this.gainPoise(K.poise))} POISE`, '#c4a8ff');
+      this.vulnT = Math.max(this.vulnT, K.vulnT); this.vulnMul = Math.max(this.vulnMul, K.vuln);
       const rec = { sweep: 'sweep_rec', slam: 'slam_rec', leap_land: 'leap_rec' }[this.state];
       if (rec) { this.setState(rec); this.vx = 0; this.combo = 1; }
-      else if (this.state === 'charge') { this.vx = 0; this.setState('charge_hit'); this.pose = 'stagger'; this.sx = 0.9; }
-      if (this.poise >= TUNE.poise[this.phase - 1] && (STAGGERABLE[this.state] || rec)) this.startStagger();
+      else if (this.state === 'charge') {
+        this.vx = 0; this.setState('charge_hit'); this.pose = 'stagger'; this.sx = 0.9;
+        this.stunDur = TUNE.charge.stun[this.phase - 1] + 0.8;   // a dodged charge leaves it dazed against the wall
+        if (this.parryT > 0 && this.comboReady()) { this.stunDur = TUNE.combo.stun; this.vulnT = this.stunDur; this.vulnMul = TUNE.combo.vuln; this.parryT = this.dodgeT = 0; this.poise = 0; this.broken = true; this.game.hud.toast('Guard broken', 'Parry and Shadow Step together. Strike now!', 2.2); }
+      }
+      if ((this.poiseFull() || (this.parryT > 0 && this.comboReady())) && (STAGGERABLE[this.state] || rec)) this.startStagger();
       this.game.fx.shake(6, 0.2);
     }
 
@@ -146,10 +180,21 @@
       g.fx.burst(e.x, e.y, 16, { color: ['#ff8a3c', '#ffd27a'], kind: 'glow', speed: 140, life: 0.7, add: true, size: 12 });
     }
     startStagger() {
-      this.poise = 0; this.vx = 0; this.marker = null; this.glint = 0; this.harmful = false;
+      const g = this.game, K = TUNE.combo;
+      this.broken = this.parryT > 0 && this.dodgeT > 0;
+      this.stunDur = this.broken ? K.stun : this.parryT > 0 ? TUNE.parry.stun : this.dodgeT > 0 ? TUNE.dodge.stun : TUNE.stagger;
+      this.vulnT = this.stunDur; this.vulnMul = Math.max(this.vulnMul, this.broken ? K.vuln : TUNE.staggerVuln);
+      this.poise = 0; this.poiseT = 0; this.parryT = 0; this.dodgeT = 0; this.vx = 0; this.marker = null; this.glint = 0; this.harmful = false;
       this.setState('stagger');
-      this.game.fx.shake(6, 0.3); BW.Audio.play('boss_crack', { vol: 0.55, rate: 1.3 });
-      this.game.fx.burst(this.cx, this.y + 60, 14, { color: ['#ffe9c0', '#ffb35a'], kind: 'spark', speed: 300, life: 0.4 });
+      const b = this.broken;
+      g.hitstop(b ? 0.12 : 0.07); g.fx.shake(b ? 13 : 9, b ? 0.4 : 0.3);
+      BW.Audio.play('boss_crack', { vol: b ? 0.95 : 0.7, rate: b ? 1 : 1.15 });
+      BW.Audio.play('bell', { pitch: b ? 98 : 131, vol: b ? 0.9 : 0.6, minGap: 0 });
+      g.fx.flash(b ? '#ffe2a8' : '#fff0d0', b ? 0.3 : 0.18);
+      g.fx.burst(this.cx, this.y + 60, b ? 34 : 22, { color: ['#ffe9c0', '#ffb35a'], kind: 'spark', speed: 340, life: 0.45 });
+      g.fx.ring(this.cx, this.y + 100, 20, b ? 400 : 300, b ? 0.6 : 0.45, '#ffe2a8', b ? 5 : 4);
+      if (b) g.hud.toast('Guard broken', 'Parry and Shadow Step together. Strike now!', 2.2);
+      else g.hud.toast('Staggered', 'Its guard is down. Strike now!', 1.6);
     }
     die() {
       const g = this.game;
@@ -214,7 +259,12 @@
       this.heat = BW.approach(this.heat, this.phase === 2 && s !== 'remains' ? 1 : 0, dt * 0.7);
       this.eye = BW.damp(this.eye, s === 'remains' || s === 'bound' ? 0 : (s === 'dying' ? Math.max(0, 1 - t / 3.5) : 1), 4, dt);
       this.glint = Math.max(0, this.glint - dt * 1.4);
-      if (this.dodged > 0) this.dodged -= dt;
+      if (this.parryT > 0) this.parryT -= dt;
+      if (this.dodgeT > 0) this.dodgeT -= dt;
+      if (this.poiseT > 0) this.poiseT -= dt;
+      else if (this.poise > 0 && this.state !== 'stagger') this.poise = Math.max(0, this.poise - TUNE.decay.rate * dt);
+      for (let i = this.tags.length - 1; i >= 0; i--) { this.tags[i].t += dt; if (this.tags[i].t > this.tags[i].life) this.tags.splice(i, 1); }
+      if (this.vulnT > 0) { this.vulnT -= dt; if (this.vulnT <= 0) this.vulnMul = 1; }
       if (this.chip > this.hp) { this.chipT -= dt; if (this.chipT <= 0) this.chip = Math.max(this.hp, this.chip - dt * 26); } else this.chip = this.hp;
       for (const c of this.cords) if (c.snap >= 0) c.snap += dt;
       if (this.heat > 0.3 && Math.random() < dt * 14 && s !== 'remains') {
@@ -307,7 +357,7 @@
           return;
         case 'charge_hit':
           this.vx = 0;
-          if (t >= TUNE.charge.stun[ph]) { this.face(); this.toIdle(0.2); }
+          if (t >= Math.max(TUNE.charge.stun[ph], this.stunDur)) { this.stunDur = TUNE.stagger; this.face(); this.toIdle(0.2); }
           return;
         // ---- peal: it rings its own bell-body; a long wave of resonance rolls along the floor (jump + dash over it)
         case 'peal_wind': {
@@ -338,8 +388,8 @@
           if (t >= 2.0) this.toIdle(0.35);
           return;
         case 'stagger':
-          this.vx = 0; this.pose = t < TUNE.stagger * 0.7 ? 'stagger' : 'idle';
-          if (t >= TUNE.stagger) { this.face(); this.toIdle(0.15); }
+          this.vx = 0; this.pose = t < this.stunDur * 0.8 ? 'stagger' : 'idle';
+          if (t >= this.stunDur) { this.broken = false; this.face(); this.toIdle(0.15); }
           return;
         case 'transition': {
           this.vx = t < 0.7 ? -this.facing * 60 : 0;
@@ -413,7 +463,7 @@
     }
     chargeImpact() {
       const g = this.game;
-      this.vx = 0; this.setState('charge_hit'); this.pose = 'stagger'; this.sx = 0.9;
+      this.vx = 0; this.setState('charge_hit'); this.pose = 'stagger'; this.sx = 0.9; this.stunDur = 0;
       BW.Audio.play('boss_slam', { rate: 0.85 }); BW.Audio.play('debris', { vol: 0.8 }); g.fx.shake(15, 0.6);
       g.fx.burst(this.facing > 0 ? this.ax1 : this.ax0, this.floorY - 140, 30, { color: ['#c9c2b0', '#efe6d2', '#8a8478'], speed: 420, angle: this.facing > 0 ? Math.PI : 0, spread: 1.8, life: 0.9, grav: 1100, size: 5 });
       this.dropDebris(this.phase === 2 ? 4 : 2, this.phase === 2);
@@ -504,6 +554,31 @@
         ctx.globalAlpha = Math.min(1, this.eye) * 0.9; ctx.drawImage(BW.glowSprite('#fff0d2'), e.x - 5, e.y - 5, 10, 10);
         ctx.restore();
         g.addLight(e.x, e.y, 90 + this.heat * 60, '#ff9a3c', 0.4 * Math.min(1, this.eye));
+      }
+      // dazed: a halo of stars over its head, brighter and wider when its guard is fully broken
+      if (s === 'stagger') {
+        const hx = x + this.facing * 20, hy = y - this.h - 10, k = this.broken ? 1 : 0.8;
+        ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = this.broken ? '#ffe2a8' : '#fff3d6';
+        for (let i = 0; i < 5; i++) {
+          const a = g.time * 4 + i * Math.PI * 0.4, r = 5 + 3 * Math.sin(g.time * 8 + i);
+          ctx.globalAlpha = k * 0.9; ctx.beginPath(); ctx.arc(hx + Math.cos(a) * 46, hy + Math.sin(a) * 12, r, 0, 6.2832); ctx.fill();
+        }
+        ctx.restore();
+      }
+      // call-outs: PARRY / SHADOW STEP with the poise they built, floating up from its head
+      if (this.tags.length) {
+        const hx = x + this.facing * 10, hy = y - this.h - 36;
+        ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+        for (const tg of this.tags) {
+          const k = tg.t / tg.life, a = Math.min(1, tg.t / 0.08, (1 - k) / 0.35), ty = hy - 46 * (1 - Math.pow(1 - Math.min(1, k * 1.6), 3));
+          const pop = 1 + Math.max(0, 0.3 - tg.t) * 1.2;
+          ctx.globalAlpha = Math.max(0, a);
+          ctx.font = `700 ${Math.round(30 * pop)}px ${BW.FONT_T}`; ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(6,7,10,0.85)';
+          ctx.strokeText(tg.text, hx, ty); ctx.fillStyle = tg.color; ctx.fillText(tg.text, hx, ty);
+          ctx.font = `600 20px ${BW.FONT_B}`; ctx.lineWidth = 4;
+          ctx.strokeText(tg.sub, hx, ty + 26); ctx.fillStyle = '#fff3dc'; ctx.fillText(tg.sub, hx, ty + 26);
+        }
+        ctx.restore();
       }
       // telegraph glint on the raised clapper
       const gp = GLINT[this.pose];

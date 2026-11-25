@@ -28,6 +28,7 @@
         difficulty: 'action',  // story | action | nightmare
         silkMax: 9,
         glints: 0,
+        xp: 0,                  // experience; the level is derived from it (xp.js)
         abilities: { dash: false, parry: false, dodge: false },   // dash: Silk Dash, parry: Answering Toll, dodge: Shadow Step
         flags: {},              // bells, shortcuts, broken walls, collected pickups, story beats...
         visited: {},            // room id -> true (map discovery)
@@ -59,6 +60,7 @@
       d.maxHp = BW.clamp(d.maxHp | 0 || 5, 1, 12);
       d.silkMax = BW.clamp(d.silkMax | 0 || 9, 3, 18);
       d.glints = Math.max(0, d.glints | 0);
+      d.xp = Math.max(0, d.xp | 0);
       if (!BW.Difficulty.valid(d.difficulty)) d.difficulty = BW.Difficulty.DEFAULT;
       return d;
     },
@@ -174,7 +176,11 @@
     },
 
     loadSettings() {
-      const def = { master: 0.85, music: 0.6, sfx: 0.85, shake: true, hints: true, res: 'auto', pad: 'auto' };
+      const def = {
+        master: 0.85, music: 0.6, sfx: 0.85, ambience: 0.75, ui: 1, muteBlur: true,
+        shake: true, hints: true, res: 'auto', pad: 'auto',
+        quality: 'high', lighting: 'full', particles: 'high', ambient: 'on', backdrop: 'high', fpsCap: 0, fpsCounter: 'off',
+      };
       const s = storage();
       try { return Object.assign(def, JSON.parse((s ? s.getItem(SETTINGS_KEY) : memoryStore[SETTINGS_KEY]) || '{}')); } catch (e) { return def; }
     },

@@ -19,7 +19,11 @@
         const finish = () => { done++; this.loaded = done; if (onProgress) onProgress(done / names.length); if (done === names.length) resolve(); };
         for (const n of names) {
           const img = new Image();
-          img.onload = () => { this.images[n] = img; finish(); };
+          // decode up front so the first draw of a sprite never hitches
+          img.onload = () => {
+            this.images[n] = img;
+            if (img.decode) img.decode().then(finish, finish); else finish();
+          };
           img.onerror = () => { this.failed.push(n); BW.note('missing image ' + n); finish(); };
           img.src = man.images[n];
         }

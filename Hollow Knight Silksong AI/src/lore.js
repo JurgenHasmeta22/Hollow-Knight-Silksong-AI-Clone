@@ -76,6 +76,7 @@
       f['note_' + id] = true;
       g.hud.toast('Lore note found', `${BY_ID[id].title}  \u00b7  ${this.count(g.state)} / ${NOTES.length}`, 3.4);
       BW.Audio.play('glint', { vol: 0.7, minGap: 0 });
+      g.gainXp(BW.XP.REWARD.note);
       g.saveGame();
       return true;
     },
@@ -210,22 +211,36 @@
       if (first) this.game.fx.burst(this.x, this.y - 18, 14, { color: ['#ffe6a6', '#ffffff'], speed: 150, life: 0.6, add: true, kind: 'glow', size: 6 });
     }
     draw(ctx) {
-      const x = this.x, y = this.y, got = this.got, b = Math.sin(this.t * 2.2) * 2.5;
-      if (!got) {
-        const gl = ctx.createRadialGradient(x, y - 18, 2, x, y - 18, 48);
-        gl.addColorStop(0, `rgba(255,224,150,${0.45 + 0.15 * Math.sin(this.t * 3)})`); gl.addColorStop(1, 'rgba(255,224,150,0)');
-        ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = gl; ctx.fillRect(x - 50, y - 70, 100, 100); ctx.restore();
-        this.game.addLight(x, y - 18, 70, '#ffe0a0', 0.3);
+      const x = this.x, y = this.y;
+      // ease the unread -> read look in real time (the sim is paused while the note is open), so nothing snaps
+      const now = performance.now(), dtr = this.lastDraw ? Math.min(0.05, (now - this.lastDraw) / 1000) : 0;
+      this.lastDraw = now;
+      if (this.gotK == null) this.gotK = this.got ? 1 : 0;
+      const target = this.got ? 1 : 0;
+      this.gotK += Math.max(-1, Math.min(1, (target - this.gotK))) * Math.min(1, dtr * 5);
+      if (Math.abs(target - this.gotK) < 0.004) this.gotK = target;
+      const k = this.gotK, un = 1 - k, b = Math.sin(this.t * 2.2) * 2.5 * un;
+      if (un > 0.01) {
+        const a = un * (0.45 + 0.15 * Math.sin(this.t * 3));
+        ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = Math.min(1, a / 0.45);
+        ctx.drawImage(BW.glowSprite('#ffe096'), x - 50, y - 68, 100, 100); ctx.restore();
+        this.game.addLight(x, y - 18, 70, '#ffe0a0', 0.3 * un);
       }
-      ctx.save(); ctx.translate(x, y - 16 + (got ? 0 : b)); ctx.rotate(-0.12);
+      ctx.save(); ctx.translate(x, y - 16 + b); ctx.rotate(-0.12);
       // rolled parchment with a ribbon
-      ctx.fillStyle = got ? '#8a8068' : '#e9d9b2'; BW.roundRect(ctx, -16, -8, 32, 16, 8); ctx.fill();
-      ctx.strokeStyle = got ? 'rgba(0,0,0,0.45)' : 'rgba(80,55,25,0.75)'; ctx.lineWidth = 1.6; ctx.stroke();
-      ctx.beginPath(); ctx.ellipse(-14, 0, 4, 8, 0, 0, Math.PI * 2); ctx.fillStyle = got ? '#6f664f' : '#cdb98a'; ctx.fill(); ctx.stroke();
-      ctx.fillStyle = got ? '#5a3a3a' : '#b32a3a'; ctx.fillRect(-2, -9, 5, 18);
+      ctx.fillStyle = mix('#e9d9b2', '#8a8068', k); BW.roundRect(ctx, -16, -8, 32, 16, 8); ctx.fill();
+      ctx.strokeStyle = mix('#503719', '#000000', k, 0.75, 0.45); ctx.lineWidth = 1.6; ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(-14, 0, 4, 8, 0, 0, Math.PI * 2); ctx.fillStyle = mix('#cdb98a', '#6f664f', k); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = mix('#b32a3a', '#5a3a3a', k); ctx.fillRect(-2, -9, 5, 18);
       ctx.restore();
     }
   };
+
+  function mix(a, b, k, aa = 1, ab = 1) {
+    const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+    const ch = (s) => Math.round(((pa >> s) & 255) * (1 - k) + ((pb >> s) & 255) * k);
+    return `rgba(${ch(16)},${ch(8)},${ch(0)},${aa * (1 - k) + ab * k})`;
+  }
 
   BW.Lore = Lore;
 })(window.BW);

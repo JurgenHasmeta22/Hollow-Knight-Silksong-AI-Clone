@@ -26,7 +26,9 @@
     playstation: {
       name: 'PlayStation',
       face: { S: ['x', PS.S], E: ['o', PS.E], W: ['sq', PS.W], N: ['tri', PS.N] },
-      sh: { LB: 'L1', RB: 'R1', LT: 'L2', RT: 'R2' }, select: 'Create', start: 'Options',
+      sh: { LB: 'L1', RB: 'R1', LT: 'L2', RT: 'R2' }, start: 'Options',
+      // the same button is "Share" on a DualShock 4 and "Create" on a DualSense
+      get select() { return /dualsense|0ce6|0df2/i.test((BW.Input && BW.Input.padId) || '') ? 'Create' : 'Share'; },
       words: { S: 'Cross', E: 'Circle', W: 'Square', N: 'Triangle' },
     },
     switch: {

@@ -2,7 +2,7 @@
 // Bellweaver — core namespace, constants and small helpers shared by every module.
 window.BW = window.BW || {};
 (function (BW) {
-  BW.VERSION = '2.0.0';
+  BW.VERSION = '0.9.0';
   BW.BUILD_STAGE = 2;
   BW.T = 40;              // tile size in world units
   BW.VW = 1280;           // logical view size (16:9)

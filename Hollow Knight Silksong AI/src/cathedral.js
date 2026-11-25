@@ -106,6 +106,7 @@
     st.flags.warden_defeated = true;
     st.stats.wardenWinTime = st.stats.wardenWinTime || st.stats.playTime;
     BW.Codex.kill(st, 'warden');
+    this.gainXp(BW.XP.REWARD.warden);
     this.saveGame();
     // a trade of final blows: the victory still counts, the player wakes at the lantern and finds the bell waiting
     if (this.player.state === 'dead') return;
@@ -121,6 +122,22 @@
     this.seq = null; this.letterboxTarget = 0; this.camFocus = null;
     this.mode = 'ending';
     this.ending = new Ending(this);
+  };
+
+  // Gallery: the epilogue and credits again, without touching the save
+  G.replayEnding = function () {
+    this.mode = 'ending';
+    this.ending = new Ending(this, true);
+    BW.Audio.playMusic('mus_ending', 1.5);
+  };
+
+  // Title screen (after the game is beaten): just the credits, read from the autosave
+  G.titleCredits = function () {
+    const st = BW.Save.load();
+    if (!st) return;
+    this.mode = 'ending';
+    this.ending = new Ending(this, true, st, true);
+    BW.Audio.playMusic('mus_ending', 1.5);
   };
 
   G.leaveEnding = function (choice) {
@@ -370,14 +387,17 @@
   ];
 
   class Ending {
-    constructor(game) {
-      this.game = game; this.t = 0; this.phase = 'image'; this.pt = 0; this.line = 0; this.scroll = 0; this.sel = 0;
-      const st = game.state;
-      st.flags.ending_seen = true;
-      st.stats.clears = (st.stats.clears || 0) + 1;
-      if (!st.stats.clearTime) st.stats.clearTime = st.stats.playTime;
-      game.saveGame();
-      game.hazards = []; game.bossBar = null; game.bossTitle = null; game.whiteFade = 0;
+    constructor(game, replay, state, fromTitle) {
+      this.game = game; this.t = 0; this.phase = fromTitle ? 'credits' : 'image'; this.pt = 0; this.line = 0; this.scroll = 0; this.sel = 0;
+      this.replay = !!replay; this.fromTitle = !!fromTitle;
+      const st = state || game.state;
+      if (!this.replay) {
+        st.flags.ending_seen = true;
+        st.stats.clears = (st.stats.clears || 0) + 1;
+        if (!st.stats.clearTime) st.stats.clearTime = st.stats.playTime;
+        game.saveGame();
+        game.hazards = []; game.bossBar = null; game.bossTitle = null; game.whiteFade = 0;
+      }
       this.credits = this.buildCredits(st);
       this.creditsH = this.credits.reduce((h, c) => h + c.gap, 0);
     }
@@ -391,25 +411,35 @@
       }
       const secrets = secretKeys.filter((k) => f[k]).length;
       const L = [];
-      const add = (text, style, gap) => L.push({ text, style, gap });
-      add('BELLWEAVER', 'logo', 86); add('a thread through the silent bells', 'tag', 120);
-      add('An original game', 'head', 44); add('Every room, creature, sound and line of text made for this project', 'line', 110);
-      add('Design · Code · Levels · Writing', 'head', 44); add('Built with Claude Code', 'line', 100);
-      add('Art', 'head', 44); add('Generated with Higgsfield (GPT Image 2.5), then cut, keyed and animated for the game', 'line', 100);
-      add('Music', 'head', 44); add('Generated with Higgsfield (Sonilo)', 'line', 100);
-      add('Sound', 'head', 44); add('Generated with Higgsfield (Seed Audio)', 'line', 100);
-      add('Type', 'head', 44); add('Cinzel and Cormorant Garamond (SIL Open Font License)', 'line', 130);
-      add('Your journey', 'head', 50);
-      add(`Time  ${BW.fmtTime(st.stats.clearTime || st.stats.playTime || 0)}     Deaths  ${st.stats.deaths || 0}`, 'line', 40);
-      add(`Rooms discovered  ${rooms} / ${BW.ROOM_LIST.length}     Upgrades  ${upgrades} / 4     Secrets  ${secrets} / ${secretKeys.length}`, 'line', 40);
-      add(`Attempts against the Warden  ${st.stats.wardenAttempts || 1}`, 'line', 40);
-      add(`Lore notes  ${BW.Lore.count(st)} / ${BW.Lore.NOTES.length}`, 'line', 150);
+      const add = (text, style, gap, value) => L.push({ text, style, gap, value });
+      add('BELLWEAVER', 'logo', 86); add('a thread through the silent bells', 'tag', 96); add('', 'rule', 90);
+      add('An original game', 'head', 40); add('Every room, creature, sound and line of text', 'line', 34); add('made for this project', 'line', 96);
+      add('Design · Code · Levels · Writing', 'head', 40); add('Built with Claude Code', 'line', 96);
+      add('Art', 'head', 40); add('GPT Image 2.5', 'line', 32); add('generated with Higgsfield, then cut, keyed and animated for the game', 'sub', 96);
+      add('Music', 'head', 40); add('Sonilo Music', 'line', 32); add('generated with Higgsfield', 'sub', 96);
+      add('Sound and ambience', 'head', 40); add('Seed Audio', 'line', 32); add('generated with Higgsfield', 'sub', 96);
+      add('Type', 'head', 40); add('Cinzel and Cormorant Garamond', 'line', 32); add('SIL Open Font License', 'sub', 96);
+      add('', 'rule', 80);
+      add('Your journey', 'head', 56);
+      add('Time', 'stat', 42, BW.fmtTime(st.stats.clearTime || st.stats.playTime || 0));
+      add('Deaths', 'stat', 42, `${st.stats.deaths || 0}`);
+      add('Rooms discovered', 'stat', 42, `${rooms} / ${BW.ROOM_LIST.length}`);
+      add('Upgrades', 'stat', 42, `${upgrades} / 4`);
+      add('Secrets', 'stat', 42, `${secrets} / ${secretKeys.length}`);
+      add('Lore notes', 'stat', 42, `${BW.Lore.count(st)} / ${BW.Lore.NOTES.length}`);
+      add('Attempts against the Warden', 'stat', 42, `${st.stats.wardenAttempts || 1}`);
+      add('Level', 'stat', 120, `${BW.XP.level(st.xp | 0)}`);
       add('Thank you for playing', 'logo2', 0);
       return L;
     }
     update(dt, inp) {
       this.t += dt; this.pt += dt;
       const g = this.game;
+      if (this.replay && this.t > 0.3 && (inp.pressed.pause || inp.pressed.back || (this.phase === 'end' && this.pt > 1 && (inp.pressed.confirm || inp.pressed.jump)))) {
+        BW.Audio.play('ui_back');
+        if (this.fromTitle) { g.ending = null; g.titleArm = true; g.toTitle(); } else g.endReplay();
+        return;
+      }
       if (this.phase === 'image') {
         if (this.pt > 2.6) { this.phase = 'epilogue'; this.pt = 0; this.line = 0; }
       } else if (this.phase === 'epilogue') {
@@ -422,7 +452,7 @@
         if (inp.pressed.pause || inp.pressed.back) this.scroll = this.creditsH + BW.VH * 0.5;
         if (this.scroll >= this.creditsH + BW.VH * 0.5) { this.phase = 'end'; this.pt = 0; this.sel = 0; }
       } else if (this.phase === 'end') {
-        if (this.pt < 1.0) return;
+        if (this.pt < 1.0 || this.replay) return;
         if (inp.pressed.up || inp.pressed.down) { this.sel = 1 - this.sel; BW.Audio.play('ui_move'); }
         if (inp.pressed.confirm || inp.pressed.jump || inp.pressed.interact) {
           BW.Audio.play('ui_ok');
@@ -452,16 +482,40 @@
         BW.wrapText(ctx, EPILOGUE[this.line] || '', W / 2, H - 150, 880, 44);
       } else if (this.phase === 'credits') {
         let y = H + 40 - this.scroll;
+        const diamond = (x, yy, r) => { ctx.save(); ctx.translate(x, yy); ctx.rotate(Math.PI / 4); ctx.fillRect(-r, -r, r * 2, r * 2); ctx.restore(); };
+        const flank = (w, yy, len) => {
+          for (const s of [-1, 1]) {
+            const x0 = W / 2 + s * (w / 2 + 18), x1 = x0 + s * len, gr = ctx.createLinearGradient(x0, 0, x1, 0);
+            gr.addColorStop(0, 'rgba(232,201,138,0.75)'); gr.addColorStop(1, 'rgba(232,201,138,0)');
+            ctx.fillStyle = gr; ctx.fillRect(Math.min(x0, x1), yy - 0.5, len, 1);
+            ctx.fillStyle = '#e8c98a'; diamond(x0, yy, 2.5);
+          }
+        };
         for (const c of this.credits) {
           if (y > -80 && y < H + 80) {
-            const fadeTop = Math.min(1, Math.max(0, (y - 40) / 120));
-            ctx.globalAlpha = fadeTop;
-            if (c.style === 'logo') { ctx.font = `600 66px ${BW.FONT_T}`; ctx.fillStyle = '#f6eedd'; }
-            else if (c.style === 'logo2') { ctx.font = `600 44px ${BW.FONT_T}`; ctx.fillStyle = '#f6eedd'; }
-            else if (c.style === 'tag') { ctx.font = `italic 500 28px ${BW.FONT_B}`; ctx.fillStyle = '#d9cbb0'; }
-            else if (c.style === 'head') { ctx.font = `600 20px ${BW.FONT_T}`; ctx.fillStyle = '#e8c98a'; }
-            else { ctx.font = `500 27px ${BW.FONT_B}`; ctx.fillStyle = '#efe4cc'; }
-            ctx.fillText(c.style === 'head' ? c.text.toUpperCase() : c.text, W / 2, y);
+            ctx.globalAlpha = Math.min(1, Math.max(0, (y - 40) / 120), Math.max(0, (H - y + 20) / 90));
+            if (c.style === 'logo') { ctx.font = `600 66px ${BW.FONT_T}`; ctx.fillStyle = '#f6eedd'; ctx.fillText(c.text, W / 2, y); }
+            else if (c.style === 'logo2') { ctx.font = `600 44px ${BW.FONT_T}`; ctx.fillStyle = '#f6eedd'; ctx.fillText(c.text, W / 2, y); }
+            else if (c.style === 'tag') { ctx.font = `italic 500 28px ${BW.FONT_B}`; ctx.fillStyle = '#d9cbb0'; ctx.fillText(c.text, W / 2, y); }
+            else if (c.style === 'head') {
+              ctx.font = `600 19px ${BW.FONT_T}`; ctx.fillStyle = '#e8c98a';
+              if ('letterSpacing' in ctx) ctx.letterSpacing = '4px';
+              const t = c.text.toUpperCase(), w = ctx.measureText(t).width;
+              ctx.fillText(t, W / 2 + 2, y);
+              if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+              flank(w, y, 70);
+            } else if (c.style === 'rule') {
+              ctx.fillStyle = 'rgba(232,201,138,0.8)'; diamond(W / 2, y, 4);
+              flank(0, y, 90);
+            } else if (c.style === 'sub') { ctx.font = `italic 500 19px ${BW.FONT_B}`; ctx.fillStyle = 'rgba(217,203,176,0.78)'; ctx.fillText(c.text, W / 2, y); }
+            else if (c.style === 'stat') {
+              const half = 250;
+              ctx.fillStyle = 'rgba(232,201,138,0.22)'; ctx.fillRect(W / 2 - half, y + 17, half * 2, 1);
+              ctx.font = `500 23px ${BW.FONT_B}`;
+              ctx.textAlign = 'left'; ctx.fillStyle = 'rgba(217,203,176,0.85)'; ctx.fillText(c.text, W / 2 - half, y);
+              ctx.textAlign = 'right'; ctx.fillStyle = '#fff3dc'; ctx.fillText(c.value, W / 2 + half, y);
+              ctx.textAlign = 'center';
+            } else { ctx.font = `500 28px ${BW.FONT_B}`; ctx.fillStyle = '#f3e9d2'; ctx.fillText(c.text, W / 2, y); }
           }
           y += c.gap;
         }
@@ -471,7 +525,7 @@
         ctx.font = `600 58px ${BW.FONT_T}`; ctx.fillStyle = '#f6eedd'; ctx.fillText('THE END', W / 2, H * 0.36);
         ctx.font = `italic 500 28px ${BW.FONT_B}`; ctx.fillStyle = '#d9cbb0'; ctx.fillText('The Great Bell rings again.', W / 2, H * 0.36 + 56);
         ctx.shadowBlur = 0;
-        const opts = ['Return to the Belfry', 'Title Screen'];
+        const opts = this.replay ? [this.fromTitle ? 'Back to the Title Screen' : 'Back to the Gallery'] : ['Return to the Belfry', 'Title Screen'];
         opts.forEach((o, i) => {
           const y = H * 0.6 + i * 50, on = i === this.sel;
           ctx.font = `${on ? 600 : 500} 28px ${BW.FONT_B}`; ctx.fillStyle = on ? '#fff3dc' : 'rgba(230,220,200,0.6)';
@@ -479,7 +533,7 @@
           if (on) { ctx.fillStyle = '#e8c98a'; ctx.save(); ctx.translate(W / 2 - ctx.measureText(o).width / 2 - 24, y); ctx.rotate(Math.PI / 4); ctx.fillRect(-4, -4, 8, 8); ctx.restore(); }
         });
         ctx.font = `500 18px ${BW.FONT_B}`; ctx.fillStyle = 'rgba(230,220,200,0.55)';
-        ctx.fillText('Your completion has been saved.', W / 2, H - 46);
+        ctx.fillText(this.fromTitle ? 'Thank you for playing.' : this.replay ? 'A memory, replayed. Nothing in your journey has changed.' : 'Your completion has been saved.', W / 2, H - 46);
       }
       ctx.restore();
       if (this.phase === 'image' && this.pt < 2.4) { ctx.fillStyle = `rgba(255,250,240,${Math.max(0, 1 - this.pt / 2.4)})`; ctx.fillRect(0, 0, W, H); }
@@ -501,7 +555,7 @@
       ctx.font = `600 21px ${BW.FONT_T}`; ctx.fillStyle = '#efe4cc'; ctx.shadowColor = 'rgba(0,0,0,0.85)'; ctx.shadowBlur = 10;
       ctx.fillText('THE BELLBOUND WARDEN', BW.VW / 2, y - 14);
       ctx.shadowBlur = 0;
-      ctx.fillStyle = 'rgba(6,7,10,0.78)'; BW.roundRect(ctx, x - 5, y - 5, w + 10, h + 10, 6); ctx.fill();
+      ctx.fillStyle = 'rgba(6,7,10,0.78)'; BW.roundRect(ctx, x - 5, y - 5, w + 10, h + 10 + 24, 6); ctx.fill();
       ctx.strokeStyle = 'rgba(236,222,190,0.55)'; ctx.lineWidth = 1.5; ctx.stroke();
       const k = Math.max(0, b.hp) / b.maxHp, kc = Math.max(0, b.chip) / b.maxHp;
       ctx.fillStyle = 'rgba(255,240,210,0.65)'; ctx.fillRect(x, y, w * kc, h);
@@ -512,6 +566,32 @@
       ctx.fillStyle = b.phase === 2 ? '#ffb36a' : '#f0e2c4';
       ctx.save(); ctx.translate(x + w * (BW.WARDEN_TUNE.phaseAt / b.maxHp), y + h / 2); ctx.rotate(Math.PI / 4); ctx.fillRect(-5, -5, 10, 10); ctx.restore();
       for (const s of [-1, 1]) { ctx.save(); ctx.translate(BW.VW / 2 + s * (w / 2 + 16), y + h / 2); ctx.rotate(Math.PI / 4); ctx.strokeStyle = '#e8d6b0'; ctx.strokeRect(-5, -5, 10, 10); ctx.restore(); }
+      // poise: the Warden's guard. Strikes, parries and Shadow Steps fill it, it bleeds away if you stop, and when it is
+      // full the Warden staggers (the bar then drains as the stagger timer). The diamond marks where a parry + Shadow Step break its guard.
+      const T = BW.WARDEN_TUNE, st = b.state === 'stagger', cap = T.poise[b.phase - 1], py = y + h + 9, ph = 10;
+      const target = st ? Math.max(0, 1 - b.stateT / Math.max(0.01, b.stunDur)) : Math.min(1, (b.poise || 0) / cap) || 0;
+      b.poiseShown = b.poiseShown == null ? target : b.poiseShown + (target - b.poiseShown) * (target < b.poiseShown ? 0.2 : 0.35);
+      const pk = b.poiseShown, win = Math.max(b.parryT || 0, b.dodgeT || 0), ready = !st && b.comboReady(), hot = st || win > 0;
+      const pulse = !st && pk > 0.85 ? 0.7 + 0.3 * Math.sin(g.time * 16) : 1;
+      ctx.fillStyle = 'rgba(14,18,24,0.95)'; ctx.fillRect(x, py, w, ph);
+      const pg = ctx.createLinearGradient(x, 0, x + w, 0);
+      if (st) { pg.addColorStop(0, b.broken ? '#ffb347' : '#e8b85a'); pg.addColorStop(1, '#fff3c8'); }
+      else if (hot) { pg.addColorStop(0, b.lastKind === 'dodge' ? '#7d5fd0' : '#d9a441'); pg.addColorStop(1, b.lastKind === 'dodge' ? '#d9c8ff' : '#fff0c2'); }
+      else { pg.addColorStop(0, '#3f7d96'); pg.addColorStop(1, '#a6e3f2'); }
+      const a0 = ctx.globalAlpha; ctx.globalAlpha = a0 * pulse; ctx.fillStyle = pg; ctx.fillRect(x, py, w * pk, ph);
+      ctx.fillStyle = 'rgba(255,255,255,0.28)'; ctx.fillRect(x, py, w * pk, 2);
+      if (st) { ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = `rgba(255,230,160,${0.18 + 0.12 * Math.sin(g.time * 20)})`; ctx.fillRect(x, py, w * pk, ph); ctx.globalCompositeOperation = 'source-over'; }
+      ctx.globalAlpha = a0;
+      ctx.fillStyle = 'rgba(6,7,10,0.55)';
+      for (let i = 1; i < 10; i++) ctx.fillRect(x + w * i / 10 - 0.5, py, 1, ph);
+      ctx.strokeStyle = hot ? 'rgba(255,226,160,0.85)' : 'rgba(236,222,190,0.45)'; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, py + 0.5, w - 1, ph - 1);
+      const mx = x + w * T.combo.need;
+      ctx.save(); ctx.translate(mx, py + ph / 2); ctx.rotate(Math.PI / 4);
+      ctx.fillStyle = ready ? '#ffe2a8' : 'rgba(14,18,24,0.95)'; ctx.fillRect(-4, -4, 8, 8);
+      ctx.strokeStyle = ready ? '#fff6dc' : 'rgba(236,222,190,0.7)'; ctx.strokeRect(-4, -4, 8, 8); ctx.restore();
+      if (win > 0 && !st) {
+        ctx.fillStyle = 'rgba(255,226,160,0.9)'; ctx.fillRect(x, py + ph + 3, w * Math.min(1, win / T.combo.window), 2);
+      }
       ctx.restore();
     }
     const bt = g.bossTitle;

@@ -12,8 +12,10 @@
       this.pulses = { hp: 0, silk: 0 }; this.denies = { hp: 0, silk: 0 }; this.hurtPulse = 0;
       this.shownHp = 5; this.crack = [];
       this.glintShown = 0; this.glintFlash = 0;
+      this.xpShown = null; this.xpPop = null;
       this.saveIcon = 0;
     }
+    xpGain(n) { if (this.xpPop && this.xpPop.t < 1.2) { this.xpPop.n += n; this.xpPop.t = 0; } else this.xpPop = { n, t: 0 }; }
     pulse(k, hurt) { this.pulses[k] = 1; if (hurt) this.hurtPulse = 1; }
     deny(k) { this.denies[k] = 0.5; }
     toast(text, sub, time = 2.6) { this.toasts.push({ text, sub, t: 0, life: time }); if (this.toasts.length > 3) this.toasts.shift(); }
@@ -34,6 +36,10 @@
         if (this.glintShown < st.glints) { this.glintShown = Math.min(st.glints, this.glintShown + Math.max(1, (st.glints - this.glintShown) * dt * 6)); this.glintFlash = 0.3; }
         else this.glintShown = st.glints;
         this.glintFlash = Math.max(0, this.glintFlash - dt);
+        const xp = st.xp | 0;
+        if (this.xpShown == null || this.xpShown > xp) this.xpShown = xp;
+        else if (this.xpShown < xp) this.xpShown = Math.min(xp, this.xpShown + Math.max(1, (xp - this.xpShown) * dt * 5));
+        if (this.xpPop) { this.xpPop.t += dt; if (this.xpPop.t > 1.8) this.xpPop = null; }
         if (Math.ceil(st.hp) < Math.ceil(this.shownHp)) { for (let i = Math.ceil(st.hp); i < Math.ceil(this.shownHp); i++) this.crack.push({ i, t: 0 }); }
         this.shownHp = st.hp;
       }
@@ -115,6 +121,19 @@
       ctx.font = `600 24px ${FONT_B}`; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
       ctx.fillStyle = this.glintFlash > 0 ? '#ffffff' : '#efe6d2';
       ctx.fillText(String(Math.floor(this.glintShown)), hx + 18, gy + 1);
+      // ---- level and experience ----
+      const xy = 124, xr = BW.XP.progress(this.xpShown == null ? st.xp | 0 : this.xpShown), bx = hx + 40, bw = 110;
+      ctx.font = `600 16px ${FONT_B}`; ctx.fillStyle = '#d9cdf0';
+      ctx.fillText(`LV ${xr.level}`, hx - 8, xy + 1);
+      ctx.fillStyle = 'rgba(8,10,14,0.65)'; ctx.fillRect(bx, xy - 3, bw, 7);
+      ctx.fillStyle = this.xpPop ? '#e6dcff' : '#b8a2ff'; ctx.fillRect(bx, xy - 3, bw * xr.ratio, 7);
+      ctx.strokeStyle = 'rgba(230,220,200,0.35)'; ctx.lineWidth = 1; ctx.strokeRect(bx - 0.5, xy - 3.5, bw + 1, 8);
+      if (xr.max) { ctx.fillStyle = '#d9cdf0'; ctx.fillText('MAX', bx + bw + 8, xy + 1); }
+      if (this.xpPop) {
+        ctx.globalAlpha = alpha * Math.min(1, (1.8 - this.xpPop.t) * 2);
+        ctx.fillStyle = '#e6dcff'; ctx.fillText(`+${this.xpPop.n} XP`, bx + bw + (xr.max ? 52 : 8), xy + 1);
+        ctx.globalAlpha = alpha;
+      }
       // hurt vignette
       if (this.hurtPulse > 0 || (st.hp > 0 && st.hp <= 1)) {
         const k = Math.max(this.hurtPulse * 0.6, st.hp > 0 && st.hp <= 1 ? 0.18 + Math.sin(this.game.time * 4) * 0.08 : 0);

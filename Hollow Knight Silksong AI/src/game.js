@@ -15,7 +15,7 @@
       this.cam = { x: 0, y: 0, px: 0, py: 0 }; this.look = 0; this.lookT = 0; this.lookV = 0;
       this.time = 0; this.freezeT = 0; this.slowT = 0;
       this.transition = null; this.seq = null; this.exitCooldown = 0;
-      this.lights = []; this.stats = {}; this.hudAlpha = 1; this.letterbox = 0;
+      this.lights = []; this.lightN = 0; this.plight = { x: 0, y: 0, r: 230, color: '#ffe7c4', a: 0.75 }; this.stats = {}; this.hudAlpha = 1; this.letterbox = 0;
       this.pixelScale = 1; this.godMode = false; this.lastArea = null;
       this.fade = 0;   // global black fade 0..1
       this.titleT = 0;
@@ -48,20 +48,39 @@
       BW.Input.onAnyKey(unlock);
       this.canvas.addEventListener('pointerdown', () => this.canvas.focus());
       if (test) { this.testMode = true; return; }
-      let last = performance.now(), acc = 0;
+      let last = performance.now(), acc = 0, lastDraw = 0;
       const frame = (now) => {
-        let dt = (now - last) / 1000; last = now;
+        // optional frame-rate limit; slots keep the average on target even when the display runs faster
+        const cap = BW.gfx.fpsCap, interval = cap ? 1000 / cap : 0;
+        if (interval && now - lastDraw < interval - 1.5) { requestAnimationFrame(frame); return; }
+        if (interval) lastDraw = now - lastDraw > interval * 2 ? now : lastDraw + interval;
+        const raw = now - last; last = now;
+        let dt = raw / 1000;
         if (dt > 0.1) dt = 0.1;
         acc += dt;
         let steps = 0;
         while (acc >= BW.DT && steps < 12) { this.tick(BW.DT); acc -= BW.DT; steps++; }
         if (steps >= 12) acc = 0;
         this.watchPerformance(dt);
-        this.render(acc / BW.DT);
+        this.trackFps(raw);
+        // when the world did not advance (dialog, menu, hit-stop) draw its final state, not an in-between one
+        this.render(this.simAdvanced ? acc / BW.DT : 1);
+        if (BW.settings.fpsCounter !== 'off') { this.ctx.setTransform(this.pixelScale, 0, 0, this.pixelScale, 0, 0); this.drawFps(this.ctx); }
         requestAnimationFrame(frame);
       };
+      document.addEventListener('visibilitychange', () => { last = performance.now(); this.syncFocus(); });
+      window.addEventListener('blur', () => this.syncFocus());
+      window.addEventListener('focus', () => this.syncFocus());
       requestAnimationFrame(frame);
     }
+
+    // Frame statistics for the FPS counter: updated twice a second.
+    trackFps(ms) {
+      const f = this.fpsStat || (this.fpsStat = { fps: 0, ms: 0, worst: 0, n: 0, sum: 0, max: 0 });
+      f.n++; f.sum += ms; if (ms > f.max) f.max = ms;
+      if (f.sum >= 500) { f.fps = Math.round(f.n * 1000 / f.sum); f.ms = f.sum / f.n; f.worst = f.max; f.n = 0; f.sum = 0; f.max = 0; }
+    }
+    syncFocus() { BW.Audio.setMuted(BW.settings.muteBlur !== false && (document.hidden || !document.hasFocus())); }
 
     resize() {
       const ww = window.innerWidth, wh = window.innerHeight;
@@ -74,8 +93,7 @@
       const bh = Math.round(bw * 9 / 16);
       this.canvas.width = bw; this.canvas.height = bh;
       this.pixelScale = bw / BW.VW;
-      this.ctx.imageSmoothingEnabled = true;
-      if (this.ctx.imageSmoothingQuality) this.ctx.imageSmoothingQuality = 'low';
+      this.applySmoothing();
     }
 
     // Backing-store width cap: the Resolution option, or automatic (steps down if frames run long).
@@ -85,13 +103,13 @@
       return this.autoCap || 1920;
     }
     watchPerformance(dt) {
-      if (!BW.settings || (BW.settings.res && BW.settings.res !== 'auto') || this.mode !== 'play' || document.hidden || this.transition || this.menu.open) { this.perfDts = []; return; }
-      const d = this.perfDts || (this.perfDts = []);
+      if (!BW.settings || BW.gfx.fpsCap || (BW.settings.res && BW.settings.res !== 'auto') || this.mode !== 'play' || document.hidden || this.transition || this.menu.open) { this.perfN = 0; return; }
+      const d = this.perfBuf || (this.perfBuf = new Float32Array(240));
       if (this.slowWindows == null) this.slowWindows = 0;
-      d.push(dt);
-      if (d.length < 240) return;
-      const sorted = d.slice().sort((a, b) => a - b), med = sorted[Math.floor(sorted.length / 2)];
-      this.perfDts = [];
+      d[this.perfN || 0] = dt; this.perfN = (this.perfN || 0) + 1;
+      if (this.perfN < 240) return;
+      this.perfN = 0;
+      const med = d.slice().sort()[120];
       const cap = this.autoCap || 1920;
       // Two slow windows in a row, so a one-off hitch (room load, tab switch) doesn't permanently cost resolution.
       if (med > 1 / 57 && cap > 1280) {
@@ -103,8 +121,19 @@
 
     applySettings() {
       const s = BW.settings;
-      BW.Audio.setVolumes({ master: s.master, music: s.music, sfx: s.sfx });
+      BW.Audio.setVolumes({ master: s.master, music: s.music, sfx: s.sfx, ambience: s.ambience, ui: s.ui });
+      s.quality = BW.Gfx.detect(s);
+      BW.Gfx.apply(s);
+      if (this.ctx) { this.applySmoothing(); if (this.appliedRes !== s.res) { this.appliedRes = s.res; this.resize(); } }
+      if (BW.Audio.muted && s.muteBlur === false) BW.Audio.setMuted(false);
+      if (this.bg) this.bg.gfxChanged();
+      if (this.fx) this.fx.trim();
       BW.Save.saveSettings(s);
+    }
+
+    applySmoothing() {
+      this.ctx.imageSmoothingEnabled = true;
+      if (this.ctx.imageSmoothingQuality) this.ctx.imageSmoothingQuality = BW.gfx.smooth;
     }
 
     toggleFullscreen() {
@@ -176,7 +205,7 @@
       const s = this.state;
       return {
         game: 'bellweaver', version: BW.Save.SAVE_VERSION, createdAt: s.createdAt,
-        lantern: s.lantern, lanternRoom: s.lanternRoom, maxHp: s.maxHp, difficulty: s.difficulty, silkMax: s.silkMax, glints: s.glints,
+        lantern: s.lantern, lanternRoom: s.lanternRoom, maxHp: s.maxHp, difficulty: s.difficulty, silkMax: s.silkMax, glints: s.glints, xp: s.xp | 0,
         abilities: s.abilities, flags: s.flagsReal || s.flags, visited: s.visited, lanternsLit: s.lanternsLit, cleared: s.cleared, stats: s.stats, codex: s.codex,
         lastRoom: this.room ? this.room.id : s.lastRoom,
       };
@@ -366,8 +395,11 @@
     // ================================================================ main tick
     tick(dt) {
       const inp = BW.Input;
+      this.simAdvanced = false;
       inp.poll();
-      BW.Audio.update(dt);
+      // music fades don't need 120 Hz updates
+      this.audioDt = (this.audioDt || 0) + dt;
+      if (this.audioDt >= 1 / 30) { BW.Audio.update(this.audioDt); this.audioDt = 0; }
       this.hud.update(dt);
       if (this.mode === 'title') {
         this.titleT += dt;
@@ -377,6 +409,7 @@
         return;
       }
       if (this.mode === 'ending') { if (this.ending) this.ending.update(dt, inp); return; }
+      if (this.mode === 'replay') { this.updateReplay(dt); return; }
       if (this.mode !== 'play') return;
       this.time += dt;
       if (this.state) this.state.stats.playTime = (this.state.stats.playTime || 0) + dt;
@@ -409,6 +442,7 @@
       let wdt = dt;
       if (this.slowT > 0) { this.slowT -= dt; wdt = dt * 0.35; }
 
+      this.simAdvanced = true;
       if (this.seq) this.updateSequence(wdt, inp);
       this.updateWorld(wdt, inp);
     }
@@ -474,7 +508,7 @@
       // secrets reveal
       for (const s of this.terrain.secrets) {
         if (s.a > 0 && (BW.overlap(p.hurtbox(), s.rect) || s.revealing)) {
-          if (!s.revealing) { s.revealing = true; this.state.flags['sec_' + s.id] = true; BW.Audio.play('pickup', { rate: 0.6, vol: 0.6 }); }
+          if (!s.revealing) { s.revealing = true; this.state.flags['sec_' + s.id] = true; BW.Audio.play('pickup', { rate: 0.6, vol: 0.6 }); this.gainXp(BW.XP.REWARD.secret); }
           s.a = Math.max(0, s.a - dt * 1.5);
         }
       }
@@ -543,7 +577,7 @@
         if (e.dead || hits.has(e)) continue;
         if (!BW.overlap(box, e.hurtbox())) continue;
         hits.add(e);
-        const r = e.damage(1, dir, p);
+        const r = e.damage(BW.XP.power(st), dir, p);
         if (r === 'blocked') { res.blocked = true; this.hitstop(0.05); continue; }
         if (!r) continue;
         res.hitEnemy = true;
@@ -589,7 +623,7 @@
         if (e.dead || l.hits.has(e)) continue;
         if (!BW.overlap(box, e.hurtbox())) continue;
         l.hits.add(e);
-        const r = e.damage(3, 'lance', { cx: l.x - l.dir * 40 });
+        const r = e.damage(3 * BW.XP.power(this.state), 'lance', { cx: l.x - l.dir * 40 });
         if (r) { this.hitstop(0.05); this.fx.burst(e.cx, e.cy, 14, { color: ['#fff6dc', '#ffd98a'], kind: 'spark', speed: 380, life: 0.3 }); BW.Audio.play('hit', { rate: 1.2 }); }
       }
       for (const o of this.objects) {
@@ -603,7 +637,36 @@
     spawnEnemyShot(x, y, vx, vy) { this.shots.push(new BW.EnemyShot(this, x, y, vx, vy)); }
     spawnGlints(x, y, n) { for (let i = 0; i < n; i++) this.coins.push(new BW.GlintCoin(this, x, y)); }
     addGlints(n) { this.state.glints += n; }
-    addLight(x, y, r, color, a) { this.lights.push({ x, y, r, color, a }); }
+
+    // Experience. Rematches give nothing, like glints.
+    gainXp(n) {
+      const st = this.state;
+      if (!st || this.rematch || !(n > 0)) return;
+      n = Math.round(n);
+      const before = BW.XP.level(st.xp);
+      st.xp = (st.xp | 0) + n;
+      this.hud.xpGain(n);
+      const after = BW.XP.level(st.xp);
+      if (after > before) this.levelUp(after);
+    }
+    levelUp(lv) {
+      const st = this.state, p = this.player;
+      const alive = p && p.state !== 'dead';
+      if (alive) { st.hp = st.maxHp; st.silk = st.silkMax; this.hud.pulse('hp'); this.hud.pulse('silk'); }
+      this.hud.toast(`Level ${lv}`, `Strike power +${Math.round(BW.XP.BONUS * (lv - 1) * 100)}%${alive ? '  \u00b7  Health and silk restored' : ''}`, 3.6);
+      BW.Audio.play('shrine', { vol: 0.5, minGap: 0 });
+      if (p) {
+        this.fx.ring(p.cx, p.cy, 10, 150, 0.6, '#d9c8ff', 3);
+        this.fx.burst(p.cx, p.cy, 22, { color: ['#efe6ff', '#c7a8ff', '#ffffff'], kind: 'glow', speed: 200, life: 0.8, add: true, size: 8 });
+      }
+    }
+    addLight(x, y, r, color, a) {
+      const n = this.lightN;
+      if (n >= 256) return;
+      this.lightN = n + 1;
+      const l = this.lights[n];
+      if (l) { l.x = x; l.y = y; l.r = r; l.color = color; l.a = a; } else this.lights[n] = { x, y, r, color, a };
+    }
 
     onHazard() {
       const p = this.player, st = this.state;
@@ -815,6 +878,12 @@
         this.ending.draw(ctx);
         return;
       }
+      if (this.mode === 'replay') {
+        ctx.fillStyle = '#040508'; ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        ctx.setTransform(k, 0, 0, k, 0, 0);
+        if (this.loreSlide) BW.Lore.drawSlide(ctx, this.loreSlide);
+        return;
+      }
       if (this.mode === 'title' || !this.room) {
         ctx.fillStyle = '#000'; ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         ctx.setTransform(k, 0, 0, k, 0, 0);
@@ -829,7 +898,7 @@
       ctx.setTransform(k * zoom, 0, 0, k * zoom, 0, 0);
       if (!SK.far) this.bg.drawFar(ctx, cam, vw, vh);
       ctx.translate(-camX, -camY);
-      this.lights = [];
+      this.lightN = 0;
       this.bg.view = { x0: camX - 20, x1: camX + vw + 20 };
       this.bg.drawDeco(ctx, 'back');
       // terrain (visible part only)
@@ -851,12 +920,12 @@
       this.bg.drawDeco(ctx, 'front');
       this.fx.draw(ctx);
       this.fx.drawAdditive(ctx);
-      this.bg.drawMotes(ctx);
+      if (BW.gfx.motes > 0) this.bg.drawMotes(ctx);
       // lighting
-      const p = this.player;
-      const plight = { x: p.cx, y: p.cy - 10, r: 230, color: '#ffe7c4', a: 0.75 };
+      const p = this.player, plight = this.plight;
+      plight.x = p.cx; plight.y = p.cy - 10;
       ctx.setTransform(k * zoom, 0, 0, k * zoom, 0, 0);
-      if (!SK.lighting) this.bg.drawLighting(ctx, cam, vw, vh, this.lights, plight);
+      if (!SK.lighting && BW.gfx.lighting > 0) this.bg.drawLighting(ctx, cam, vw, vh, this.lights, this.lightN, plight);
       // prompts drawn above lighting so they stay readable
       ctx.translate(-camX, -camY);
       if (!this.seq && !this.hud.announce && !this.dialog.active) for (const o of this.objects) if (o.type === 'hint') o.draw(ctx, alpha);
@@ -866,7 +935,7 @@
         const pl = this.player;
         this.hud.worldPrompt(ctx, pl.x + pl.w / 2, pl.y - 36, { act: 'interact' }, 'Lantern', 1);
       }
-      if (this.interactTarget && !this.seq) {
+      if (this.interactTarget && !this.seq && !this.dialog.active && !this.hud.announce && !this.loreSlide) {
         const o = this.interactTarget;
         this.hud.worldPrompt(ctx, o.x, o.y - (o.type === 'toll' ? 330 : o.type === 'shrine' ? 210 : o.type === 'npc' ? 130 : o.type === 'door' ? 160 : o.type === 'note' ? 70 : 128), { act: 'interact' }, o.prompt(), 1);
       }
@@ -889,6 +958,17 @@
       if (this.rematchCard) this.drawRematchCard(ctx);
       if (this.whiteFade > 0) { ctx.fillStyle = `rgba(255,250,240,${this.whiteFade})`; ctx.fillRect(0, 0, BW.VW, BW.VH); }
       if (this.menu.open) this.menu.draw(ctx);
+    }
+
+    drawFps(ctx) {
+      const f = this.fpsStat; if (!f || !f.fps) return;
+      const full = BW.settings.fpsCounter === 'full';
+      const txt = full ? `${f.fps} FPS  ${f.ms.toFixed(1)} ms  (worst ${f.worst.toFixed(0)})` : `${f.fps} FPS`;
+      ctx.save(); ctx.font = `600 16px ${BW.FONT_B}`; ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+      const w = ctx.measureText(txt).width + 16;
+      ctx.fillStyle = 'rgba(6,8,12,0.6)'; ctx.fillRect(BW.VW - w - 10, 10, w, 26);
+      ctx.fillStyle = f.fps >= 55 ? '#bfe8b0' : f.fps >= 30 ? '#ffd27a' : '#ff8a7a';
+      ctx.fillText(txt, BW.VW - 18, 15); ctx.restore();
     }
 
     drawDeathCard(ctx) {
@@ -1131,6 +1211,8 @@
     yield () => closed;
     g.letterboxTarget = 0; g.seq.hideHud = false; p.state = 'normal'; p.glow = 0.6;
     g.hud.toast(A.toast[0], `${BW.Input.label(A.toast[1])}`);
+    g.gainXp(BW.XP.REWARD.shrine);
+    g.saveGame();
   }
 
   function* loomSequence(g, loom) {
@@ -1159,6 +1241,8 @@
     g.camFocus = null; g.letterboxTarget = 0; g.seq.hideHud = false; p.state = 'normal';
     if (loom.def.bell === 1) g.hud.toast('The first toll-loom sings (1/2)', both ? 'The Belfry Seal is broken.' : 'Far above, a hatch unbolts and a lift stirs.');
     else g.hud.toast('The second toll-loom sings' + (both ? ' (2/2)' : ' (1/2)'), both ? 'The Belfry Seal is broken. The Cord Lift wakes.' : 'The Cord Lift wakes.');
+    g.gainXp(BW.XP.REWARD.loom);
+    g.saveGame();
   }
 
   function* cathedralSequence(g) {

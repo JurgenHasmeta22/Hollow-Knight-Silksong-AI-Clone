@@ -31,8 +31,9 @@
     5: ['parry'],             // RB / R1 (kept as a second parry button for muscle memory)
     6: ['heal'],              // LT / L2
     7: ['dash'],              // RT
-    8: ['map'],               // Back / View / Share
+    8: ['map'],               // Back / View / Share (DualShock 4) / Create (DualSense)
     9: ['pause'],             // Start / Menu / Options
+    17: ['map'],              // PlayStation touchpad click, a second map button
     12: ['up'], 13: ['down'], 14: ['left'], 15: ['right'],
   };
 

@@ -14,6 +14,7 @@
     const d = BW.Save.defaults();
     d.difficulty = meta.diff;
     d.maxHp = 12; d.silkMax = 18; d.glints = 999;
+    d.xp = BW.XP.total(id === 'warden' || id === 'warden_nm' ? 8 : BW.XP.MAX);
     d.abilities = { dash: true, parry: true, dodge: true };
     const f = d.flags = {
       odo_met: true, odo_sold: true, bell1: true, bell2: true, belfry_open: true,

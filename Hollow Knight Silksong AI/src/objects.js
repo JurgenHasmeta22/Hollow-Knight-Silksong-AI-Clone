@@ -85,6 +85,7 @@
       if (Math.abs(p.cx - this.x) < 26 && Math.abs(p.cy - this.y) < 40) {
         this.dead = true; this.flags['pk_' + this.def.id] = true;
         this.game.addGlints(this.def.n || 3);
+        this.game.gainXp(BW.XP.REWARD.glints);
         BW.Audio.play('pickup', { vol: 0.6 });
         this.game.fx.burst(this.x, this.y, 10, { color: ['#ffe6a6', '#9ff5ff'], speed: 160, life: 0.4, add: true, kind: 'glow', size: 6 });
       }
@@ -111,6 +112,7 @@
       if (this.hp <= 0) {
         this.dead = true; this.flags['pk_' + this.def.id] = true;
         this.game.spawnGlints(this.x, this.y - 30, (this.def.n || 20) - 4);
+        this.game.gainXp(BW.XP.REWARD.cache);
         BW.Audio.play('break', { vol: 0.8 });
         this.game.fx.burst(this.x, this.y - 24, 24, { color: ['#bff7ff', '#7fd9ff', '#ffffff'], kind: 'shard', speed: 380, life: 0.7, grav: 700, size: 5 });
         this.game.fx.shake(4, 0.15);
@@ -135,6 +137,7 @@
       const p = this.game.player;
       if (p.state !== 'dead' && Math.abs(p.cx - this.x) < 28 && Math.abs(p.cy - this.y) < 42) {
         this.dead = true; this.flags['pk_' + this.def.id] = true;
+        this.game.gainXp(BW.XP.REWARD[this.def.kind] || 0);
         this.game.collectUpgrade(this.def.kind, this.x, this.y);
       }
     }

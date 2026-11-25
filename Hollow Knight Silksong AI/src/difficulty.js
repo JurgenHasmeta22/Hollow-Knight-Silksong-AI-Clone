@@ -2,7 +2,10 @@
 // Difficulty presets. The choice lives in the save (state.difficulty) and scales:
 //   density  - how many enemies a room holds (1 = as placed in the room; extras are added around them)
 //   hp       - enemy health          dmg   - bells lost to a standard enemy hit (see WEIGHTS: heavier blows multiply it)
-//   bossHp   - how much the Warden's health bar asks of you (higher = tougher)
+//   bossHp   - how much the Warden's health bar asks of you (higher = tougher). Plain strikes barely dent it on the
+//              harder settings; staggering it (poise) is how the fight is meant to be won.
+//   poise    - multiplier on the poise a parry or Shadow Step builds in the Warden (higher = easier)
+//   hitPoise - multiplier on the poise plain strikes build (lower = parries and Shadow Steps matter more)
 //   bossDmg  - extra weight on the Warden's blows (on top of dmg)
 //   dodge    - seconds added to the Shadow Step window (a dash right as a blow lands)
 //   reach    - how close (px) a committed strike must be to you for that dash to slip it
@@ -16,17 +19,17 @@
     story: {
       id: 'story', name: 'Story',
       desc: 'Most hits take a quarter bell. Thorns and swinging bells never hurt. Enemies are a little frailer. Made for the tale.',
-      density: 1, hp: 0.75, dmg: 0.25, bossHp: 0.75, bossDmg: 1, trap: 0, speed: 1, mend: 1, parry: 0.36, dodge: 0.20, reach: 160,
+      density: 1, hp: 0.75, dmg: 0.25, bossHp: 0.75, poise: 1.2, hitPoise: 1, bossDmg: 1, trap: 0, speed: 1, mend: 1, parry: 0.36, dodge: 0.20, reach: 160,
     },
     action: {
       id: 'action', name: 'Action',
-      desc: 'The intended challenge: more enemies fill each room. Most hits take half a bell; heavy blows take more. The Warden is a hardy foe.',
-      density: 1.5, hp: 1, dmg: 0.5, bossHp: 1.6, bossDmg: 1.5, trap: 1, speed: 1, mend: 1, parry: 0.28, dodge: 0.14, reach: 120,
+      desc: 'The intended challenge: rooms are a little busier. Most hits take half a bell; heavy blows take more.       The Warden is a hardy foe that barely notices plain strikes: build its poise with parries and Shadow Steps, and a staggered Warden takes huge damage.',
+            density: 1.25, hp: 1, dmg: 0.5, bossHp: 2.1, poise: 1, hitPoise: 0.6, bossDmg: 1.25, trap: 1, speed: 1, mend: 1, parry: 0.32, dodge: 0.18, reach: 135,
     },
     nightmare: {
       id: 'nightmare', name: 'Nightmare', lock: true,
-      desc: 'Packed rooms and tougher, faster enemies. Every hit takes a full bell and heavy blows take more. The Warden is far tougher and hits harder. Mending is slow and parries are tight. It can never be changed once chosen.',
-      density: 3, hp: 1.75, dmg: 1, bossHp: 2.4, bossDmg: 1.25, trap: 2, speed: 1.2, mend: 1.4, parry: 0.20, dodge: 0.08, reach: 90,
+      desc: 'Packed rooms and tougher, faster enemies. Every hit takes a full bell and heavy blows take more.       The Warden is enormously tough and hits harder: only staggering it through poise will bring it down. Mending is slow and parries are tight. It can never be changed once chosen.',
+            density: 3, hp: 1.75, dmg: 1, bossHp: 3.6, poise: 0.9, hitPoise: 0.3, bossDmg: 1.25, trap: 2, speed: 1.2, mend: 1.4, parry: 0.20, dodge: 0.08, reach: 90,
     },
   };
   const ORDER = ['story', 'action', 'nightmare'];

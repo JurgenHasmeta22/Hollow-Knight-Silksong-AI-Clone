@@ -1,12 +1,10 @@
 'use strict';
 // Particles, needle slash arcs, rings, afterimages, screen shake and flashes.
 (function (BW) {
-  const MAX_PARTS = 700;
-
   const prune = BW.prune;
 
   class FX {
-    constructor() { this.reset(); }
+    constructor() { this.recycle = 0; this.reset(); }
     reset() {
       this.parts = []; this.slashes = []; this.rings = []; this.ghosts = []; this.threads = [];
       this.shakeT = 0; this.shakeA = 0; this.shakeX = 0; this.shakeY = 0;
@@ -14,13 +12,19 @@
     }
 
     spawn(p) {
-      if (this.parts.length >= MAX_PARTS) this.parts.shift();
+      const G = BW.gfx;
+      // lower particle settings thin out the many small ones while important ones (full scale) are untouched
+      if (G.partScale < 1 && Math.random() > G.partScale) return p;
       p.life = p.life || 0.6; p.t = 0; p.vx = p.vx || 0; p.vy = p.vy || 0; p.size = p.size || 3;
       p.grav = p.grav || 0; p.drag = p.drag != null ? p.drag : 1.5; p.color = p.color || '#fff'; p.kind = p.kind || 'dot';
       p.rot = p.rot || 0; p.vr = p.vr || 0; p.shrink = p.shrink != null ? p.shrink : 1;
-      this.parts.push(p);
+      if (this.parts.length >= G.partCap) { this.recycle = (this.recycle + 1) % this.parts.length; this.parts[this.recycle] = p; }
+      else this.parts.push(p);
       return p;
     }
+
+    // a lower particle budget takes effect straight away
+    trim() { if (this.parts.length > BW.gfx.partCap) this.parts.length = BW.gfx.partCap; }
 
     burst(x, y, n, o = {}) {
       for (let i = 0; i < n; i++) {
@@ -123,15 +127,16 @@
 
     drawPart(ctx, p) {
       const k = 1 - p.t / p.life;
+      const al = Math.min(1, k * 1.6) * (p.alpha != null ? p.alpha : 1);
+      if (al < 0.02) return;
       const sz = p.size * (p.shrink ? (0.3 + 0.7 * k) : 1);
-      ctx.globalAlpha = Math.min(1, k * 1.6) * (p.alpha != null ? p.alpha : 1);
+      ctx.globalAlpha = al;
       ctx.fillStyle = p.color;
       if (p.kind === 'spark') {
         ctx.strokeStyle = p.color; ctx.lineWidth = sz * 0.6;
         ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx * 0.03, p.y - p.vy * 0.03); ctx.stroke();
       } else if (p.kind === 'leaf' || p.kind === 'shard') {
-        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
-        ctx.beginPath(); ctx.ellipse(0, 0, sz, sz * 0.45, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+        ctx.beginPath(); ctx.ellipse(p.x, p.y, sz, sz * 0.45, p.rot, 0, Math.PI * 2); ctx.fill();
       } else if (p.kind === 'glow') {
         if (p.color[0] === '#' && BW.glowSprite) ctx.drawImage(BW.glowSprite(p.color), p.x - sz, p.y - sz, sz * 2, sz * 2);
         else { const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, sz); g.addColorStop(0, p.color); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, sz, 0, Math.PI * 2); ctx.fill(); }

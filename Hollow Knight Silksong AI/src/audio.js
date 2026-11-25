@@ -4,7 +4,8 @@
 (function (BW) {
   const A = {
     ctx: null, master: null, sfxBus: null, ready: false,
-    vol: { master: 0.85, music: 0.6, sfx: 0.85 },
+    vol: { master: 0.85, music: 0.6, sfx: 0.85, ambience: 0.75, ui: 1 },
+    muted: false,     // set while the window is in the background and "mute in background" is on
     buffers: {},
     tracks: {},        // name -> LoopPlayer
     musicName: null, ambName: null,
@@ -32,9 +33,13 @@
       this.ready = true;
     },
 
+    // Decoded one sample per timer tick so the first click doesn't freeze the title screen.
     decodePack() {
       const pack = window.BW_SFX_DATA || {};
-      for (const name of Object.keys(pack)) {
+      const names = Object.keys(pack);
+      const next = () => {
+        const name = names.shift();
+        if (!name) return;
         try {
           const b64 = pack[name].split(',')[1];
           const bin = atob(b64);
@@ -42,16 +47,20 @@
           for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
           this.ctx.decodeAudioData(bytes.buffer, (buf) => { this.buffers[name] = buf; }, () => BW.note('sfx decode failed ' + name));
         } catch (e) { BW.note('sfx pack error ' + name); }
-      }
+        setTimeout(next, 0);
+      };
+      next();
     },
 
+    masterLevel() { return this.muted ? 0 : this.vol.master; },
     applyVolumes() {
-      if (this.master) this.master.gain.value = this.vol.master;
+      if (this.master) this.master.gain.value = this.masterLevel();
       if (this.sfxBus) this.sfxBus.gain.value = this.vol.sfx;
       for (const k in this.tracks) this.tracks[k].applyVolume();
     },
 
     setVolumes(v) { Object.assign(this.vol, v); this.applyVolumes(); },
+    setMuted(m) { if (this.muted === !!m) return; this.muted = !!m; this.applyVolumes(); },
 
     // ---- Sound effects ----
     play(name, opts = {}) {
@@ -60,7 +69,9 @@
       const minGap = opts.minGap != null ? opts.minGap : 0.03;
       if (this.lastPlay[name] && now - this.lastPlay[name] < minGap) return;
       this.lastPlay[name] = now;
-      const vol = opts.vol != null ? opts.vol : 1;
+      let vol = opts.vol != null ? opts.vol : 1;
+      if (name.startsWith('ui_')) vol *= this.vol.ui;
+      if (vol <= 0.001) return;
       const out = this.ctx.createGain();
       out.gain.value = vol;
       let dest = out;
@@ -141,7 +152,7 @@
     }
     duck(level, time) { this.duckLevel = level; this.duckT = time; }
     applyVolume() {
-      const v = A.vol.master * (this.kind === 'amb' ? A.vol.sfx * 0.9 : A.vol.music) * this.gain * this.level * this.duckLevel;
+      const v = A.masterLevel() * (this.kind === 'amb' ? A.vol.ambience : A.vol.music) * this.gain * this.level * this.duckLevel;
       // Writing .volume crosses into the media pipeline, so skip it when nothing audibly changed.
       const last = this.lastVol || (this.lastVol = [-1, -1]);
       for (let i = 0; i < 2; i++) {
