@@ -1,0 +1,59 @@
+{
+  "game": "bellweaver",
+  "version": 1,
+  "createdAt": "2026-11-04T18:00:00.000Z",
+  "updatedAt": "2026-11-04T18:00:00.000Z",
+  "writtenBy": "stage2",
+  "lantern": "lan_b3",
+  "lanternRoom": "B3",
+  "maxHp": 6,
+  "silkMax": 12,
+  "glints": 142,
+  "abilities": {
+    "dash": true
+  },
+  "flags": {
+    "odo_met": true,
+    "bell1": true,
+    "bell2": true,
+    "belfry_open": true,
+    "reached_cathedral": true,
+    "reveal_b1": true,
+    "seen_bell1_M1": true,
+    "seen_bell2_S5": true,
+    "seen_belfry_open_S5": true,
+    "pk_spool_s5": true,
+    "pk_lt_m8": true,
+    "pk_g_m1a": true
+  },
+  "visited": {
+    "M1": true,
+    "M2": true,
+    "M3": true,
+    "M4": true,
+    "M5": true,
+    "M6": true,
+    "M7": true,
+    "M8": true,
+    "S1": true,
+    "S2": true,
+    "S3": true,
+    "S4": true,
+    "S5": true,
+    "S6": true,
+    "B1": true,
+    "B2": true,
+    "B3": true
+  },
+  "lanternsLit": {
+    "lan_m1": true,
+    "lan_m3": true,
+    "lan_s2": true,
+    "lan_b3": true
+  },
+  "stats": {
+    "playTime": 1260,
+    "deaths": 2
+  },
+  "lastRoom": "B3"
+}
