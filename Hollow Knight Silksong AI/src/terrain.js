@@ -93,7 +93,7 @@
       x.restore();
 
       // ---- edge dressing ----
-      const front = BW.makeCanvas(pw, ph), fx = front.getContext('2d');
+      const fx = x;   // grass "in front" is baked straight into the terrain: no second room-sized canvas
       const tops = [], bottoms = [];
       for (let yy = 0; yy < H; yy++) {
         let run = null;
@@ -140,8 +140,17 @@
         return { id: s.id, canvas: cv, x: (s.x0 - 1) * T, y: (s.y0 - 1) * T, rect: { x: s.x0 * T, y: s.y0 * T, w: sw, h: shh }, a: 1 };
       });
 
-      x.drawImage(front, 0, 0);   // grass in front is baked in: one fewer full-screen layer per frame
-      return { canvas: c, front: null, secrets };
+      return { canvas: c, secrets };
+    },
+
+    // Free the big offscreen surfaces of a terrain that is no longer shown (canvases and ImageBitmaps
+    // otherwise linger until the garbage collector gets to them, and a few room loads pile up GPU memory).
+    release(ter) {
+      if (!ter) return;
+      const free = (s) => { if (!s) return; if (s.close) s.close(); else { s.width = 0; s.height = 0; } };
+      free(ter.canvas); ter.canvas = null;
+      for (const s of ter.secrets) { free(s.canvas); s.canvas = null; }
+      ter.released = true;
     },
 
     // A breakable wall drawn as cracked rock in the room's texture.

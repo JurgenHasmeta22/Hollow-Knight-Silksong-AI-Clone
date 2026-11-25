@@ -74,7 +74,7 @@
       this.canvas.width = bw; this.canvas.height = bh;
       this.pixelScale = bw / BW.VW;
       this.ctx.imageSmoothingEnabled = true;
-      if (this.ctx.imageSmoothingQuality) this.ctx.imageSmoothingQuality = 'high';
+      if (this.ctx.imageSmoothingQuality) this.ctx.imageSmoothingQuality = 'low';
     }
 
     // Backing-store width cap: the Resolution option, or automatic (steps down if frames run long).
@@ -86,12 +86,18 @@
     watchPerformance(dt) {
       if (!BW.settings || (BW.settings.res && BW.settings.res !== 'auto') || this.mode !== 'play' || document.hidden || this.transition || this.menu.open) { this.perfDts = []; return; }
       const d = this.perfDts || (this.perfDts = []);
+      if (this.slowWindows == null) this.slowWindows = 0;
       d.push(dt);
       if (d.length < 240) return;
       const sorted = d.slice().sort((a, b) => a - b), med = sorted[Math.floor(sorted.length / 2)];
       this.perfDts = [];
       const cap = this.autoCap || 1920;
-      if (med > 1 / 57 && cap > 1280) { this.autoCap = cap > 1600 ? 1600 : 1280; this.resize(); BW.note('auto resolution -> ' + this.autoCap); }
+      // Two slow windows in a row, so a one-off hitch (room load, tab switch) doesn't permanently cost resolution.
+      if (med > 1 / 57 && cap > 1280) {
+        if (++this.slowWindows < 2) return;
+        this.slowWindows = 0;
+        this.autoCap = cap > 1600 ? 1600 : 1280; this.resize(); BW.note('auto resolution -> ' + this.autoCap);
+      } else this.slowWindows = 0;
     }
 
     applySettings() {
@@ -172,11 +178,16 @@
         if (g.open && !flags['seen_' + g.flag + '_' + def.id]) { g.open = false; g.anim = 0; room.fillTiles(g, 'G'); g.pendingOpen = 0.9; }
       }
       this.room = room;
+      BW.Terrain.release(this.terrain);
       this.terrain = BW.Terrain.build(room);
       const ter = this.terrain;
-      BW.toBitmap(ter.canvas, (bm) => { if (this.terrain === ter) ter.canvas = bm; });
-      BW.toBitmap(ter.front, (bm) => { if (this.terrain === ter) ter.front = bm; });
-      for (const s of ter.secrets) BW.toBitmap(s.canvas, (bm) => { s.canvas = bm; });
+      // swap the canvases for GPU-friendly bitmaps once ready, freeing the canvas; drop the result if the room was left meanwhile
+      const adopt = (src, set) => BW.toBitmap(src, (bm) => {
+        if (ter.released) { if (bm.close) bm.close(); return; }
+        set(bm); src.width = 0; src.height = 0;
+      });
+      adopt(ter.canvas, (bm) => { ter.canvas = bm; });
+      for (const s of ter.secrets) adopt(s.canvas, (bm) => { s.canvas = bm; });
       this.objects = []; this.enemies = []; this.coins = []; this.shots = []; this.lances = [];
       this.hazards = []; this.boss = null; this.bossBar = null; this.bossTitle = null; this.arenaCam = false; this.pealHint = 0; this.camFocus = null;
       this.fx.reset();
@@ -339,17 +350,17 @@
       const pin = this.seq && this.seq.lockInput ? BW.NULL_INPUT : inp;
       p.update(dt, pin);
       for (const e of this.enemies) e.update(dt);
-      this.enemies = this.enemies.filter((e) => !(e.dead && e.dying <= 0));
+      BW.prune(this.enemies, (e) => !(e.dead && e.dying <= 0));
       for (const o of this.objects) if (!o.isPlatform) o.update(dt);
-      this.objects = this.objects.filter((o) => !o.dead);
+      BW.prune(this.objects, (o) => !o.dead);
       for (const c of this.coins) c.update(dt);
-      this.coins = this.coins.filter((c) => !c.dead);
+      BW.prune(this.coins, (c) => !c.dead);
       for (const s of this.shots) s.update(dt);
-      this.shots = this.shots.filter((s) => !s.dead);
+      BW.prune(this.shots, (s) => !s.dead);
       for (const l of this.lances) l.update(dt);
-      this.lances = this.lances.filter((l) => !l.dead);
+      BW.prune(this.lances, (l) => !l.dead);
       for (const h of this.hazards) h.update(dt);
-      this.hazards = this.hazards.filter((h) => !h.dead);
+      BW.prune(this.hazards, (h) => !h.dead);
       // gates / breakables animation
       for (const g of room.gates) {
         if (g.pendingOpen != null) { g.pendingOpen -= dt; if (g.pendingOpen <= 0) { g.pendingOpen = null; this.openGateAnimated(g); } }
@@ -703,6 +714,7 @@
       if (!SK.far) this.bg.drawFar(ctx, cam, vw, vh);
       ctx.translate(-camX, -camY);
       this.lights = [];
+      this.bg.view = { x0: camX - 20, x1: camX + vw + 20 };
       this.bg.drawDeco(ctx, 'back');
       // terrain (visible part only)
       const tc = this.terrain.canvas;
@@ -719,8 +731,6 @@
       this.player.draw(ctx, alpha);
       for (const s of this.shots) s.draw(ctx);
       for (const l of this.lances) l.draw(ctx);
-      const fc = this.terrain.front;
-      if (fc && sw > 0 && sh > 0 && !SK.front) ctx.drawImage(fc, sx, sy, sw, sh, sx, sy, sw, sh);
       for (const s of this.terrain.secrets) if (s.a > 0) { ctx.globalAlpha = s.a; ctx.drawImage(s.canvas, s.x, s.y); ctx.globalAlpha = 1; }
       this.bg.drawDeco(ctx, 'front');
       this.fx.draw(ctx);

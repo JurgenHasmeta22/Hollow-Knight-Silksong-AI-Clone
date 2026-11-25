@@ -142,7 +142,12 @@
     duck(level, time) { this.duckLevel = level; this.duckT = time; }
     applyVolume() {
       const v = A.vol.master * (this.kind === 'amb' ? A.vol.sfx * 0.9 : A.vol.music) * this.gain * this.level * this.duckLevel;
-      for (let i = 0; i < 2; i++) this.els[i].volume = BW.clamp(v * this.elLevel[i], 0, 1);
+      // Writing .volume crosses into the media pipeline, so skip it when nothing audibly changed.
+      const last = this.lastVol || (this.lastVol = [-1, -1]);
+      for (let i = 0; i < 2; i++) {
+        const nv = BW.clamp(v * this.elLevel[i], 0, 1);
+        if (Math.abs(nv - last[i]) > 0.002 || (nv === 0) !== (last[i] === 0)) { this.els[i].volume = nv; last[i] = nv; }
+      }
     }
     update(dt) {
       if (!this.active) return;
@@ -161,8 +166,10 @@
         this.elLevel[this.cur] = Math.max(0, this.elLevel[this.cur] - inc);
         if (this.elLevel[this.cur] <= 0) { e.pause(); this.cur = 1 - this.cur; }
       }
-      if (e.paused && this.elLevel[this.cur] > 0 && this.level > 0 && !this.stopWhenSilent) {
-        // the element may have been blocked by autoplay rules; keep trying
+      this.retryT = (this.retryT || 0) - dt;
+      if (e.paused && this.elLevel[this.cur] > 0 && this.level > 0 && !this.stopWhenSilent && this.retryT <= 0) {
+        // the element may have been blocked by autoplay rules; keep trying, but not every tick
+        this.retryT = 0.5;
         const p = e.play(); if (p && p.catch) p.catch(() => {});
       }
       this.applyVolume();

@@ -133,12 +133,15 @@
             break;
           }
           case 'water': {
-            const w = d.w * T, h = d.h * T;
+            const w = d.w * T, h = d.h * T, v = this.view;
+            // only the on-screen stretch of the surface lines is stroked
+            let a0 = 0, a1 = w;
+            if (v) { if (x > v.x1 || x + w < v.x0) break; a0 = Math.max(0, Math.floor((v.x0 - x) / 16) * 16); a1 = Math.min(w, v.x1 - x); }
             ctx.fillStyle = 'rgba(20,60,70,0.45)'; ctx.fillRect(x, y + 10, w, h - 10);
             ctx.strokeStyle = 'rgba(160,255,230,0.35)'; ctx.lineWidth = 1.5;
             for (let i = 0; i < 4; i++) {
               ctx.beginPath();
-              for (let px = 0; px <= w; px += 16) ctx.lineTo(x + px, y + 12 + i * 12 + Math.sin(px * 0.05 + this.t * 2 + i) * 2);
+              for (let px = a0; px <= a1; px += 16) ctx.lineTo(x + px, y + 12 + i * 12 + Math.sin(px * 0.05 + this.t * 2 + i) * 2);
               ctx.globalAlpha = 0.6 - i * 0.12; ctx.stroke(); ctx.globalAlpha = 1;
             }
             break;

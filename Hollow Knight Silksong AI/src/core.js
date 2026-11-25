@@ -70,9 +70,19 @@ window.BW = window.BW || {};
     try { window.createImageBitmap(canvas).then(done).catch(() => {}); } catch (e) { /* keep the canvas */ }
   };
 
+  // In-place filter for lists pruned every fixed step; avoids allocating a new array 120 times a second.
+  BW.prune = function (arr, keep) {
+    let j = 0;
+    for (let i = 0; i < arr.length; i++) { const v = arr[i]; if (keep(v)) arr[j++] = v; }
+    arr.length = j;
+    return arr;
+  };
+
+  const rgbCache = {};
   BW.hexToRgb = function (hex) {
-    const v = parseInt(hex.slice(1), 16);
-    return [(v >> 16) & 255, (v >> 8) & 255, v & 255];
+    let c = rgbCache[hex];
+    if (!c) { const v = parseInt(hex.slice(1), 16); c = rgbCache[hex] = [(v >> 16) & 255, (v >> 8) & 255, v & 255]; }
+    return c;
   };
   BW.rgba = function (hex, a) {
     const [r, g, b] = BW.hexToRgb(hex);

@@ -26,7 +26,7 @@
       for (const k in this.denies) this.denies[k] = Math.max(0, this.denies[k] - dt);
       this.hurtPulse = Math.max(0, this.hurtPulse - dt * 1.5);
       for (const t of this.toasts) t.t += dt;
-      this.toasts = this.toasts.filter((t) => t.t < t.life);
+      BW.prune(this.toasts, (t) => t.t < t.life);
       if (this.title) { this.title.t += dt; if (this.title.t > this.title.life) this.title = null; }
       if (this.announce) this.announce.t += dt;
       const st = this.game.state;
@@ -38,7 +38,7 @@
         this.shownHp = st.hp;
       }
       for (const c of this.crack) c.t += dt;
-      this.crack = this.crack.filter((c) => c.t < 0.6);
+      BW.prune(this.crack, (c) => c.t < 0.6);
       this.saveIcon = Math.max(0, this.saveIcon - dt);
     }
 
@@ -78,6 +78,9 @@
       // ---- health bells ----
       const hx = 120, hy = 52;
       const hshake = this.denies.hp > 0 ? Math.sin(this.denies.hp * 60) * 3 : 0;
+      // one gradient shared by every bell: it is evaluated in each bell's translated space
+      const bellGrad = ctx.createLinearGradient(0, -12, 0, 12);
+      bellGrad.addColorStop(0, '#fff1cf'); bellGrad.addColorStop(0.5, '#e7b65c'); bellGrad.addColorStop(1, '#a8752e');
       for (let i = 0; i < st.maxHp; i++) {
         const x = hx + i * 32 + hshake, y = hy;
         const full = i < st.hp;
@@ -86,8 +89,7 @@
         ctx.scale(pop, pop);
         ctx.fillStyle = 'rgba(5,6,10,0.7)'; BW.bellIcon(ctx, 0, 1.5, 12.5);
         if (full) {
-          const g = ctx.createLinearGradient(0, -12, 0, 12); g.addColorStop(0, '#fff1cf'); g.addColorStop(0.5, '#e7b65c'); g.addColorStop(1, '#a8752e');
-          ctx.fillStyle = g; BW.bellIcon(ctx, 0, 0, 11);
+          ctx.fillStyle = bellGrad; BW.bellIcon(ctx, 0, 0, 11);
           ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.fillRect(-4, -6, 2, 8);
         } else {
           ctx.strokeStyle = 'rgba(200,190,170,0.55)'; ctx.lineWidth = 1.5; ctx.fillStyle = 'rgba(40,36,44,0.9)'; BW.bellIcon(ctx, 0, 0, 11);

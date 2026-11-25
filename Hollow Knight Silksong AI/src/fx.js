@@ -3,6 +3,8 @@
 (function (BW) {
   const MAX_PARTS = 700;
 
+  const prune = BW.prune;
+
   class FX {
     constructor() { this.reset(); }
     reset() {
@@ -58,15 +60,15 @@
         p.x += p.vx * dt; p.y += p.vy * dt;
         p.rot += p.vr * dt;
       }
-      this.parts = this.parts.filter((p) => p.t < p.life);
+      prune(this.parts, (p) => p.t < p.life);
       for (const s of this.slashes) s.t += dt;
-      this.slashes = this.slashes.filter((s) => s.t < s.life);
+      prune(this.slashes, (s) => s.t < s.life);
       for (const r of this.rings) r.t += dt;
-      this.rings = this.rings.filter((r) => r.t < r.life);
+      prune(this.rings, (r) => r.t < r.life);
       for (const g of this.ghosts) g.t += dt;
-      this.ghosts = this.ghosts.filter((g) => g.t < g.life);
+      prune(this.ghosts, (g) => g.t < g.life);
       for (const th of this.threads) th.t += dt;
-      this.threads = this.threads.filter((th) => th.t < th.life);
+      prune(this.threads, (th) => th.t < th.life);
       if (this.shakeT > 0) {
         this.shakeT -= dt;
         const a = this.shakeA * Math.min(1, this.shakeT * 6);
