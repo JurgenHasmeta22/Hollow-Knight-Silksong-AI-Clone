@@ -256,6 +256,8 @@
     r.air(3, 2, 28, 109);
     r.air(0, 20, 2, 23);                         // west -> S5 (top station)
     r.air(0, 103, 2, 106);                       // west <- M8 (bottom station)
+    r.air(29, 20, 31, 23); r.solid(9, 24, 31, 24); // east -> F1 (Ashen Ramparts), off the top station
+    r.ent('sign', 26, 23, { title: 'Rampart Door', text: ['A way out of the shaft: a barbican door, hung open.', 'Torchlight flickers beyond.'], small: true });
     r.ent('lift', 3, 107, { id: 's6_lift', w: 4, top: 24, bottom: 107, flag: 'bell2', speed: 520 });
     r.deco('cords', 5, 0, { h: 107, layer: 'back' });
     r.deco('gears', 18, 30, { layer: 'back' }); r.deco('gears', 22, 70, { layer: 'back', scale: 0.8 });

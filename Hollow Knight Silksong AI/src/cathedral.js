@@ -72,6 +72,24 @@
     }, 0.45, 0.6);
   };
 
+  // Test boss rooms (def.testBoss, e.g. the Ramparts Throne) run the Warden like a rematch: on a copy of the
+  // flags with the victory undone, nothing earned, and the story save restored on leaving.
+  G.enterTestBoss = function () {
+    if (this.rematch) return;
+    const st = this.state, f = Object.assign({}, st.flags);
+    delete f.warden_defeated; delete f.great_bell; delete f.ending_seen;
+    f.warden_met = true;
+    st.flagsReal = st.flags; st.flags = f;
+    this.rematch = true; this.fortressTest = true;
+  };
+  const baseLoadRoom = G.loadRoom;
+  G.loadRoom = function (id, place, opts) {
+    const def = BW.ROOMS[id];
+    if (def && def.testBoss) this.enterTestBoss();
+    else if (this.fortressTest) this.endRematch();
+    return baseLoadRoom.call(this, id, place, opts);
+  };
+
   // portcullis between the vestibule and the arena
   G.arenaLock = function (closed) {
     const gt = this.room && this.room.gates.find((x) => x.fixed);
@@ -99,6 +117,10 @@
 
   G.onWardenDefeated = function (b) {
     const st = this.state;
+    if (this.fortressTest) {
+      if (this.player.state !== 'dead') this.startSequence(testBossSequence(this, b));
+      return;
+    }
     if (this.rematch) {
       if (this.player.state !== 'dead') this.startSequence(rematchSequence(this, b));
       return;
@@ -302,6 +324,24 @@
     yield 1.6;
     for (let i = 0; i <= 45; i++) { g.whiteFade = i / 45; yield 1 / 60; }
     g.startEnding();
+  }
+
+  // Test boss win: no stats, no card. The portcullis lifts and the player stays in the arena.
+  function* testBossSequence(g, b) {
+    const p = g.player;
+    g.hitstop(0.3); g.slowT = 1.4; g.fx.flash('#ffffff', 0.7); g.fx.shake(9, 0.6);
+    BW.Audio.playMusic(null, 2.5);
+    g.seq.hideHud = true; g.letterboxTarget = 1;
+    p.state = 'cutscene'; p.vx = 0; p.dashT = 0; p.attackT = 0;
+    g.camFocus = { x: b.cx, y: b.y + 70 };
+    yield () => b.state === 'remains';
+    g.hazards = [];
+    if (g.bossBar) g.bossBar.out = true;
+    yield 1.4;
+    g.arenaLock(false); g.arenaCam = false;
+    g.camFocus = null; g.letterboxTarget = 0; g.seq.hideHud = false; p.state = 'normal';
+    BW.Audio.playMusic(g.room.area.music, 2.5);
+    g.hud.toast('Throne cleared', 'Test fight: nothing was earned. Leave and return to fight again.', 4);
   }
 
   // Rematch win: no bell, no ending. A result card, then back to the lantern the fight started from.

@@ -196,7 +196,7 @@
     endRematch() {
       const st = this.state;
       if (st && st.flagsReal) { st.flags = st.flagsReal; delete st.flagsReal; }
-      this.rematch = false;
+      this.rematch = false; this.fortressTest = false;
     }
 
     onSaveImported() { /* title menu shows Continue again */ }

@@ -78,7 +78,7 @@
       ctx.fillStyle = area.sky; ctx.fillRect(0, 0, vw, vh);
       const px = room.pw > vw ? BW.clamp(cam.x / (room.pw - vw), 0, 1) : 0.5;
       const py = room.ph > vh ? BW.clamp(cam.y / (room.ph - vh), 0, 1) : 0.5;
-      const far = BW.Assets.img(area.bg[0]);
+      const far = BW.Assets.img((room.def.bg || area.bg)[0]);
       if (far) {
         const s = Math.max(vw * 1.18 / far.width, vh * 1.18 / far.height);
         const w = far.width * s, h = far.height * s;
@@ -98,7 +98,7 @@
         }
         ctx.restore();
       }
-      const mid = BW.Assets.img(area.bg[1]);
+      const mid = BW.Assets.img((room.def.bg || area.bg)[1]);
       if (mid) {
         const s = (vh * 1.05) / mid.height;
         const w = mid.width * s, h = mid.height * s;
@@ -189,7 +189,7 @@
             const name = map[d.sprite] || d.sprite;
             const im = BW.Assets.img(name);
             if (!im) break;
-            const hh = ({ deco_sp_loom: 230, deco_sp_spool: 90, deco_bf_statue: 260, deco_bf_window: 340, statue_moth: 420 }[name] || 160) * (d.scale || 1);
+            const hh = (d.size || { deco_sp_loom: 230, deco_sp_spool: 90, deco_bf_statue: 260, deco_bf_window: 340, statue_moth: 420 }[name] || 160) * (d.scale || 1);
             const ww = hh * im.width / im.height;
             ctx.save(); ctx.globalAlpha = d.alpha != null ? d.alpha : 0.9;
             if (d.flip) { ctx.translate(x, 0); ctx.scale(-1, 1); ctx.drawImage(im, -ww / 2, (name === 'deco_bf_window' ? y : y - hh), ww, hh); }

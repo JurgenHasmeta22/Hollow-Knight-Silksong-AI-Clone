@@ -7,6 +7,8 @@
     { id: 'warden_nm', name: 'Before the Warden \u2014 Nightmare', diff: 'nightmare', desc: 'The same save on Nightmare: one bell per hit, denser rooms, tougher foes.' },
     { id: 'defeated', name: 'Warden Defeated', diff: 'action', desc: 'The Warden has fallen but the Great Bell is not yet rung. Boss Rematch is unlocked at every lantern.' },
     { id: 'cleared', name: 'Great Bell Rung', diff: 'action', desc: 'The whole story finished: ending seen, every lore note found, rematches unlocked.' },
+    { id: 'fortress', name: 'Ashen Ramparts (art test)', diff: 'action', desc: 'Warden defeated, resting at the Ashen Barbican lantern. Tests the new fortress art area east of the Cord Lift.' },
+    { id: 'fortress_boss', name: 'Ramparts Throne (boss test)', diff: 'action', desc: 'Resting at the lantern outside the Ramparts Throne. The test boss waits behind the portcullis; the story save is never changed.' },
   ];
 
   function build(id) {
@@ -34,6 +36,7 @@
     for (const n of BW.Lore.NOTES) if (!n.when || f[n.when]) f['note_' + n.id] = true;
     f.lore_spindle = true; f.lore_belfry = true;
     d.lantern = 'lan_b3'; d.lanternRoom = 'B3'; d.lastRoom = 'B3';
+    if (id === 'fortress_boss') { d.lantern = 'lan_f4'; d.lanternRoom = 'F4'; d.lastRoom = 'F4'; d.lanternsLit = Object.assign({}, d.lanternsLit, { lan_f4: true }); }
     d.stats = { playTime: 14400, deaths: 17, wardenAttempts: id === 'warden' || id === 'warden_nm' ? 0 : 6 };
     if (f.ending_seen) { d.stats.clears = 1; d.stats.clearTime = 14400; }
     const c = d.codex;

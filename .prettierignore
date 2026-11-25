@@ -1,0 +1,8 @@
+# generated or binary-ish output
+**/assets/**
+**/node_modules/
+**/dist/
+**/build/
+**/coverage/
+*.min.js
+package-lock.json

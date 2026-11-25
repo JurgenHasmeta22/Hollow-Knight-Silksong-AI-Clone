@@ -8,7 +8,7 @@
   const SIDE = { x: 980, y: 78, w: 250, h: 518 };
   const ZOOMS = [1, 2, 3.4];
   const GOLD = '#e8c98a', CREAM = '#f2e6cc';
-  const AREA_ORDER = ['mosslit', 'spindle', 'belfry', 'cathedral'];
+  const AREA_ORDER = ['mosslit', 'spindle', 'belfry', 'cathedral', 'fortress'];
 
   // ---- exits between rooms ----------------------------------------------------------------
   // Rooms share one tile grid, so a link is a run of open tiles along an edge where two rooms touch.
