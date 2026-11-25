@@ -20,6 +20,7 @@
       this.kb = o.kb != null ? o.kb : 1;
       this.glints = o.glints || 2;
       this.variant = def.variant;
+      this.persistKey = BW.enemyPersistKey(game.room && game.room.id, def);
       this.harmful = true;
       this.t = Math.random() * 10;
       this.sx = 1; this.sy = 1;
@@ -56,8 +57,17 @@
       return 'hit';
     }
 
+    markCleared() {
+      const st = this.game.state;
+      if (this.persistKey && st) {
+        if (!st.cleared) st.cleared = {};
+        st.cleared[this.persistKey] = true;
+      }
+    }
+
     kill(kdir) {
       const g = this.game;
+      this.markCleared();
       this.dead = true; this.dying = 0.45; this.harmful = false;
       this.vx = kdir * 200; this.vy = -260;
       BW.Audio.play('die', { vary: 0.1 });
@@ -99,7 +109,7 @@
         const res = Phys.moveY(room, this, this.vy * dt);
         if (res.landed || res.ceil) { this.vy *= -0.3; this.hitWall && this.hitWall(); }
       }
-      if (this.y > room.ph + 200) { this.dead = true; this.dying = 0; }
+      if (this.y > room.ph + 200) { this.markCleared(); this.dead = true; this.dying = 0; }
     }
 
     // Is there ground ahead (and no hazard) in direction d?
@@ -386,5 +396,11 @@
   }
 
   BW.ENEMY_TYPES = { crawler: Crawler, flyer: Flyer, sentinel: Sentinel, spitter: Spitter, hopper: Hopper };
+
+  // Stable id for a placed enemy. The Warden is a story fight and is not remembered this way.
+  BW.enemyPersistKey = function (roomId, e) {
+    if (!roomId || !e || e.type === 'warden') return null;
+    return roomId + ':' + e.type + ':' + e.x + ':' + e.y + (e.variant ? ':' + e.variant : '');
+  };
   BW.Enemy = Enemy;
 })(window.BW);

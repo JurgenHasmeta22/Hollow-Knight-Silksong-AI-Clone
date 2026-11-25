@@ -31,6 +31,7 @@
         flags: {},              // bells, shortcuts, broken walls, collected pickups, story beats...
         visited: {},            // room id -> true (map discovery)
         lanternsLit: {},
+        cleared: {},            // enemies that stay dead until the next lantern rest
         stats: { playTime: 0, deaths: 0 },
       };
     },
@@ -44,6 +45,7 @@
       d.flags = Object.assign({}, data.flags || {});
       d.visited = Object.assign({}, data.visited || {});
       d.lanternsLit = Object.assign({}, data.lanternsLit || {});
+      d.cleared = Object.assign({}, data.cleared || {});
       d.stats = Object.assign({ playTime: 0, deaths: 0 }, data.stats || {});
       if (typeof d.version !== 'number') d.version = 1;
       // (future versions add upgrade steps here, e.g. if (d.version < 2) { ...; d.version = 2; })

@@ -135,7 +135,7 @@
       return {
         game: 'bellweaver', version: BW.Save.SAVE_VERSION, createdAt: s.createdAt,
         lantern: s.lantern, lanternRoom: s.lanternRoom, maxHp: s.maxHp, silkMax: s.silkMax, glints: s.glints,
-        abilities: s.abilities, flags: s.flags, visited: s.visited, lanternsLit: s.lanternsLit, stats: s.stats,
+        abilities: s.abilities, flags: s.flags, visited: s.visited, lanternsLit: s.lanternsLit, cleared: s.cleared, stats: s.stats,
         lastRoom: this.room ? this.room.id : s.lastRoom,
       };
     }
@@ -182,7 +182,11 @@
       this.fx.reset();
       for (const e of def.ents) {
         if ((e.when && !flags[e.when]) || (e.unless && flags[e.unless])) continue;
-        if (BW.ENEMY_TYPES[e.type]) this.enemies.push(new BW.ENEMY_TYPES[e.type](this, e));
+        if (BW.ENEMY_TYPES[e.type]) {
+          const key = BW.enemyPersistKey(id, e);
+          if (key && this.state.cleared && this.state.cleared[key]) continue;
+          this.enemies.push(new BW.ENEMY_TYPES[e.type](this, e));
+        }
         else if (BW.OBJ[e.type]) { const o = new BW.OBJ[e.type](this, e); if (!o.dead) this.objects.push(o); }
       }
       for (const s of this.terrain.secrets) if (flags['sec_' + s.id]) s.a = 0;
@@ -217,6 +221,7 @@
 
     respawnAtLantern(sit) {
       const st = this.state;
+      st.cleared = {};
       let roomId = st.lanternRoom, lid = st.lantern;
       if (!roomId || !BW.ROOMS[roomId]) { roomId = 'M1'; lid = 'lan_m1'; }
       const def = BW.ROOMS[roomId];
@@ -534,6 +539,18 @@
       this.startSequence(deathSequence(this));
     }
 
+    // Put back enemies cleared since the last rest. The Warden is left as the fight left it.
+    refillClearedEnemies() {
+      const room = this.room, flags = this.state.flags;
+      if (!room) return;
+      this.enemies = this.enemies.filter((e) => e.kind === 'warden');
+      for (const e of room.def.ents) {
+        if ((e.when && !flags[e.when]) || (e.unless && flags[e.unless])) continue;
+        if (!BW.ENEMY_TYPES[e.type] || e.type === 'warden') continue;
+        this.enemies.push(new BW.ENEMY_TYPES[e.type](this, e));
+      }
+    }
+
     // ================================================================ checkpoints & progression
     restAt(lantern) {
       const st = this.state, p = this.player;
@@ -543,6 +560,8 @@
       const first = !lantern.lit;
       lantern.light();
       st.lantern = lantern.id; st.lanternRoom = this.room.id;
+      st.cleared = {};
+      this.refillClearedEnemies();
       this.saveGame();
       this.hud.savedBlip();
       BW.Audio.play('save'); if (first) BW.Audio.play('heal');
