@@ -19,6 +19,8 @@
         skill: ['R3'],
         transform: ['L3'],
         heal: ['LT'],
+        item: ['RB'],
+        itemNext: ['RB'],
         parry: ['LB'],
         interact: ['DU'],
         map: ['SELECT'],

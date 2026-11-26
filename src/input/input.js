@@ -15,6 +15,8 @@
         'skill',
         'transform',
         'heal',
+        'item',
+        'itemNext',
         'parry',
         'interact',
         'map',
@@ -44,6 +46,8 @@
         KeyO: ['transform'],
         KeyI: ['parry'],
         KeyQ: ['heal'],
+        KeyR: ['item'],
+        KeyT: ['itemNext'],
         KeyE: ['interact'],
         KeyM: ['map'],
         Tab: ['map'],
@@ -61,7 +65,7 @@
         2: ['attack'], // X / Square
         3: ['lance'], // Y / Triangle
         4: ['parry'], // LB / L1
-        5: ['parry'], // RB / R1 (kept as a second parry button for muscle memory)
+        5: ['item'], // RB / R1: use the quick item (hold it to change item)
         6: ['heal'], // LT / L2
         10: ['transform'], // left stick click
         11: ['skill'], // right stick click
@@ -282,6 +286,8 @@
                 skill: 'U',
                 transform: 'O',
                 heal: 'Q',
+                item: 'R',
+                itemNext: 'T',
                 parry: 'I',
                 interact: 'E',
                 map: 'M',

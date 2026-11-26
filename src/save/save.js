@@ -40,6 +40,10 @@
                 maxHp: 5,
                 difficulty: 'action', // story | action | nightmare
                 shade: 0, // the Ronin's gauge (0..100), full to transform
+                skills: {}, // learned skill-tree nodes (id -> true), see progression/skills.js
+                gourd: 3, // draughts left in the Healing Gourd
+                items: BW.Items ? BW.Items.starter() : {}, // quick items carried (id -> count)
+                quick: 'charge', // the selected quick item
                 silkMax: 9,
                 glints: 0,
                 xp: 0, // experience; the level is derived from it (xp.js)
@@ -83,6 +87,10 @@
             d.glints = Math.max(0, d.glints | 0);
             d.xp = Math.max(0, d.xp | 0);
             d.shade = BW.clamp(+d.shade || 0, 0, 100);
+            d.skills = Object.assign({}, data.skills || {});
+            d.items = Object.assign({}, BW.Items ? BW.Items.starter() : {}, data.items || {});
+            d.gourd = Math.max(0, (data.gourd == null ? 3 : data.gourd) | 0);
+            d.quick = BW.Items && BW.Items.DEFS[data.quick] ? data.quick : 'charge';
 
             if (!BW.Difficulty.valid(d.difficulty)) d.difficulty = BW.Difficulty.DEFAULT;
 

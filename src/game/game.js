@@ -446,6 +446,11 @@
                 glints: s.glints,
                 xp: s.xp | 0,
                 abilities: s.abilities,
+                shade: s.shade | 0,
+                skills: s.skills,
+                gourd: s.gourd,
+                items: s.items,
+                quick: s.quick,
                 flags: s.flagsReal || s.flags,
                 visited: s.visited,
                 lanternsLit: s.lanternsLit,
@@ -723,6 +728,7 @@
             const p = this.player;
 
             p.reset(0, 0);
+            BW.Gourd.refill(st);
             this.lastArea = null;
             this.loadRoom(roomId, { x: (le.x + 0.5) * T - P.w / 2 - 34, y: (le.y + 1) * T - P.h }, { silent: true });
             p.facing = 1;
@@ -1445,7 +1451,7 @@
 
             this.hud.toast(
                 `Level ${lv}`,
-                `Strike power +${Math.round(BW.XP.BONUS * (lv - 1) * 100)}%${
+                `Strike power +${Math.round(BW.XP.BONUS * (lv - 1) * 100)}%  \u00b7  A skill point to spend${
                     alive ? '  \u00b7  Health and silk restored' : ''
                 }`,
                 3.6,
@@ -1601,6 +1607,7 @@
             p.restT = 0;
             p.x = lantern.x - 34 - p.w / 2;
             st.hp = st.maxHp;
+            BW.Gourd.refill(st);
 
             const first = !lantern.lit;
 
@@ -1624,7 +1631,7 @@
                 size: 8,
             });
 
-            this.hud.toast(first ? 'Lantern kindled' : 'Rested', 'Health restored · progress saved');
+            this.hud.toast(first ? 'Lantern kindled' : 'Rested', 'Health restored · gourd refilled · progress saved');
             this.hud.pulse('hp');
         }
         onStandUp() {
@@ -1871,8 +1878,10 @@
 
                 this.dialog.open('Odo the Lamplighter', pages, {
                     speaker: 'odo',
-                    choices: ['Buy Lifethread', 'Not now'],
+                    choices: ['Buy Lifethread', 'Buy supplies', 'Not now'],
                     onClose: (c) => {
+                        if (c === 'Buy supplies') return this.odoShop();
+
                         if (c !== 'Buy Lifethread') return;
 
                         if (st.glints < 180) {
@@ -1890,9 +1899,43 @@
                         this.collectUpgrade('lifethread', this.player.cx, this.player.cy - 40);
                     },
                 });
-            } else this.dialog.open('Odo the Lamplighter', pages, { speaker: 'odo' });
+            } else
+                this.dialog.open('Odo the Lamplighter', pages, {
+                    speaker: 'odo',
+                    choices: ['Buy supplies', 'Not now'],
+                    onClose: (c) => {
+                        if (c === 'Buy supplies') this.odoShop();
+                    },
+                });
 
             this.saveGame();
+        }
+
+        // Odo's satchel: the quick items for glints
+        odoShop(note) {
+            const st = this.state,
+                I = BW.Items;
+
+            const labels = I.ORDER.map((id) => `${I.DEFS[id].name}  (${I.DEFS[id].price} glints, have ${I.count(st, id)})`);
+
+            this.dialog.open('Odo the Lamplighter', [note || `Take what you need. (You have ${st.glints} glints.)`], {
+                speaker: 'odo',
+                choices: [...labels, 'Leave'],
+                onClose: (c) => {
+                    const id = I.ORDER.find((k) => c && c.startsWith(I.DEFS[k].name));
+
+                    if (!id) return;
+
+                    if (I.count(st, id) >= I.cap(st, id)) return this.odoShop('Your satchel cannot hold any more of those.');
+                    if (st.glints < I.DEFS[id].price) return this.odoShop('Not enough glints for that one.');
+
+                    st.glints -= I.DEFS[id].price;
+                    I.add(st, id, 1);
+                    BW.Audio.play('ui_ok');
+                    this.saveGame();
+                    this.odoShop(`One ${I.DEFS[id].name}. Anything else?`);
+                },
+            });
         }
 
         // ================================================================ sequences (cutscenes)

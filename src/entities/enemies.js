@@ -207,6 +207,11 @@
 
             g.fx.ring(this.cx, this.cy, 6, 60, 0.35, this.deathRing || '#ffd9a0', 2);
             g.spawnGlints(this.cx, this.cy, this.glints);
+
+            const dropped = BW.Items.drop(g.state);
+
+            if (dropped) g.hud.toast('Found ' + BW.Items.DEFS[dropped].name, 'In the satchel', 2.2);
+
             g.stats.kills = (g.stats.kills || 0) + 1;
 
             if (!this.boss) g.codexKill(this.kind);

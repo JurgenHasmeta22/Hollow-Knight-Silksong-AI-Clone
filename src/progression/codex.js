@@ -38,11 +38,35 @@
         {
             id: 'mend',
             cat: 'Combat',
-            title: 'Silk & Mending',
-            keys: [['Mend', 'heal']],
+            title: 'The Healing Gourd',
+            keys: [['Drink', 'heal']],
             body: () => [
-                `Striking foes gathers silk. Once you hold three threads, hold ${L('heal')} to Mend and restore one bell.`,
-                'Mending needs solid ground, leaves you still and exposed, and a hit interrupts it. Wait for an opening, such as just after an enemy has attacked.',
+                `Hold ${L('heal')} to drink from the Healing Gourd and mend two bells. You start with three draughts; they fill again at every lantern and when you wake after a fall.`,
+                'Drinking needs solid ground, leaves you still and exposed, and a hit interrupts it. Wait for an opening, such as just after an enemy has attacked. Deep Gourd and Sweet Gourd in the Skills menu add a draught and a bell.',
+            ],
+        },
+        {
+            id: 'items',
+            cat: 'Combat',
+            title: 'Quick Items',
+            keys: [
+                ['Use', 'item'],
+                ['Next item', 'itemNext'],
+            ],
+            body: () => [
+                `Press ${L('item')} to use the selected quick item; hold it, or press ${L('itemNext')}, to change item. The slot sits beside the gourd at the bottom left.`,
+                'Toll Charge stuns everything near you. Shard Fan throws three bell shards. Ash Veil makes you untouchable for a moment. Rage Draught makes every blow hit harder for twenty seconds.',
+                'Odo sells more for glints, and fallen foes drop them now and then.',
+            ],
+        },
+        {
+            id: 'skilltree',
+            cat: 'Combat',
+            title: 'Skills',
+            keys: [],
+            body: () => [
+                'Pause and open Skills. Each level and each great foe you defeat gives skill points.',
+                'Three branches: Blade (the sword and its special strikes), Shade (the burning form) and Resolve (the gourd, the guard and the satchel). The Void Slash, Energy Barrage, Whirlwind Dash, Dash Slash and the Giant Spectral Summon are learned there.',
             ],
         },
         {

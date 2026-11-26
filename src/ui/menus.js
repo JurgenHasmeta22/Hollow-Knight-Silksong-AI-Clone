@@ -133,6 +133,7 @@
                         { label: 'Resume', act: () => this.closeAll() },
                         { label: 'Map', act: () => this.push('map') },
                         { label: 'Archive', act: () => this.push('guide', { tab: 0, page: 0, scroll: 0 }) },
+                        { label: 'Skills', act: () => this.push('skills', { sel: 0 }) },
                         { label: 'Gallery', act: () => this.push('gallery', { tab: 0, i: [0, 0, 0] }) },
                         { label: 'Options', act: () => this.push('options') },
                         { label: 'Save Game', act: () => this.push('slots', { mode: 'save' }) },
@@ -479,6 +480,12 @@
                 return;
             }
 
+            if (s.name === 'skills') {
+                this.skillsUpdate(dt, inp);
+
+                return;
+            }
+
             if (s.name === 'pause' && inp.pressed.map && this.t > 0.1) {
                 BW.Audio.play('ui_ok');
                 this.push('map');
@@ -581,6 +588,7 @@
             if (s.name === 'title') return this.drawTitleMenu(ctx);
             if (s.name === 'map') return this.drawMap(ctx);
             if (s.name === 'gallery') return this.galleryDraw(ctx);
+            if (s.name === 'skills') return this.skillsDraw(ctx);
 
             ctx.save();
             ctx.fillStyle = 'rgba(3,4,8,0.78)';
@@ -877,7 +885,8 @@
                 ['Silk Lance / Energy Barrage (3 silk)', ['L'], ['N']],
                 ['Whirlwind; transformed: up grabs, down erupts', ['U'], ['R3']],
                 ['Ronin: transform when the Shade is full', ['O'], ['L3']],
-                ['Mend: hold to heal 1 (3 silk)', ['~Hold', 'Q'], ['Hold', 'LT']],
+                ['Healing Gourd: drink', ['Q'], ['LT']],
+                ['Quick item: use (hold to change)', ['R', '~or', 'T'], ['RB']],
                 ['Interact / talk / rest / travel', ['E', '~or', '\u2191'], ['DU']],
                 ['Drop through ledge', ['S', '~+', 'Space'], ['DD', '+', 'S']],
                 ['Map', ['M', '~or', 'Tab'], ['SELECT']],

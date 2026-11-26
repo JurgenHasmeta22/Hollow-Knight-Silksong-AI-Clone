@@ -59,7 +59,7 @@
         },
         // multiplier applied to every blow the player lands
         power(st) {
-            return 1 + BONUS * (this.level(st && st.xp) - 1);
+            return (1 + BONUS * (this.level(st && st.xp) - 1)) * (1 + (BW.Skills ? BW.Skills.mod(st, 'dmg') : 0));
         },
     };
 

@@ -2,17 +2,16 @@
 
 ## Where
 
-**Pause (Esc) → Save Data → Test Saves**, then load one of:
+**Pause (Esc) → Save Data → Test Saves** has three saves, all the Faceless Ronin:
 
-- **Faceless Ronin: the Long Mourner** or **Faceless Ronin: the Gallery**: Hushed Gallery saves, Shade full, enemies and a boss close by.
-- **Before the Warden**: everything unlocked, resting at the antechamber lantern, with the Warden's arena next door.
-- **Warden Defeated / Great Bell Rung / Ashen Ramparts**: the later stages, for checking enemies in the other regions.
+- **Skill Test: everything unlocked**: the whole world open, every skill learned, a full satchel and gourd. The best place to try things.
+- **Before the Warden**: resting at the antechamber lantern, the first boss next door.
+- **Before the Long Mourner**: the Gallery crossed, resting outside the Hush Arena.
 
-A loaded test save is flagged as a test save. While it is, **silk never runs out** and **the Shade is full again as soon as a
-form ends**, so you can transform over and over. (A normal journey is unchanged.)
+A loaded test save is flagged. While it is, **silk, the gourd and the satchel never run out** and **the Shade is full again as
+soon as a form ends**, so you can transform over and over. A normal journey is unchanged.
 
-Ground you can walk to with enemies to hit: the Spindleworks and the Ashen Ramparts (several enemy types), and the two boss
-arenas. Skills can also be tried in the open air: the effects and the pose are the same, only the damage needs a target.
+In a normal journey the special moves are **learned in the Skills menu** (Pause → Skills); the first points arrive at level 2.
 
 ## Keys (keyboard defaults; the Controls screen in Options shows the gamepad ones)
 
@@ -26,7 +25,8 @@ arenas. Skills can also be tried in the open air: the effects and the pose are t
 | Skill | U |
 | Transform / ultimate | O |
 | Parry | I |
-| Mend | Q (hold) |
+| Healing Gourd | Q (hold to drink) |
+| Quick item: use / change | R (hold, or T, to change) |
 
 ## Normal form
 
@@ -35,10 +35,10 @@ arenas. Skills can also be tried in the open air: the effects and the pose are t
 | Three-hit combo (the third lunges) | tap J three times quickly |
 | Air slash | J in the air |
 | Up strike / down strike (bounces) | W + J / S + J in the air |
-| Void Slash | hold J on the ground until the aura closes (about 0.6 s), then release (4 silk) |
-| Energy Barrage | L (3 silk) |
-| Whirlwind Dash | U (2 silk) |
-| Dash slash | J in the middle of a dash |
+| Void Slash (Skills: Void Slash) | hold J on the ground until the aura closes (about 0.6 s), then release (4 silk) |
+| Energy Barrage (Skills: Energy Barrage) | L (3 silk) |
+| Whirlwind Dash (Skills: Whirlwind Dash) | U (2 silk) |
+| Dash slash (Skills: Dash Slash) | J in the middle of a dash |
 | Parry | I just before a blow lands |
 | Shadow Step | dash K in the instant before a blow lands |
 
@@ -59,4 +59,16 @@ full (it is, in a test save) press **O** on the ground. About 24 seconds, extend
 | Ground Eruption | U + S on the ground |
 | Ground Pound | U + S in the air |
 | Illusion Burst | after a perfect Shadow Step while transformed |
-| Giant Spectral Summon | O again with more than 4 s left (the ultimate: it ends the form) |
+| Giant Spectral Summon (Skills: Giant Spectral Summon) | O again with more than 4 s left (the ultimate: it ends the form) |
+
+## The gourd, the quick items and the skill tree
+
+| Thing | What it does |
+| --- | --- |
+| Healing Gourd | Hold Q: a draught mends two bells (three with Sweet Gourd). Three draughts, four with Deep Gourd; they refill at every lantern and when you wake after a fall. |
+| Toll Charge | Stuns every foe near you and chips them. |
+| Shard Fan | Three bell shards that pass through everything. |
+| Ash Veil | Untouchable for 1.5 s. |
+| Rage Draught | Blows hit 25% harder for 20 s. |
+| Odo's shop | Talk to Odo → Buy supplies. Prices: 60 / 40 / 80 / 120 glints. Fallen foes also drop items now and then (10%). |
+| Skills | Pause → Skills. Three branches: Blade (Whetted Edge, Flowing Strikes, Dash Slash, Void Slash, Energy Barrage), Shade (Whirlwind Dash, Quickening, Lingering Shade, Burning Shade, Giant Spectral Summon) and Resolve (Deep Gourd, Sweet Gourd, Steady Guard, Deep Satchel, Iron Resolve). One point per level above 1, two for the Warden, two for the Long Mourner: 13 in all for 22 points of skills. |

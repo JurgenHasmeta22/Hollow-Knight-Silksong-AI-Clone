@@ -73,6 +73,8 @@ for (const f of [
     'src/world/rooms.js',
     'src/progression/difficulty.js',
     'src/progression/xp.js',
+    'src/progression/skills.js',
+    'src/progression/items.js',
     'src/entities/ronin.js',
     'src/game/game.js',
 ]) {
@@ -142,7 +144,13 @@ function makeGame(flags = {}) {
         character: 'ronin',
         abilities: { dash: true, parry: true, dodge: true },
         codex: { seen: {}, kills: {}, moves: {}, tips: {} },
+        gourd: 3,
+        quick: 'charge',
     };
+
+    BW.Skills.unlockAll(state);
+    BW.Items.unlockAll(state);
+    state.gourd = 3;
 
     const g = {
         state,
@@ -539,7 +547,7 @@ console.log('the second form');
         ['focus', 'aura', 'float', 'absorb', 'unleash', 'transformed'].every((n) => poses.has(n)),
         `it runs the six poses (${[...poses].join(', ')})`,
     );
-    check(p.form && p.formT > 18 && p.formT <= 24, `the form is on (${p.formT.toFixed(1)} s)`);
+    check(p.form && p.formT > 18 && p.formT <= p.formMax(), `the form is on (${p.formT.toFixed(1)} s)`);
     check(!p.skill, 'and the hero is free again');
     check(p.speedMul > 1.1, 'faster while transformed');
     check(p.poseNow() === 'transformed', 'standing, it shows the transformed stance');

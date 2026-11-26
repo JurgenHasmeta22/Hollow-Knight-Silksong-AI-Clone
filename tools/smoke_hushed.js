@@ -91,6 +91,8 @@ for (const f of [
     'src/world/hushed_wings.js',
     'src/progression/difficulty.js',
     'src/progression/xp.js',
+    'src/progression/skills.js',
+    'src/progression/items.js',
     'src/entities/enemies.js',
     'src/entities/objects.js',
     'src/entities/boss.js',

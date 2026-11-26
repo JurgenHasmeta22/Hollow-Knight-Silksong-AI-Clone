@@ -3,83 +3,54 @@
 // Ready-made saves for testing: everything discovered and unlocked, resting at the antechamber lantern
 // outside the Warden's arena. Loaded from Save Data → Test Saves.
 (function (BW) {
+    // The three test saves, all the Faceless Ronin. `recipe` names the world state `recipe()` builds below.
     const LIST = [
+        {
+            id: 'skills',
+            name: 'Skill Test: everything unlocked',
+            recipe: 'cleared',
+            diff: 'action',
+            desc: 'The whole world open and every skill, item and upgrade unlocked. Shade and silk refill themselves: try every move and the transformation.',
+        },
         {
             id: 'warden',
             name: 'Before the Warden',
+            recipe: 'warden',
             diff: 'action',
-            desc: 'Everything unlocked, resting at the cathedral antechamber lantern. The Warden is waiting. 12 bells, 18 silk.',
+            desc: 'Resting at the cathedral antechamber lantern. The Warden is waiting. Every skill unlocked, Shade and silk refill.',
         },
         {
-            id: 'warden_nm',
-            name: 'Before the Warden \u2014 Nightmare',
-            diff: 'nightmare',
-            desc: 'The same save on Nightmare: one bell per hit, denser rooms, tougher foes.',
-        },
-        {
-            id: 'defeated',
-            name: 'Warden Defeated',
-            diff: 'action',
-            desc: 'The Warden has fallen but the Great Bell is not yet rung. Boss Rematch is unlocked at every lantern.',
-        },
-        {
-            id: 'cleared',
-            name: 'Great Bell Rung',
-            diff: 'action',
-            desc: 'The whole story finished: ending seen, every lore note found, rematches unlocked.',
-        },
-        {
-            id: 'fortress',
-            name: 'Ashen Ramparts (art test)',
-            diff: 'action',
-            desc: 'Warden defeated, resting at the Ashen Barbican lantern. Tests the new fortress art area east of the Cord Lift.',
-        },
-        {
-            id: 'gallery',
-            name: 'The Hushed Gallery (start)',
-            diff: 'action',
-            desc: 'The Great Bell has rung. Resting at the Rampart Gatehall lantern, where the black veils have parted. The whole Gallery is unexplored.',
-        },
-        {
-            id: 'gallery_boss',
+            id: 'mourner',
             name: 'Before the Long Mourner',
+            recipe: 'gallery_boss',
             diff: 'action',
-            desc: 'The Gallery crossed and its bells unwrapped. Resting at the lantern outside the Hush Arena. The Long Mourner is waiting.',
-        },
-        {
-            id: 'ronin_gallery',
-            name: 'Faceless Ronin: the Gallery',
-            diff: 'action',
-            desc: 'The Hushed Gallery save, played as the Faceless Ronin with the Shade full: press the transform key to try the second form and all its skills.',
-        },
-        {
-            id: 'ronin_boss',
-            name: 'Faceless Ronin: the Long Mourner',
-            diff: 'action',
-            desc: 'The boss-fight save as the Faceless Ronin, Shade full. Transform and fight the Long Mourner.',
+            desc: 'The Gallery crossed and its bells unwrapped, resting at the lantern outside the Hush Arena. Every skill unlocked.',
         },
     ];
 
     const HUSHED_BEASTS = ['hushling', 'drifter', 'stilt', 'reacher', 'brute', 'mourner'];
 
-    function build(id) {
-        // the Ronin saves are the Gallery saves with the other hero and a full Shade
-        if (id === 'ronin_gallery' || id === 'ronin_boss') {
-            const r = build(id === 'ronin_boss' ? 'gallery_boss' : 'gallery');
+    function build(pub) {
+        const e = LIST.find((x) => x.id === pub) || LIST[0];
+        const d = recipe(e.recipe, e.diff);
 
-            r.shade = 100;
+        d.shade = 100;
 
-            return r;
-        }
+        // a test save has every skill learned, a full satchel and a full gourd
+        BW.Skills.unlockAll(d);
+        BW.Items.unlockAll(d);
 
-        const meta = LIST.find((e) => e.id === id) || LIST[0];
+        return d;
+    }
+
+    function recipe(id, diff) {
         const d = BW.Save.defaults();
 
-        d.difficulty = meta.diff;
+        d.difficulty = diff;
         d.maxHp = 12;
         d.silkMax = 18;
         d.glints = 999;
-        d.xp = BW.XP.total(id === 'warden' || id === 'warden_nm' ? 8 : BW.XP.MAX);
+        d.xp = BW.XP.total(id === 'warden' ? 8 : BW.XP.MAX);
         d.abilities = { dash: true, parry: true, dodge: true };
 
         const f = (d.flags = {
@@ -90,7 +61,7 @@
             belfry_open: true,
             reached_cathedral: true,
             cathedral_open: true,
-            warden_met: id === 'warden' || id === 'warden_nm' ? false : true,
+            warden_met: id === 'warden' ? false : true,
         });
 
         const gallery = id === 'gallery' || id === 'gallery_boss';
@@ -134,7 +105,7 @@
             f.hb_h4 = true;
         }
 
-        if (id !== 'warden' && id !== 'warden_nm') {
+        if (id !== 'warden') {
             f.warden_met = true;
             f.warden_defeated = true;
         }
@@ -166,7 +137,7 @@
             d.lanternsLit = Object.assign({}, d.lanternsLit, { [rest[0]]: true });
         }
 
-        d.stats = { playTime: 14400, deaths: 17, wardenAttempts: id === 'warden' || id === 'warden_nm' ? 0 : 6 };
+        d.stats = { playTime: 14400, deaths: 17, wardenAttempts: id === 'warden' ? 0 : 6 };
 
         if (f.ending_seen) {
             d.stats.clears = 1;

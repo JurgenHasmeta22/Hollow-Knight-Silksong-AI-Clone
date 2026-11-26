@@ -129,9 +129,11 @@
 
     // run cycle, rest and the like: pose lists with the speed they play at
     const ANIMS = {
-        idle: { poses: ['idle_a', 'stand_d'], fps: 2.2 },
+        idle: { poses: ['idle_a', 'breath', 'idle_b', 'breath'], fps: 1.3 },
         run: { poses: ['run1', 'run2', 'run3', 'run2'], fps: 11 },
-        death: { poses: ['crumple', 'crawl', 'dead'], fps: 2.6, hold: true },
+        death: { poses: ['crumple', 'crawl', 'lying', 'dead', 'ash'], fps: 2.2, hold: true },
+        // the pose each quick item is thrown or drunk in
+        item: { charge: 'crouch', shards: 'barrage', veil: 'illusion', draught: 'taunt' },
     };
 
     const lerp = BW.lerp;
@@ -994,7 +996,7 @@
         // ---- the Giant Spectral Summon: the ultimate. It spends the form
         ult: {
             dur: TUNE.ult.dur,
-            pose: (p, s) => (s.t < 0.55 ? 'burst' : s.t < 1.55 ? 'cross' : 'return'),
+            pose: (p, s) => (s.t < 0.55 ? 'burst' : s.t < 1.15 ? 'cross' : s.t < 1.55 ? 'gburst' : 'return'),
             start(p, s) {
                 s.dir = p.facing;
                 p.skillInv = TUNE.ult.dur + 0.3;
@@ -1161,6 +1163,10 @@
                 'dodgeWinT',
                 'dodgeT',
                 'counterT',
+                'deflectT',
+                'dodgeAnimT',
+                'landT',
+                'itemAnimT',
             ])
                 if (this[k] > 0) this[k] = Math.max(0, this[k] - dt);
 
@@ -1262,8 +1268,7 @@
                 }
 
                 if (this.healT <= 0) {
-                    st.hp = Math.min(st.maxHp, st.hp + 1);
-                    st.silk -= 3;
+                    BW.Gourd.drink(st);
 
                     g.fx.burst(this.cx, this.cy, 18, {
                         color: ['#fff6dc', '#ffd98a'],
@@ -1279,8 +1284,10 @@
                     this.glow = 1;
                     g.hud.pulse('hp');
 
-                    if (inp.down.heal && st.silk >= 3 && st.hp < st.maxHp && this.onGround) {
-                        this.healT = 0.55 * BW.Difficulty.get(st).mend;
+                    g.hud.pulse('gourd');
+
+                    if (inp.down.heal && BW.Gourd.left(st) > 0 && st.hp < st.maxHp && this.onGround) {
+                        this.healT = 0.7 * BW.Difficulty.get(st).mend;
                         BW.Audio.play('heal_start', { minGap: 0 });
                     } else this.state = 'normal';
                 }
@@ -1457,12 +1464,12 @@
                 if (!this.onGround) {
                     /* must be grounded */
                 } else if (st.hp >= st.maxHp) g.hud.deny('hp');
-                else if (st.silk < 3) {
-                    g.hud.deny('silk');
+                else if (BW.Gourd.left(st) <= 0) {
+                    g.hud.deny('gourd');
                     BW.Audio.play('ui_back', { vol: 0.5 });
                 } else {
                     this.state = 'heal';
-                    this.healT = 0.55 * BW.Difficulty.get(st).mend;
+                    this.healT = 0.7 * BW.Difficulty.get(st).mend;
                     this.attackT = 0;
                     BW.Audio.play('heal_start', { minGap: 0 });
                 }
@@ -1479,7 +1486,7 @@
                 this.lockT <= 0 &&
                 this.parryCD <= 0
             ) {
-                this.parryMax = BW.Difficulty.get(st).parry;
+                this.parryMax = BW.Difficulty.get(st).parry * (1 + BW.Skills.mod(st, 'parry'));
                 this.parryT = this.parryMax;
                 this.lockT = this.parryMax;
                 this.parryCD = 0.65;
@@ -1649,6 +1656,9 @@
         onLand() {
             const g = this.game;
             const impact = Math.min(1, this.airT / 0.6);
+
+            this.landT = this.airT > 0.8 ? 0.26 : this.airT > 0.4 ? 0.14 : 0;
+            this.landHard = this.airT > 0.8;
 
             this.sx = 1 + 0.18 * impact;
             this.sy = 1 - 0.2 * impact;
@@ -1961,6 +1971,16 @@
             this.hitMul = 1;
             this.noSilk = false;
             this.auraT = 0;
+            this.rageT = 0;
+            this.veilT = 0;
+            this.deflectT = 0;
+            this.dodgeAnimT = 0;
+            this.landT = 0;
+            this.landHard = false;
+            this.itemAnimT = 0;
+            this.itemKind = null;
+            this.itemHoldT = 0;
+            this.itemCycled = false;
         }
 
         get isRonin() {
@@ -1970,7 +1990,7 @@
         // ---------------------------------------------------------------- the second form
         beginForm() {
             this.form = true;
-            this.formT = TUNE.form.time;
+            this.formT = TUNE.form.time + BW.Skills.mod(this.game.state, 'formTime');
             this.speedMul = TUNE.form.speed;
             this.airJumps = TUNE.jumps;
         }
@@ -1990,7 +2010,7 @@
 
             const before = st.shade || 0;
 
-            st.shade = Math.min(TUNE.shade.max, before + n);
+            st.shade = Math.min(TUNE.shade.max, before + n * (1 + BW.Skills.mod(st, 'shadeGain')));
 
             if (before < TUNE.shade.max && st.shade >= TUNE.shade.max) {
                 this.game.hud.pulse('shade');
@@ -2001,7 +2021,7 @@
 
         // called by Game.resolvePlayerAttack for every enemy a blow of ours lands on
         onHitEnemy(e, r) {
-            if (this.form) this.formT = Math.min(TUNE.form.max, this.formT + TUNE.form.hitTime);
+            if (this.form) this.formT = Math.min(this.formMax(), this.formT + TUNE.form.hitTime);
             else this.addShade(r === 'kill' ? TUNE.shade.kill : TUNE.shade.hit);
 
             BW.Audio.play('slashbody', { vol: 0.5, vary: 0.12, minGap: 0.1 });
@@ -2009,7 +2029,7 @@
 
         // a blow of ours against everything in `box`: `mul` is its weight (the form makes every blow heavier)
         strikeAt(box, mul, hits, dir) {
-            this.hitMul = mul * (this.form ? TUNE.form.dmg : 1);
+            this.hitMul = mul * this.boost();
             this.noSilk = true;
 
             const res = this.game.resolvePlayerAttack(box, dir || 'side', hits || new Set());
@@ -2037,6 +2057,10 @@
                 'dodgeWinT',
                 'dodgeT',
                 'counterT',
+                'deflectT',
+                'dodgeAnimT',
+                'landT',
+                'itemAnimT',
             ])
                 if (this[k] > 0) this[k] = Math.max(0, this[k] - dt);
 
@@ -2062,8 +2086,17 @@
             this.speedMul = this.form ? TUNE.form.speed : 1;
 
             // test saves (Save Data > Test Saves): the Shade is full again as soon as a form ends, and silk never runs out
+            this.rageT = Math.max(0, this.rageT - dt);
+            this.veilT = Math.max(0, this.veilT - dt);
+
+            if (this.state === 'normal' && !this.skill && this.lockT <= 0 && !g.seq) this.updateItems(dt, inp);
+            else this.itemHoldT = 0;
+
             if (g.state.flags && g.state.flags.test_save) {
                 g.state.silk = g.state.silkMax;
+                BW.Gourd.refill(g.state);
+
+                for (const id of BW.Items.ORDER) g.state.items[id] = BW.Items.cap(g.state, id);
 
                 if (!this.form && !this.skill) g.state.shade = TUNE.shade.max;
             }
@@ -2164,11 +2197,13 @@
                     return true;
                 }
 
-                if (this.form && this.formT > TUNE.ult.minTime) {
+                if (this.form && this.formT > TUNE.ult.minTime && this.unlocked('ult')) {
                     this.startSkill('ult');
 
                     return true;
                 }
+
+                if (this.form && !this.unlocked('ult')) this.lockedNote('ult');
 
                 if (!this.form) {
                     g.hud.deny('shade');
@@ -2177,7 +2212,7 @@
             }
 
             // strike in the middle of a dash: Dash Slash, or the Clashing Shadow Slash when transformed
-            if (inp.pressed.attack && (this.dashT > 0 || this.dashWin > 0)) {
+            if (inp.pressed.attack && (this.dashT > 0 || this.dashWin > 0) && this.unlocked('dashslash')) {
                 const name = this.form ? 'clash' : 'dashslash';
 
                 if (!(this.cd[name] > 0)) {
@@ -2226,7 +2261,8 @@
                     return true;
                 }
 
-                if (!(this.cd.whirl > 0)) {
+                if (!this.unlocked('whirl')) this.lockedNote('whirl');
+                else if (!(this.cd.whirl > 0)) {
                     if (this.form || st.silk >= TUNE.whirl.silk) {
                         if (!this.form) {
                             st.silk -= TUNE.whirl.silk;
@@ -2244,6 +2280,11 @@
             }
 
             // the lance button throws the Energy Barrage
+            if (inp.pressed.lance && !this.unlocked('barrage')) {
+                inp.consume('lance');
+                this.lockedNote('barrage');
+            }
+
             if (inp.pressed.lance && !(this.cd.barrage > 0)) {
                 const cost = this.form ? TUNE.barrage.formSilk : TUNE.barrage.silk;
 
@@ -2268,6 +2309,7 @@
                 this.attackT <= 0 &&
                 this.onGround &&
                 !(this.cd.void > 0) &&
+                this.unlocked('void') &&
                 (this.form || st.silk >= TUNE.void.silk)
             ) {
                 this.startSkill('charge');
@@ -2276,6 +2318,75 @@
             }
 
             return false;
+        }
+
+        // ---------------------------------------------------------------- skill tree and items
+        unlocked(move) {
+            return BW.Skills.unlocked(this.game.state, move);
+        }
+        lockedNote(move) {
+            if ((this.noteT || 0) > this.game.time) return;
+
+            this.noteT = this.game.time + 1.6;
+
+            const node = BW.Skills.NODES.find((n) => n.unlock === move);
+
+            this.game.hud.toast('Not learned yet', (node ? node.name : 'This skill') + ' is in the Skills menu', 2.4);
+            BW.Audio.play('ui_back', { vol: 0.5 });
+        }
+        formMax() {
+            return TUNE.form.max + BW.Skills.mod(this.game.state, 'formTime');
+        }
+        // the weight of every blow: the form, Burning Shade and a Rage Draught
+        boost() {
+            const st = this.game.state;
+
+            return (this.form ? TUNE.form.dmg * (1 + BW.Skills.mod(st, 'formDmg')) : 1) * (this.rageT > 0 ? 1.25 : 1);
+        }
+        cycleItem() {
+            const g = this.game;
+
+            g.state.quick = BW.Items.cycle(g.state);
+            g.hud.pulse('item');
+            BW.Audio.play('ui_move', { vol: 0.6 });
+        }
+        // R uses the selected item, holding it (or T) changes the item
+        updateItems(dt, inp) {
+            const g = this.game;
+
+            if (inp.pressed.itemNext) this.cycleItem();
+
+            if (inp.pressed.item) {
+                this.itemHoldT = 0.001;
+                this.itemCycled = false;
+            }
+
+            if (this.itemHoldT <= 0) return;
+
+            if (inp.down.item) {
+                this.itemHoldT += dt;
+
+                if (!this.itemCycled && this.itemHoldT > 0.35) {
+                    this.itemCycled = true;
+                    this.cycleItem();
+                }
+
+                return;
+            }
+
+            const id = g.state.quick;
+
+            if (!this.itemCycled) {
+                if (BW.Items.use(g, this)) {
+                    this.itemAnimT = 0.35;
+                    this.itemKind = id;
+                } else {
+                    g.hud.deny('item');
+                    BW.Audio.play('ui_back', { vol: 0.5 });
+                }
+            }
+
+            this.itemHoldT = 0;
         }
 
         startVoid() {
@@ -2405,7 +2516,7 @@
             this.atkDur = C.dur / speed;
             this.attackT = this.atkDur;
             this.attackCD = this.atkDur * 0.72;
-            this.comboT = this.atkDur + TUNE.combo.window;
+            this.comboT = this.atkDur + TUNE.combo.window + BW.Skills.mod(this.game.state, 'combo');
 
             if (this.counterT > 0) this.attackCD *= 0.6;
 
@@ -2447,7 +2558,7 @@
 
             if (this.attackDir !== 'side' || !this.atk) {
                 // up / down: the base timings, with the heavier cut
-                this.hitMul = this.form ? TUNE.form.dmg : 1;
+                this.hitMul = this.boost();
                 this.baseUpdateAttack();
                 this.hitMul = 1;
 
@@ -2462,7 +2573,7 @@
 
             const box = this.attackBox();
 
-            this.hitMul = C.mul * (this.form ? TUNE.form.dmg : 1);
+            this.hitMul = C.mul * this.boost();
 
             const res = g.resolvePlayerAttack(box, 'side', this.attackHits);
 
@@ -2503,13 +2614,15 @@
         // ---------------------------------------------------------------- shared reactions
         deflect(srcX, opts) {
             this.baseDeflect(srcX, opts);
+            this.deflectT = 0.28;
             this.addShade(TUNE.shade.parry);
 
-            if (this.form) this.formT = Math.min(TUNE.form.max, this.formT + TUNE.form.parryTime);
+            if (this.form) this.formT = Math.min(this.formMax(), this.formT + TUNE.form.parryTime);
         }
 
         perfectDodge(srcX, opts) {
             this.basePerfectDodge(srcX, opts);
+            this.dodgeAnimT = 0.3;
             this.addShade(TUNE.shade.dodge);
 
             if (this.form && !(this.cd.illusion > 0) && this.state === 'normal') this.startSkill('illusion');
@@ -2526,6 +2639,7 @@
                 this.skill = null;
                 this.lift = 0;
                 this.atk = null;
+                this.attackT = 0; // the swing is over: the animation must not go on asking for its poses
 
                 if (this.form) this.formT -= TUNE.form.hurtTime;
             }
@@ -2546,14 +2660,19 @@
             if (this.skill) return 'skill:' + this.skill.name;
             if (this.state === 'rest') return 'sit';
             if (this.state === 'heal') return 'heal';
+            if (this.itemAnimT > 0) return 'item';
+            if (this.deflectT > 0) return 'deflect';
+            if (this.dodgeAnimT > 0) return 'dodge';
             if (this.parryT > 0 || this.guardT > 0.3) return 'guard';
             if (this.dashT > 0) return 'dash';
             if (this.attackT > 0) return 'atk';
             if (this.lockT > 0) return 'hurt';
             if (this.ascentT > 0) return 'ascent';
             if (!this.onGround) return this.vy < 0 ? 'jump' : 'fall';
+            if (this.landT > 0) return 'land';
+            if (Math.abs(this.vx) > 40) return Math.abs(this.vx) < 150 ? 'walk' : 'run';
 
-            return Math.abs(this.vx) > 40 ? 'run' : 'idle';
+            return 'idle';
         }
 
         pickAnim() {
@@ -2590,6 +2709,7 @@
                     if (this.attackDir === 'up') return 'swordup';
                     if (this.attackDir === 'down') return 'pound';
                     if (!this.onGround && this.comboN === 0) return 'airslash';
+                    if (!this.atk) return 'ready';
 
                     const L = this.atk.poses,
                         k = BW.clamp((this.atkDur - this.attackT) / this.atkDur, 0, 0.999);
@@ -2597,7 +2717,17 @@
                     return L[Math.floor(k * L.length)];
                 }
                 case 'hurt':
-                    return 'hurt';
+                    return this.lockT > 0.3 ? 'knock' : 'hurt';
+                case 'item':
+                    return ANIMS.item[this.itemKind] || 'taunt';
+                case 'deflect':
+                    return this.firstPose('parry_perfect', 'ready');
+                case 'dodge':
+                    return this.firstPose('dodge', 'tumble');
+                case 'land':
+                    return this.landHard ? 'slam' : 'crouch';
+                case 'walk':
+                    return 'walk';
                 case 'ascent':
                     return 'flame';
                 case 'jump':
@@ -2607,10 +2737,24 @@
                 case 'run':
                     return ANIMS.run.poses[Math.floor(this.animT * ANIMS.run.fps) % ANIMS.run.poses.length];
                 default:
+                    if (this.game.state.hp <= 1 && this.game.state.maxHp > 1 && !F) return 'kneel';
+
                     return F
                         ? 'transformed'
                         : ANIMS.idle.poses[Math.floor(this.animT * ANIMS.idle.fps) % ANIMS.idle.poses.length];
             }
+        }
+
+        // the first of these poses that has a sprite (new art can be dropped in under these names, see docs/RONIN_SPRITES.md)
+        firstPose(...names) {
+            for (const n of names) if (BW.Assets.sprite(SPR(n))) return n;
+
+            return names[names.length - 1];
+        }
+
+        // the transformed hero's own version of a pose (ronin_form_<pose>), when that sprite exists
+        formPose(pose) {
+            return this.form && BW.Assets.sprite(SPR('form_' + pose)) ? 'form_' + pose : pose;
         }
 
         // the ghost and counter code asks for sprites by animation name
@@ -2630,7 +2774,7 @@
             if (this.invulnT > 0 && this.state !== 'dead' && Math.floor(this.invulnT * 16) % 2 === 0 && this.lockT <= 0)
                 return;
 
-            const pose = this.poseNow(),
+            const pose = this.formPose(this.poseNow()),
                 name = SPR(pose);
 
             if (!BW.Assets.sprite(name)) return;
@@ -2667,6 +2811,7 @@
                 sy: this.sy,
                 rot,
                 flash: this.flash,
+                alpha: this.veilT > 0 ? 0.5 : undefined,
                 scale: BW.HERO_SCALE * poseScale(pose),
                 rim: 0.3,
             });
@@ -2682,7 +2827,7 @@
                 w = 150,
                 full = (st.shade || 0) >= TUNE.shade.max && !this.form,
                 ratio = this.form
-                    ? BW.clamp(this.formT / TUNE.form.max, 0, 1)
+                    ? BW.clamp(this.formT / this.formMax(), 0, 1)
                     : BW.clamp((st.shade || 0) / TUNE.shade.max, 0, 1);
 
             ctx.save();
