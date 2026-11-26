@@ -23,6 +23,7 @@ const FILES = [
     'src/world/rooms.js',
     'src/world/fortress.js',
     'src/world/hushed.js',
+    'src/world/hushed_wings.js',
 ];
 
 const ctx = { console };
@@ -39,6 +40,18 @@ for (const f of FILES) {
 }
 
 const BW = ctx.BW;
+
+// breakable walls and cloth hatches are cut or broken in play: the world is checked with them already gone
+for (const r of BW.ROOM_LIST)
+    for (const row of r.grid) for (let x = 0; x < row.length; x++) if (row[x] === 'B') row[x] = '.';
+
+// a mover (shuttle) is a ledge somewhere along its rail: treat every cell of its path as a one-way ledge
+for (const r of BW.ROOM_LIST)
+    for (const e of r.ents)
+        if (e.type === 'mover')
+            for (let x = Math.min(e.ax, e.bx); x <= Math.max(e.ax, e.bx) + e.w - 1; x++)
+                if (r.grid[e.ay] && r.grid[e.ay][x] === '.') r.grid[e.ay][x] = '=';
+
 const T = BW.T;
 const P = BW.PHYS;
 const only = process.argv.slice(2);
@@ -267,6 +280,8 @@ const GROUND_ENTS = new Set([
     'stilt',
     'brute',
     'keyaltar',
+    'relicaltar',
+    'silentbell',
     'lastdoor',
     'hushgate',
     'spawn',

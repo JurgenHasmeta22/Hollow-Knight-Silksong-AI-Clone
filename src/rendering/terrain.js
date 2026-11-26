@@ -347,6 +347,43 @@
             ctx.save();
             ctx.translate(shake, 0);
 
+            // thick black mourning cloth, hung in heavy folds: the Gallery's hidden ways (cut with the Mourners' Shears)
+            if (b.kind === 'shroud') {
+                const folds = Math.max(3, Math.round(w / 22));
+
+                ctx.fillStyle = '#04070a';
+                ctx.fillRect(x0, y0, w, h);
+
+                for (let i = 0; i < folds; i++) {
+                    const fx = x0 + (i + 0.5) * (w / folds),
+                        sway = Math.sin(t * 0.9 + i * 1.7) * 2.5;
+
+                    const grad = ctx.createLinearGradient(fx - w / folds / 2, 0, fx + w / folds / 2, 0);
+
+                    grad.addColorStop(0, 'rgba(24,38,50,0.0)');
+                    grad.addColorStop(0.5, 'rgba(34,52,66,0.85)');
+                    grad.addColorStop(1, 'rgba(10,16,22,0.0)');
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(fx - w / folds / 2 + sway, y0, w / folds, h);
+                }
+
+                ctx.strokeStyle = BW.rgba(area.rim, 0.22);
+                ctx.lineWidth = 1.5;
+                ctx.strokeRect(x0 + 1.5, y0 + 1.5, w - 3, h - 3);
+
+                // a faint cold seam of thread where the cloth is stitched over the opening
+                ctx.strokeStyle = BW.rgba(area.rim, 0.35);
+                ctx.setLineDash([6, 8]);
+                ctx.beginPath();
+                ctx.moveTo(x0 + w / 2, y0 + 4);
+                ctx.lineTo(x0 + w / 2, y0 + h - 4);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.restore();
+
+                return;
+            }
+
             const tex = BW.Assets.img(area.tex);
 
             if (tex) {

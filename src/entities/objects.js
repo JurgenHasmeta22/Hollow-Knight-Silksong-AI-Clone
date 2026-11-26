@@ -174,6 +174,8 @@
                 BW.settings.hints !== false && Math.abs(p.cx - this.x) < this.range && Math.abs(p.cy - this.y) < 3 * T;
 
             if (this.def.needs && !s.abilities[this.def.needs]) show = false;
+            if (this.def.unless && s.flags[this.def.unless]) show = false;
+            if (this.def.when && !s.flags[this.def.when]) show = false;
 
             this.a = BW.approach(this.a, show ? 1 : 0, dt * 3);
         }
@@ -915,7 +917,10 @@
             ctx.strokeStyle = 'rgba(255,220,170,0.25)';
             ctx.lineWidth = 1;
             ctx.stroke();
-            drawPlank(ctx, this.x, this.y, this.w, this.h, '#6b4a33', '#c69a6a');
+            // the Gallery's shuttles are slabs of black stone with a cold rim, not guild planks
+            if (this.game.room.area.id === 'hushed')
+                drawPlank(ctx, this.x, this.y, this.w, this.h, '#10181f', '#7fb3cf');
+            else drawPlank(ctx, this.x, this.y, this.w, this.h, '#6b4a33', '#c69a6a');
             ctx.fillStyle = '#d8cbb6';
             ctx.beginPath();
             ctx.ellipse(this.x + this.w / 2, this.y + 12, 10, 7, 0, 0, Math.PI * 2);

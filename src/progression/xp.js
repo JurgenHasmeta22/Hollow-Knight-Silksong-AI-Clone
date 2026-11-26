@@ -24,6 +24,7 @@
         warden: 350,
         mourner: 500,
         key: 120,
+        relic: 100,
         bell: 20,
     };
 

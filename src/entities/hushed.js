@@ -21,6 +21,64 @@
 
     const COLD = ['#06090d', '#14202a', '#9fd8ff', '#e6f6ff'];
 
+    // ================================================================ keepsakes
+    // The Gallery's keepsakes are drawn in code (no art needed): each has an icon (ctx, x, y, k), used on its altar and on
+    // the pick-up card, and the lines that card shows. A relic's name is the key of BW.HUSH_RELICS and the flag it sets.
+    function drawShears(ctx, x, y, k = 1) {
+        ctx.save();
+        ctx.translate(x, y - 6 * k);
+        ctx.scale(k * 1.9, k * 1.9);
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = 1.6;
+
+        for (const s of [-1, 1]) {
+            ctx.save();
+            ctx.translate(0, 8);
+            ctx.rotate(s * 0.22);
+
+            // the blade
+            ctx.fillStyle = '#dcebf5';
+            ctx.strokeStyle = '#4b6272';
+            ctx.beginPath();
+            ctx.moveTo(0, -46);
+            ctx.lineTo(s * 7, -4);
+            ctx.lineTo(s * 2, 2);
+            ctx.lineTo(-s * 3, -6);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // the handle and its ring
+            ctx.strokeStyle = '#9fd8ff';
+            ctx.lineWidth = 2.2;
+            ctx.beginPath();
+            ctx.moveTo(s * 1, 2);
+            ctx.lineTo(-s * 5, 20);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(-s * 8, 28, 8, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        ctx.fillStyle = '#e6f6ff';
+        ctx.beginPath();
+        ctx.arc(0, 8, 2.6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+
+    BW.HUSH_RELICS = {
+        shears: {
+            name: 'Mourners’ Shears',
+            icon: drawShears,
+            lines: [
+                'Long black shears, kept sharp by a hundred years of nothing to cut.',
+                'The thick mourning cloth that bars the Gallery’s hidden ways will part for them. Strike it, even from above.',
+            ],
+        },
+    };
+
     // ================================================================ shared base
     class Hushed extends BW.Enemy {
         constructor(game, def, o) {
@@ -782,7 +840,7 @@
             this.swingV = 0;
             this.cool = 0;
             this.glow = this.rung ? 0.6 : 0;
-            this.pitch = { h2a: 98, h4a: 110, h4b: 130.8, h4c: 164.8 }[d.id] || 123.5;
+            this.pitch = d.pitch || { h2a: 98, h4a: 110, h4b: 130.8, h4c: 164.8 }[d.id] || 123.5;
         }
         hurtbox() {
             return { x: this.x - 50, y: this.y - 172, w: 100, h: 156 };
@@ -807,6 +865,23 @@
                 speed: 200,
                 life: 1.1,
                 grav: 500,
+                size: 5,
+            });
+        }
+        // a bell struck out of order has its cloth pulled tight again (Game.hushToll)
+        rewrap() {
+            const g = this.game;
+
+            this.rung = false;
+            this.glow = 0;
+            this.swingV += 3;
+
+            g.fx.burst(this.x, this.y - 70, 14, {
+                color: ['#06090d', '#14202a', '#0b1015'],
+                kind: 'shard',
+                speed: 150,
+                life: 0.8,
+                grav: 300,
                 size: 5,
             });
         }
@@ -845,6 +920,46 @@
                     kind: 'glow',
                     add: true,
                 });
+        }
+    };
+
+    // ================================================================ a relic on its altar (the Mourners' Shears)
+    // The Silent Key's altar, reused for the Gallery's other keepsakes: def.relic names the flag it sets, def.id is
+    // the pickup flag. Taking it starts the sequence in src/game/levels/hushed.js (Game.takeRelic).
+    OBJ.relicaltar = class RelicAltar extends BW.ObjBase {
+        constructor(g, d) {
+            super(g, d);
+            this.range = 90;
+        }
+        has() {
+            return !!this.flags[this.def.relic];
+        }
+        canInteract() {
+            return !this.has() && this.near(90) && this.game.player.onGround && !this.game.seq;
+        }
+        prompt() {
+            return 'Take the ' + (BW.HUSH_RELICS[this.def.relic] || { name: 'relic' }).name;
+        }
+        interact() {
+            this.game.takeRelic(this);
+        }
+        draw(ctx) {
+            const x = this.x,
+                y = this.y;
+
+            BW.Assets.drawImg(ctx, 'obj_hg_keyaltar', x, y + 3, { h: 150, w: 150, ay: 1 });
+
+            if (!this.has()) {
+                const bob = Math.sin(this.t * 2) * 4;
+
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.globalAlpha = 0.55;
+                ctx.drawImage(BW.glowSprite('#9fd8ff'), x - 52, y - 150 + bob - 52, 104, 104);
+                ctx.restore();
+                BW.HUSH_RELICS[this.def.relic].icon(ctx, x, y - 118 + bob, 0.55);
+                this.game.addLight(x, y - 118, 130, '#9fd8ff', 0.55);
+            } else this.game.addLight(x, y - 90, 70, '#9fd8ff', 0.18);
         }
     };
 

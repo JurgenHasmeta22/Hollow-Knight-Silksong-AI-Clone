@@ -478,11 +478,8 @@
             if (first) this.hud.toast('Archive updated', "Hunter's notes on " + BW.ENEMY_NAMES[kind], 3.2);
         }
         codexMove(boss, move) {
-            if (this.state && BW.Codex.move(this.state, boss, move)) {
-                const m = BW.Codex.BY_ID[boss].moves.find((x) => x[0] === move);
-
-                if (m) this.hud.toast('Archive updated', m[1] + ' recorded', 2.8);
-            }
+            // recorded silently: a boss's moves are never named on screen mid-fight
+            if (this.state) BW.Codex.move(this.state, boss, move);
         }
         teach(id) {
             const L = BW.Codex.LESSONS[id],
@@ -1345,6 +1342,16 @@
                 if (!BW.overlap(box, r)) continue;
 
                 hits.add(b);
+
+                // thick mourning cloth: only the Mourners' Shears will cut it
+                if (b.needs && !this.state.flags[b.needs]) {
+                    b.shake = 0.2;
+                    res.hitSolidThing = true;
+                    BW.Audio.play('clink', { vol: 0.5, rate: 0.7 });
+
+                    continue;
+                }
+
                 b.hp--;
                 b.shake = 0.25;
                 res.hitSolidThing = true;

@@ -344,6 +344,29 @@
                 ctx.fillRect(0, 0, BW.VW, BW.VH);
             }
 
+            // red alert: a boss is winding up a blow that cannot be parried, so the screen's edges flood red
+            let alert = 0;
+
+            for (const e of this.game.enemies || []) if (e.alert > alert) alert = e.alert;
+
+            if (alert > 0.03) {
+                const k = Math.min(1, alert) * (0.75 + 0.25 * Math.sin(this.game.time * 22));
+
+                const g = ctx.createRadialGradient(
+                    BW.VW / 2,
+                    BW.VH / 2,
+                    BW.VH * 0.3,
+                    BW.VW / 2,
+                    BW.VH / 2,
+                    BW.VH * 0.85,
+                );
+
+                g.addColorStop(0, 'rgba(255,20,10,0)');
+                g.addColorStop(1, `rgba(255,24,12,${0.6 * k})`);
+                ctx.fillStyle = g;
+                ctx.fillRect(0, 0, BW.VW, BW.VH);
+            }
+
             // save blip
             if (this.saveIcon > 0) {
                 const a = Math.min(1, this.saveIcon * 2);

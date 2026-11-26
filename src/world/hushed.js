@@ -14,6 +14,11 @@
 //   H7  The Hush Arena         the Long Mourner (vestibule with a lantern, then the sealed arena)
 //   H8  The Last Door Hall     the Silent Key on its altar and the Last Door
 //
+// The wings (src/world/hushed_wings.js) hang off this spine and ask you to come back for them:
+//   N1-N3  the Cloister       above the aisle: climb out of H5, ring the Bellwrights' bells in order, take the Mourners' Shears
+//   U1-U4  the Underveil      under the Mask Crypt: a hatch of thick mourning cloth (needs the Shears), bells that sing together
+//   K1-K3  the Cells          three small chambers under H1, H2 and H6, behind more cloth hatches (also the Shears)
+//
 // Room x/y are world tile positions; neighbours line up by adjacency exactly like the rest of the world.
 // Standing rows: rooms are carved so the walking row is `floor - 1` where `floor` is the first solid row.
 (function (BW) {
@@ -62,6 +67,8 @@
         r.light(x, bottom - size / 80, 7, '#cfeaff', { a: 0.32 });
     };
 
+    BW.HG = { prop, veil, candles, pillar, window_ };
+
     // ================================================================ H1 Veilgate Threshold
     R({ id: 'H1', area: 'hushed', name: 'Veilgate Threshold', x: 514, y: 44, w: 44, h: 34 }, (r) => {
         r.air(0, 21, 5, 24); // west <- F4 (the Rampart Gatehall)
@@ -71,6 +78,12 @@
         r.plat(12, 16, 22);
         r.plat(19, 23, 19);
         r.plat(26, 30, 22);
+
+        // a hatch in the floor under thick mourning cloth: cut it with the Mourners' Shears, drop into the Veil-maker's Cell
+        r.breakable(24, 25, 27, 26, 'h1_shroud', { kind: 'shroud', needs: 'shears', hp: 2 });
+        r.air(24, 27, 27, 33);
+        r.plat(24, 27, 31);
+        r.plat(24, 27, 28);
 
         r.ent('lantern', 9, 24, { id: 'lan_h1' });
 
@@ -83,8 +96,15 @@
             ],
         });
 
+        r.ent('hint', 25, 24, {
+            act: 'none',
+            text: 'Black cloth is stitched over a hatch. Something sharp could cut it.',
+            range: 4,
+            unless: 'shears',
+        });
+
         r.ent('hushling', 21, 24);
-        r.ent('hushling', 29, 24);
+        r.ent('hushling', 31, 24);
         r.ent('glint', 21, 18, { id: 'g_h1a', n: 5 });
         r.ent('glint', 28, 21, { id: 'g_h1b', n: 4 });
 
@@ -113,8 +133,20 @@
         r.plat(8, 12, 22);
         r.plat(40, 44, 22);
         r.gate(60, 21, 61, 24, 'hb_h2', { kind: 'veil' }); // parts when the bell is struck
+        r.air(42, 0, 45, 5); // a drop from the Cloister above (N1), a way back down for the Shears
+        r.breakable(14, 25, 17, 26, 'h2_shroud', { kind: 'shroud', needs: 'shears', hp: 2 }); // -> the Cloth Vault
+        r.air(14, 27, 17, 33);
+        r.plat(14, 17, 31);
+        r.plat(14, 17, 28);
 
-        r.ent('hushling', 14, 24);
+        r.ent('hint', 15, 24, {
+            act: 'none',
+            text: 'Black cloth is stitched over a hatch. Something sharp could cut it.',
+            range: 4,
+            unless: 'shears',
+        });
+
+        r.ent('hushling', 12, 24);
         r.ent('hushling', 36, 24);
         r.ent('hushling', 52, 24);
         r.ent('drifter', 17, 13);
@@ -167,10 +199,20 @@
         r.solid(20, 27, 30, 27); // a beam over the stair: Reachers hang under beams
         r.solid(36, 30, 44, 30);
         r.secret(1, 36, 6, 40, 'h3_nook');
+        r.air(12, 0, 15, 3); // a drop from the Cloister above (N1)
+        r.breakable(33, 41, 36, 42, 'h3_shroud', { kind: 'shroud', needs: 'shears', hp: 2 }); // -> the Underveil (U1)
+        r.air(33, 43, 36, 43);
 
         r.ent('pickup', 3, 40, { kind: 'lifethread', id: 'life_h3' });
+        r.ent('hint', 34, 40, {
+            act: 'none',
+            text: 'A hatch of black cloth lies in the floor. Something sharp could cut it.',
+            range: 4,
+            unless: 'shears',
+        });
+
         r.ent('stilt', 18, 40);
-        r.ent('stilt', 38, 40);
+        r.ent('stilt', 40, 40);
         r.ent('reacher', 25, 27, { hang: 1 });
         r.ent('reacher', 40, 30, { hang: 1 });
         r.ent('hushling', 46, 40);
@@ -204,6 +246,7 @@
         r.air(4, 2, 35, 40); // the shaft
         r.air(36, 4, 39, 7); // east -> H5, behind the veil gate
         r.solid(32, 8, 39, 8); // the tunnel floor, continuing the top ledge
+        r.air(26, 0, 28, 1); // a drop from the Cloister above (N2): a way back to the Belfry's lantern
         r.gate(37, 4, 38, 7, 'hb_h4', { kind: 'veil' }); // parts when all three bells are unwrapped
 
         // a zig-zag climb: every hop is 3 rows up and at most 3 tiles across, so no jump needs the dash
@@ -270,6 +313,13 @@
         r.plat(32, 36, 22);
         r.plat(39, 43, 19);
         r.plat(50, 53, 22);
+        r.air(34, 0, 43, 2); // a column of pale light falls into the aisle: the way up to the Cloister (N3)
+        r.plat(34, 38, 16);
+        r.plat(39, 43, 13);
+        r.plat(34, 38, 10);
+        r.plat(39, 43, 7);
+        r.plat(34, 38, 4);
+        r.plat(39, 43, 1);
         r.plat(54, 57, 19); // up to the nook
         r.plat(50, 53, 16);
         r.solid(54, 14, 58, 14); // the nook's floor
@@ -315,6 +365,17 @@
         r.air(40, 21, 43, 24); // east -> H7
         r.plat(8, 12, 22);
         r.plat(30, 35, 22);
+        r.breakable(14, 25, 17, 26, 'h6_shroud', { kind: 'shroud', needs: 'shears', hp: 2 }); // -> the Bier Cellar
+        r.air(14, 27, 17, 33);
+        r.plat(14, 17, 31);
+        r.plat(14, 17, 28);
+
+        r.ent('hint', 15, 24, {
+            act: 'none',
+            text: 'Black cloth is stitched over a hatch. Something sharp could cut it.',
+            range: 4,
+            unless: 'shears',
+        });
 
         r.ent('sign', 7, 24, {
             title: 'Bier of the First Mourner',

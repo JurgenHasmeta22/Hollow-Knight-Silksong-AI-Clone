@@ -88,6 +88,7 @@ for (const f of [
     'src/world/rooms.js',
     'src/world/fortress.js',
     'src/world/hushed.js',
+    'src/world/hushed_wings.js',
     'src/progression/difficulty.js',
     'src/progression/xp.js',
     'src/entities/enemies.js',
@@ -129,6 +130,7 @@ console.log('assets');
 {
     const text = [
         'src/world/hushed.js',
+        'src/world/hushed_wings.js',
         'src/entities/hushed.js',
         'src/game/levels/hushed.js',
         'src/progression/hushed.js',
@@ -782,6 +784,218 @@ console.log('the key and the Last Door');
         !g.seq && g.dialogs.includes('The Last Door'),
         'door: afterwards it only shows a teaser, not the finale again',
     );
+}
+
+// ---------------------------------------------------------------- 5b. the wings
+console.log('the wings');
+
+{
+    const bellsIn = (g, id) => {
+        const list = BW.ROOMS[id].ents.filter((e) => e.type === 'silentbell').map((d) => new BW.OBJ.silentbell(g, d));
+
+        g.objects.push(...list);
+
+        return list;
+    };
+
+    const strike = (b) => {
+        b.update(5); // let the bell's cool-down pass
+        b.hit();
+    };
+
+    try {
+        // N2: four bells that must be struck deepest voice first
+        const g = makeGame('N2', {});
+        const bells = bellsIn(g, 'N2');
+        const byOrder = [...bells].sort((a, b) => a.def.order - b.def.order);
+        const enemy = new BW.ENEMY_TYPES.hushling(g, { type: 'hushling', x: 10, y: 30 });
+
+        g.enemies.push(enemy);
+
+        check(byOrder.length === 4 && byOrder.every((b, i) => b.def.order === i + 1), 'N2: four bells numbered 1 to 4');
+        check(
+            byOrder.every((b, i) => i === 0 || b.pitch > byOrder[i - 1].pitch),
+            'N2: the order is the order of pitch, deepest first',
+        );
+
+        strike(byOrder[1]);
+        check(!g.state.flags.hbell_n2b && !byOrder[1].rung, 'N2: a bell struck out of turn does not count');
+        check(enemy.alertT > 0, 'N2: a wrong toll still wakes the Hushed');
+
+        strike(byOrder[0]);
+        check(g.state.flags.hbell_n2a && byOrder[0].rung, 'N2: the deepest bell, first, is unwrapped');
+        strike(byOrder[2]);
+        check(!g.state.flags.hbell_n2a && !byOrder[0].rung, 'N2: a wrong bell mid-scale pulls every cloth tight again');
+
+        for (const b of byOrder) strike(b);
+
+        check(
+            g.state.flags.hb_n2 && g.gatesOpened.includes('hb_n2'),
+            'N2: the whole scale in order opens the Cutter’s door',
+        );
+
+        strike(byOrder[3]);
+        check(g.state.flags.hb_n2, 'N2: ringing a bell afterwards does nothing to the open door');
+
+        // the three bells that sing together live in three rooms; the gate is in U3
+        const gN = makeGame('N3', {});
+        const [n3] = bellsIn(gN, 'N3');
+
+        strike(n3);
+        check(gN.state.flags.hbell_n3v && !gN.state.flags.hb_voices, 'voices: one of three bells: the veil stays shut');
+
+        const gU = makeGame('U3', { hbell_n3v: true, hbell_u2v: true });
+        const [u3] = bellsIn(gU, 'U3');
+
+        strike(u3);
+        check(
+            gU.state.flags.hb_voices && gU.gatesOpened.includes('hb_voices'),
+            'voices: the last bell, in the room of the gate, parts the veil',
+        );
+
+        const gF = makeGame('N3', { hbell_u2v: true, hbell_u3v: true });
+        const [n3b] = bellsIn(gF, 'N3');
+
+        strike(n3b);
+        check(
+            gF.state.flags.hb_voices && !gF.gatesOpened.length && gF.toasts.some((t) => /veil parts/i.test(t)),
+            'voices: the last bell in another room sets the flag and says a veil parted elsewhere',
+        );
+        check(
+            new BW.Room(BW.ROOMS.U3, { hb_voices: true }).gates.find((x) => x.flag === 'hb_voices').open,
+            'voices: U3’s gate loads open afterwards',
+        );
+
+        // the Mourners' Shears
+        const gS = makeGame('N1', {});
+        const altar = new BW.OBJ.relicaltar(
+            gS,
+            BW.ROOMS.N1.ents.find((e) => e.type === 'relicaltar'),
+        );
+
+        gS.player.x = altar.x - gS.player.w / 2;
+        gS.player.y = altar.y - gS.player.h;
+        altar.update(DT);
+        altar.draw(sink);
+        check(altar.canInteract() && altar.prompt() === 'Take the Mourners’ Shears', 'N1: the altar offers the Shears');
+        altar.interact();
+        check(!!gS.seq, 'N1: taking the Shears starts a sequence');
+        gS.hud.announce = null;
+        check(
+            runSeq(gS, 'shears sequence', 100000, () => (gS.hud.announce = null)),
+            'N1: the sequence runs to the end',
+        );
+        check(gS.state.flags.shears === true && gS.xpGained > 0, 'N1: the Shears are in the save and earn experience');
+        check(gS.announce && gS.announce.title === 'Mourners’ Shears', 'N1: the pick-up card names them');
+        check(!altar.canInteract(), 'N1: the Shears cannot be taken twice');
+
+        // every cloth hatch needs them, and every hatch is announced by a hint that goes away once you have them
+        const hatches = BW.ROOM_LIST.filter((r) => r.area === 'hushed').flatMap((r) =>
+            r.breakables.filter((b) => b.kind === 'shroud').map((b) => [r, b]),
+        );
+
+        check(hatches.length === 4, `the cloth hatches: ${hatches.length} of them (H1, H2, H3, H6)`);
+
+        for (const [r, b] of hatches) {
+            check(b.needs === 'shears', `${r.id}: the ${b.id} hatch needs the Shears`);
+            check(
+                r.ents.some((e) => e.type === 'hint' && e.unless === 'shears' && Math.abs(e.x - b.x0) <= 3),
+                `${r.id}: a hint at the ${b.id} hatch fades once you own the Shears`,
+            );
+        }
+
+        // every lore note stands on something, in a room of its own
+        const solidAt = (r, x, y) => ['#', 'B', '=', 'G'].includes((r.grid[y] || [])[x]);
+
+        for (const n of BW.Lore.NOTES) {
+            const r = BW.ROOMS[n.room];
+
+            if (!r || r.area !== 'hushed') continue;
+
+            check(
+                r.grid[n.y] && r.grid[n.y][n.x] === '.' && solidAt(r, n.x, n.y + 1),
+                `note ${n.id}: stands on the floor of ${n.room}`,
+            );
+        }
+
+        // every group's bells agree on one gate, and every gate flag is opened by something
+        const groups = {};
+
+        for (const r of BW.ROOM_LIST)
+            for (const e of r.ents)
+                if (e.type === 'silentbell' && e.group) (groups[e.group] = groups[e.group] || []).push(e);
+
+        for (const [name, list] of Object.entries(groups))
+            check(
+                new Set(list.map((e) => e.gate)).size === 1,
+                `bell group ${name}: ${list.length} bells share one gate`,
+            );
+    } catch (err) {
+        bad('wings threw: ' + err.stack.split('\n').slice(0, 5).join(' / '));
+    }
+}
+
+// ---------------------------------------------------------------- 5c. the Long Mourner, phase two
+console.log('the Long Mourner, phase two');
+
+{
+    try {
+        const g = makeGame('H7', { great_bell: true, warden_defeated: true });
+        const def = BW.ROOMS.H7.ents.find((e) => e.type === 'mourner');
+        const m = new BW.ENEMY_TYPES.mourner(g, def);
+        const P = g.player;
+
+        g.enemies.push(m);
+        P.x = m.cx - 360;
+        P.y = m.y + m.h - P.h;
+        m.rise();
+        m.begin();
+        m.phase = 2;
+        m.toIdle(0.1);
+        check(m.speed > 1 && m.speed <= 1.12, `phase two runs only a little faster (x${m.speed})`);
+
+        // the Embrace: its tell floods the body and the screen red, and drawing it must not throw
+        m.face();
+        m.startAttack('embrace');
+
+        let peak = 0;
+
+        for (let i = 0; i < 0.9 / DT; i++) {
+            m.update(DT);
+            peak = Math.max(peak, m.alert);
+            if (i % 6 === 0) m.draw(sink, 1);
+        }
+
+        check(peak > 0.8, `the Embrace's tell raises the red alert to ${peak.toFixed(2)}`);
+        check(m.unparryable || m.state !== 'embrace', 'the Embrace is still the unparryable blow');
+
+        // a stretch of phase two against a hero standing still: no throw, finite, and it never stacks blows without a pause
+        let attacks = 0,
+            last = null,
+            idleSeen = 0;
+
+        m.toIdle(0.2);
+
+        for (let i = 0; i < 40 / DT; i++) {
+            m.update(DT);
+            for (const h of g.hazards) h.update(DT);
+            g.hazards = g.hazards.filter((h) => !h.dead);
+
+            if (m.state !== last) {
+                if (m.state === 'idle') idleSeen++;
+                if (/_wind$/.test(m.state)) attacks++;
+                last = m.state;
+            }
+
+            if (![m.x, m.y, m.vx, m.vy].every(Number.isFinite)) throw new Error('non-finite in ' + m.state);
+        }
+
+        check(attacks > 3, `phase two keeps attacking (${attacks} wind-ups in 40s)`);
+        check(idleSeen >= attacks / 3, `and it pauses between attacks (${idleSeen} rests for ${attacks} wind-ups)`);
+        check(m.alert >= 0, 'the alert settles back to zero when nothing red is under way');
+    } catch (err) {
+        bad('mourner phase two threw: ' + err.stack.split('\n').slice(0, 5).join(' / '));
+    }
 }
 
 // ---------------------------------------------------------------- 6. every object draws

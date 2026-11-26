@@ -128,7 +128,6 @@
             this.combo = 0;
             this.hitCount = 0;
             this.poiseT = 0;
-            this.tags = [];
             this.lastKind = null;
             this.parryT = 0;
             this.dodgeT = 0;
@@ -321,12 +320,6 @@
 
             return a;
         }
-        // a floating call-out over its head so a parry and a Shadow Step read differently from an ordinary hit
-        addTag(text, sub, color) {
-            this.tags.push({ text, sub, color, t: 0, life: 1.3 });
-
-            if (this.tags.length > 4) this.tags.shift();
-        }
         poiseFull() {
             return this.poise >= TUNE.poise[this.phase - 1];
         }
@@ -357,7 +350,7 @@
             this.flash = 0.6;
             this.parryT = TUNE.combo.window;
             this.lastKind = 'parry';
-            this.addTag('PARRY', `+${Math.round(this.gainPoise(K.poise))} POISE`, '#ffd27a');
+            this.gainPoise(K.poise);
             this.vulnT = Math.max(this.vulnT, K.vulnT);
             this.vulnMul = Math.max(this.vulnMul, K.vuln);
 
@@ -392,7 +385,7 @@
             this.flash = 0.5;
             this.dodgeT = TUNE.combo.window;
             this.lastKind = 'dodge';
-            this.addTag('SHADOW STEP', `+${Math.round(this.gainPoise(K.poise))} POISE`, '#c4a8ff');
+            this.gainPoise(K.poise);
             this.vulnT = Math.max(this.vulnT, K.vulnT);
             this.vulnMul = Math.max(this.vulnMul, K.vuln);
 
@@ -416,7 +409,6 @@
                     this.parryT = this.dodgeT = 0;
                     this.poise = 0;
                     this.broken = true;
-                    this.game.hud.toast('Guard broken', 'Parry and Shadow Step together. Strike now!', 2.2);
                 }
             }
 
@@ -543,9 +535,6 @@
             });
 
             g.fx.ring(this.cx, this.y + 100, 20, b ? 400 : 300, b ? 0.6 : 0.45, '#ffe2a8', b ? 5 : 4);
-
-            if (b) g.hud.toast('Guard broken', 'Parry and Shadow Step together. Strike now!', 2.2);
-            else g.hud.toast('Staggered', 'Its guard is down. Strike now!', 1.6);
         }
         die() {
             const g = this.game;
@@ -740,12 +729,6 @@
             if (this.poiseT > 0) this.poiseT -= dt;
             else if (this.poise > 0 && this.state !== 'stagger')
                 this.poise = Math.max(0, this.poise - TUNE.decay.rate * dt);
-
-            for (let i = this.tags.length - 1; i >= 0; i--) {
-                this.tags[i].t += dt;
-
-                if (this.tags[i].t > this.tags[i].life) this.tags.splice(i, 1);
-            }
 
             if (this.vulnT > 0) {
                 this.vulnT -= dt;
@@ -1501,7 +1484,7 @@
             return { x: x + c.ox * this.facing, y: y + c.oy };
         }
 
-        // the dazed halo, the PARRY / SHADOW STEP call-outs and the telegraph glint (shared by bosses built on this one)
+        // the dazed halo and the telegraph glint (shared by bosses built on this one)
         drawOverlays(ctx, x, y) {
             const g = this.game,
                 s = this.state;
@@ -1524,40 +1507,6 @@
                     ctx.beginPath();
                     ctx.arc(hx + Math.cos(a) * 46, hy + Math.sin(a) * 12, r, 0, 6.2832);
                     ctx.fill();
-                }
-
-                ctx.restore();
-            }
-
-            // call-outs: PARRY / SHADOW STEP with the poise they built, floating up from its head
-            if (this.tags.length) {
-                const hx = x + this.facing * 10,
-                    hy = y - this.h - 36;
-
-                ctx.save();
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.lineJoin = 'round';
-
-                for (const tg of this.tags) {
-                    const k = tg.t / tg.life,
-                        a = Math.min(1, tg.t / 0.08, (1 - k) / 0.35),
-                        ty = hy - 46 * (1 - Math.pow(1 - Math.min(1, k * 1.6), 3));
-
-                    const pop = 1 + Math.max(0, 0.3 - tg.t) * 1.2;
-
-                    ctx.globalAlpha = Math.max(0, a);
-                    ctx.font = `700 ${Math.round(30 * pop)}px ${BW.FONT_T}`;
-                    ctx.lineWidth = 5;
-                    ctx.strokeStyle = 'rgba(6,7,10,0.85)';
-                    ctx.strokeText(tg.text, hx, ty);
-                    ctx.fillStyle = tg.color;
-                    ctx.fillText(tg.text, hx, ty);
-                    ctx.font = `600 20px ${BW.FONT_B}`;
-                    ctx.lineWidth = 4;
-                    ctx.strokeText(tg.sub, hx, ty + 26);
-                    ctx.fillStyle = '#fff3dc';
-                    ctx.fillText(tg.sub, hx, ty + 26);
                 }
 
                 ctx.restore();

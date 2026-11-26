@@ -92,7 +92,8 @@
                     )
                         d.lanternsLit[e.id] = true;
 
-                    if (e.type === 'silentbell' && id === 'gallery_boss' && r.id !== 'H8') f['hbell_' + e.id] = true;
+                    if (e.type === 'silentbell' && id === 'gallery_boss' && before.includes(r.id))
+                        f['hbell_' + e.id] = true;
                 }
 
                 continue;

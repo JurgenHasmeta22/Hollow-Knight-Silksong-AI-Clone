@@ -15,31 +15,31 @@
     // it thinks for almost no time between attacks, and many attacks chain into the next.
     const TUNE = {
         hp: [45, 60], // the two health bars: phase one's, then phase two's (the Warden has 36 + 36)
-        speed: [1, 1.3],
+        speed: [1, 1.08],
         think: [
             [0.5, 0.9],
-            [0.06, 0.28],
+            [0.4, 0.8],
         ],
-        reach: { wind: [0.7, 0.55], len: 330, lunge: 520, rewind: 0.34, rec: [1.0, 0.7] },
+        reach: { wind: [0.7, 0.66], len: 330, lunge: 520, rewind: 0.46, rec: [1.0, 0.9] },
         needles: {
-            wind: [0.68, 0.52],
-            n: [7, 11],
+            wind: [0.68, 0.62],
+            n: [7, 9],
             gap: 84,
-            step: [0.11, 0.07],
-            tele: [0.55, 0.42],
+            step: [0.11, 0.09],
+            tele: [0.55, 0.5],
             h: 150,
-            rec: [0.95, 0.7],
+            rec: [0.95, 0.88],
         },
-        veil: { wind: [0.82, 0.62], speed: [330, 460], rec: [1.05, 0.75] },
-        rush: { wind: [0.58, 0.55], speed: [700, 700], time: [0.8, 0.85], rec: [0.95, 0.7] },
-        darts: { wind: [0.6, 0.45], n: [3, 5], gap: [0.3, 0.2], speed: [600, 760], rec: [0.9, 0.6] },
-        stalk: { wind: [0.6, 0.45], n: [3, 6], step: [0.4, 0.26], tele: [0.55, 0.42], h: 150, rec: [0.9, 0.65] },
-        hush: { wind: 0.95, speed: [420, 520], h: 90, echoes: [0.7, 1.3], rec: 1.1 },
-        drop: { climb: 0.5, crawl: 1.4, lock: 0.42, speed: 420, rec: 0.85 },
-        crawl: { speed: 500, needleGap: 0.2, tele: 0.45, max: 2.6 },
-        pounce: { wind: 0.58, air: 0.56, height: 170, rec: 0.75 },
-        dance: { wind: 0.5, speed: 640, legs: 3, leg: 0.85 },
-        embrace: { wind: 1.0, chain: 0.55, lunge: 0.32, speed: 700, rec: 1.2 },
+        veil: { wind: [0.82, 0.74], speed: [330, 390], rec: [1.05, 0.95] },
+        rush: { wind: [0.58, 0.6], speed: [700, 620], time: [0.8, 0.8], rec: [0.95, 0.9] },
+        darts: { wind: [0.6, 0.55], n: [3, 4], gap: [0.3, 0.26], speed: [600, 650], rec: [0.9, 0.8] },
+        stalk: { wind: [0.6, 0.55], n: [3, 5], step: [0.4, 0.34], tele: [0.55, 0.5], h: 150, rec: [0.9, 0.85] },
+        hush: { wind: 0.95, speed: [420, 450], h: 90, echoes: [0.7, 1.0], rec: 1.1 },
+        drop: { climb: 0.5, crawl: 1.4, lock: 0.42, speed: 380, rec: 1.0 },
+        crawl: { speed: 430, needleGap: 0.26, tele: 0.5, max: 2.2 },
+        pounce: { wind: 0.7, air: 0.62, height: 170, rec: 0.95 },
+        dance: { wind: 0.6, speed: 560, legs: 2, leg: 0.9 },
+        embrace: { wind: 1.15, chain: 0.85, lunge: 0.32, speed: 640, rec: 1.4 },
     };
 
     // a shuffled bag per phase, so no attack repeats at once (the Warden's rule)
@@ -159,7 +159,6 @@
             this.ceilY = 0;
             this.climb = null;
             this.lock = false;
-            this.hinted = false;
             this.pending = null;
             this.reachN = 0;
             this.pounceN = 0;
@@ -395,11 +394,6 @@
                     BW.Audio.play('boss_roar', { vol: 0.5, rate: 0.55 });
                     BW.Audio.play('boss_charge', { vol: 0.7, rate: 0.7 });
 
-                    if (!this.hinted && BW.settings.hints !== false) {
-                        this.hinted = true;
-                        g.hud.toast('Mourning Embrace', 'It cannot be parried. Shadow Step it, or get clear.', 3);
-                    }
-
                     break;
             }
         }
@@ -456,7 +450,7 @@
                     this.vx = 0;
                     this.pose = 'reach_recover';
 
-                    if (this.phase === 2 && this.reachN < 2 && !this.combo && t >= 0.24) {
+                    if (this.phase === 2 && this.reachN < 2 && !this.combo && t >= 0.4) {
                         this.reachN++;
                         this.face();
                         this.setState('reach_wind');
@@ -663,7 +657,7 @@
                     this.sy = BW.damp(this.sy, 0.9, 8, dt);
                     this.dust(dt, 25, 120);
 
-                    if (t >= (this.pounceN ? 0.3 : K.pounce.wind)) this.startPounce();
+                    if (t >= (this.pounceN ? 0.42 : K.pounce.wind)) this.startPounce();
                     return;
                 case 'pounce_air': {
                     const L = this.leap,
@@ -689,7 +683,7 @@
 
                     if (t > 0.2) this.pose = 'idle';
 
-                    if (!this.combo && this.pounceN < 1 && t >= 0.25) {
+                    if (!this.combo && this.pounceN < 1 && t >= 0.4) {
                         this.pounceN = 1;
                         this.face();
                         this.setState('pounce_wind');
@@ -699,8 +693,8 @@
                         return;
                     }
 
-                    // after the second pounce it is already on top of you: often straight into the Embrace
-                    if (!this.combo && this.pounceN === 1 && t >= 0.25 && this.pdist() < 420 && Math.random() < 0.65) {
+                    // after the second pounce it is sometimes already on top of you: a quarter of the time, straight into the Embrace
+                    if (!this.combo && this.pounceN === 1 && t >= 0.4 && this.pdist() < 420 && Math.random() < 0.25) {
                         this.pounceN = 2;
                         this.chain = true;
                         this.face();
@@ -1154,6 +1148,9 @@
                 g.addLight(m.x, this.floorY - 30, 160, '#7cc8ff', 0.35);
             }
 
+            // the unblockable Embrace: a big red danger zone over everything it is about to crush, under the body
+            if (this.red > 0.03) this.drawRedZone(ctx, x, y);
+
             let pose = this.poseName(),
                 ox = 0,
                 rot = 0;
@@ -1210,7 +1207,7 @@
                 g.addLight(e.x, e.y, 90 + this.heat * 50, '#7cc8ff', 0.35 * glow);
             }
 
-            // the Embrace's tell: a blood-red glow gathering in its open palms (and where they close)
+            // the Embrace's tell: the whole body floods red, with a blood-red blaze in its open palms (and where they close)
             if (this.red > 0.03) {
                 const spots =
                     pose === 'embrace_strike'
@@ -1220,22 +1217,60 @@
                               [0.95, 0.68],
                           ];
 
+                const pulse = 0.75 + 0.25 * Math.sin(g.time * 26),
+                    bodyY = (hang ? top + 200 : y) - 150,
+                    R = 330 * (0.9 + 0.1 * pulse);
+
                 ctx.save();
                 ctx.globalCompositeOperation = 'lighter';
+                ctx.globalAlpha = Math.min(1, this.red) * 0.85 * pulse;
+                ctx.drawImage(BW.glowSprite('#ff1e12'), x - R, bodyY - R, R * 2, R * 2);
 
                 for (const [u, v] of spots) {
                     const pt = this.framePoint(x, oy, u, v),
-                        r = 40 + Math.sin(g.time * 22) * 6;
+                        r = 80 + Math.sin(g.time * 22) * 10;
 
                     ctx.globalAlpha = Math.min(1, this.red);
                     ctx.drawImage(BW.glowSprite('#ff3a2a'), pt.x - r, pt.y - r, r * 2, r * 2);
-                    g.addLight(pt.x, pt.y, 130, '#ff3a2a', 0.45 * this.red);
+                    g.addLight(pt.x, pt.y, 190, '#ff3a2a', 0.6 * this.red);
                 }
 
                 ctx.restore();
+                g.addLight(x, bodyY, 360, '#ff2a1a', 0.7 * this.red * pulse);
             }
 
             this.drawOverlays(ctx, x, oy);
+        }
+
+        // how loudly the screen should warn about this boss right now (0..1): the HUD washes its edges red
+        get alert() {
+            return this.dead || this.state === 'remains' ? 0 : this.red;
+        }
+
+        // a red wash over the ground the Embrace will crush: the length of its reach plus the lunge that carries it
+        drawRedZone(ctx, x, y) {
+            const g = this.game,
+                d = this.facing,
+                len = 250 + TUNE.embrace.speed * 0.18,
+                k = Math.min(1, this.red),
+                pulse = 0.6 + 0.4 * Math.sin(g.time * 24);
+
+            const x0 = d > 0 ? x - 10 : x + 10 - len,
+                top = y - 290;
+
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+
+            const grad = ctx.createLinearGradient(0, top, 0, y);
+
+            grad.addColorStop(0, 'rgba(255,30,20,0)');
+            grad.addColorStop(1, `rgba(255,40,24,${0.55 * k * pulse})`);
+            ctx.fillStyle = grad;
+            ctx.fillRect(x0, top, len, y - top);
+            ctx.globalAlpha = k * (0.55 + 0.35 * pulse);
+            ctx.drawImage(BW.glowSprite('#ff2a1a'), x0 - 40, y - 60, len + 80, 90);
+            ctx.restore();
+            g.addLight(x0 + len / 2, y - 40, 220, '#ff2a1a', 0.5 * k);
         }
 
         die() {

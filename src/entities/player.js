@@ -789,7 +789,6 @@
             BW.Audio.play('clink', { vol: 0.45, rate: 1.7, minGap: 0 });
             BW.Audio.play('glint', { vol: 0.4, minGap: 0 });
             g.stats.parries = (g.stats.parries || 0) + 1;
-            g.teach('riposte');
 
             const src = opts && opts.src;
 
@@ -842,7 +841,6 @@
             BW.Audio.play('dash', { rate: 0.55, vol: 0.9, minGap: 0 });
             BW.Audio.play('glint', { rate: 0.7, vol: 0.8, minGap: 0 });
             g.stats.dodges = (g.stats.dodges || 0) + 1;
-            g.teach('dodge');
 
             const src = opts && opts.src;
 
@@ -1042,15 +1040,6 @@
             ctx.globalCompositeOperation = 'lighter';
             ctx.globalAlpha = 0.55 * k;
             ctx.drawImage(BW.glowSprite('#a28bff'), x - 80, y - 120, 160, 160);
-            ctx.restore();
-            ctx.save();
-            ctx.globalAlpha = Math.min(1, this.counterT / 0.6) * 0.9;
-            ctx.textAlign = 'center';
-            ctx.font = '600 15px Georgia, serif';
-            ctx.fillStyle = '#d9ccff';
-            ctx.shadowColor = '#7a5cff';
-            ctx.shadowBlur = 8;
-            ctx.fillText('SHADOW STEP', x, y - 118 - (this.counterMax - this.counterT) * 14);
             ctx.restore();
         }
 

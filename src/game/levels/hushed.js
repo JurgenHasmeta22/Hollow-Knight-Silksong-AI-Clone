@@ -13,12 +13,35 @@
     const skipPressed = () => BW.Input.pressed.jump || BW.Input.pressed.attack || BW.Input.pressed.confirm;
 
     // ================================================================ silent bells
+    // Every silent bell definition in the world that belongs to a group (a group may span rooms: its gate can be anywhere)
+    const bellsOf = (group) => {
+        const out = [];
+
+        for (const r of BW.ROOM_LIST)
+            for (const e of r.ents) if (e.type === 'silentbell' && e.group === group) out.push(e);
+
+        return out;
+    };
+
     // Called by a bell when the needle (or a lance) strikes it. The first strike unwraps it; every strike tolls.
+    // A group with `order` set must be struck in that order: a bell struck out of turn winds the whole set up again.
     G.hushToll = function (bell) {
         const st = this.state,
             f = st.flags,
             room = this.room,
-            first = !f[bell.flag];
+            def = bell.def,
+            first = !f[bell.flag],
+            group = def.group ? bellsOf(def.group) : [def];
+
+        if (first && def.order && def.gate && !f[def.gate]) {
+            const rung = group.filter((e) => f['hbell_' + e.id]).length;
+
+            if (def.order !== rung + 1) {
+                this.hushWrong(bell, group);
+
+                return;
+            }
+        }
 
         f[bell.flag] = true;
 
@@ -36,22 +59,25 @@
         for (const e of this.enemies) if (!e.dead && e.onToll) e.onToll(bell);
 
         // the veil gate this bell (or its group of bells) is tied to
-        const def = bell.def;
-
         if (def.gate) {
-            const group = def.group
-                ? room.def.ents.filter((e) => e.type === 'silentbell' && e.group === def.group)
-                : [def];
-
             const done = group.filter((e) => f['hbell_' + e.id]).length;
 
             if (done === group.length) {
                 if (!f[def.gate]) {
                     f[def.gate] = true;
 
-                    for (const gt of room.gates) if (gt.flag === def.gate && !gt.open) this.openGateAnimated(gt);
+                    const here = room.gates.filter((gt) => gt.flag === def.gate && !gt.open);
 
-                    this.hud.toast('The veil parts', 'The way on is open. Something heard the bell.', 3.4);
+                    for (const gt of here) this.openGateAnimated(gt);
+
+                    if (here.length)
+                        this.hud.toast('The veil parts', 'The way on is open. Something heard the bell.', 3.4);
+                    else
+                        this.hud.toast(
+                            'A veil parts',
+                            'Somewhere in the Gallery a way has opened. Something heard the bell.',
+                            3.8,
+                        );
                 }
             } else if (first) this.hud.toast(`Bell unwrapped (${done}/${group.length})`, 'The Hushed have heard it', 3);
         }
@@ -60,6 +86,77 @@
 
         this.saveGame();
     };
+
+    // A bell struck out of order: a dull, wrong toll, the cloth pulls tight on every bell of its set, and the Hushed hear it.
+    G.hushWrong = function (bell, group) {
+        const f = this.state.flags;
+
+        for (const e of group) delete f['hbell_' + e.id];
+
+        for (const o of this.objects)
+            if (o.type === 'silentbell' && o.def.group === bell.def.group && o.rung) o.rewrap();
+
+        BW.Audio.play('bell', { pitch: bell.pitch / 4, vol: 0.9, minGap: 0 });
+        BW.Audio.play('bellfar', { pitch: 41.2, vol: 1, minGap: 0 });
+        this.fx.shake(5, 0.35);
+        this.fx.flash('#05080c', 0.18);
+        this.fx.ring(bell.x, bell.y - 90, 20, 240, 0.7, '#3a4f5e', 5);
+
+        for (const e of this.enemies) if (!e.dead && e.onToll) e.onToll(bell);
+
+        this.saveGame();
+    };
+
+    // ================================================================ keepsakes on altars (the Mourners' Shears)
+    G.takeRelic = function (altar) {
+        this.startSequence(relicSequence(this, altar));
+    };
+
+    function* relicSequence(g, altar) {
+        const p = g.player,
+            st = g.state,
+            R = BW.HUSH_RELICS[altar.def.relic];
+
+        p.state = 'cutscene';
+        p.vx = 0;
+        g.letterboxTarget = 1;
+        g.seq.hideHud = true;
+        p.facing = altar.x > p.cx ? 1 : -1;
+        g.camFocus = { x: altar.x, y: altar.y - 110 };
+        yield 0.5;
+
+        BW.Audio.play('shrine', { vol: 0.9 });
+        BW.Audio.play('bellfar', { pitch: 146.8, vol: 0.9, minGap: 0 });
+        g.fx.ring(altar.x, altar.y - 118, 10, 220, 0.9, '#9fd8ff', 4);
+
+        g.fx.burst(altar.x, altar.y - 118, 34, {
+            color: ['#9fd8ff', '#e6f6ff', '#ffffff'],
+            kind: 'glow',
+            speed: 240,
+            life: 1.1,
+            add: true,
+            size: 9,
+        });
+
+        st.flags[altar.def.relic] = true;
+        g.gainXp(BW.XP.REWARD.relic || 100);
+        g.saveGame();
+        yield 0.6;
+
+        g.letterboxTarget = 0;
+        g.camFocus = null;
+        g.seq.hideHud = false;
+        p.state = 'normal';
+
+        g.hud.showAnnounce({
+            kicker: 'Obtained',
+            title: R.name,
+            lines: R.lines,
+            icon: (ctx, x, y, t) => R.icon(ctx, x, y + Math.sin(t * 2) * 4, 1.1),
+        });
+
+        yield () => !g.hud.announce;
+    }
 
     // ================================================================ the Long Mourner's victory
     G.onMournerDefeated = function (b) {
