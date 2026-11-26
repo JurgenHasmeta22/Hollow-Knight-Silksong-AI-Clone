@@ -2,7 +2,7 @@
 
 Paste-ready prompts for an image generator (GPT-Image, Higgsfield, etc.). Companion to [EXPANSION_PLAN.md](./EXPANSION_PLAN.md).
 Area A (Garrison Road & Hollow Keep) backdrops are already generated, so §3 starts with its bosses and enemies; its backdrop prompts are kept in §5 for reference.
-**Area G, The Hushed Gallery**, is a further area added after A to F: its boss (§3.7), its five enemies (§4, #13 to #17) and the shared **[HUSHED LOOK]** block (§2.1) are all below.
+**Area G, The Hushed Gallery**, is a further area added after A to F, and it is the mandatory one: its boss (§3.7), its five enemies (§4, #13 to #17), the shared **[HUSHED LOOK]** block (§2.1) and its environment, objects and key art (§5, Area G) are all below.
 
 ## 0. How to use
 
@@ -548,6 +548,165 @@ TILE: [PREAMBLE] Seamless tile, 512x512. Dark woven fabric with silver thread pa
 PROPS: [PREAMBLE] Prop sheet on green #00FF00, 8 objects: 1) giant spool, 2) floating needle, 3) hanging
 thread curtain, 4) loom frame, 5) tangled thread ball, 6) cut thread ends, 7) empty marionette stand,
 8) violet thread lantern.
+```
+
+### Area G — The Hushed Gallery (mandatory: the Long Mourner's area)
+
+Story role: the second boss, and the only way on. The Long Mourner (§3.7) guards the **Silent Key**. The key opens the **Last Door**, which leads to the final boss and the ending. The optional third boss (the Ashen Ramparts area) is a side path and does not hold the key.
+
+Flow: first boss, then the **Hushed Gallery** (mandatory), the **Long Mourner** and its **Silent Key**, then the **Last Door**, the final boss and the end. Its five enemies are in §4 (#13 to #17).
+Look: pitch-black stone and veils, rows of blank porcelain masks, silent bells with their clappers cut out, cold pale-blue light as the one accent.
+
+How to use: paste the preamble (§1), then the **[GALLERY LOOK]** block below, then ONE prompt at a time. Props and objects go on green `#00FF00`, one object per image, so each can be cut out and added to the manifest on its own. Files are named like the existing ones (`bg_gallery_far`, `deco_hg_veil`, `obj_hg_gate_open`...).
+
+```
+[GALLERY LOOK] THE HUSHED GALLERY (area look): a vast, silent funeral gallery of pitch-black stone and heavy
+black mourning veils, rows of smooth bone-white porcelain masks that are completely blank (no eyes, no mouth,
+no cracks that form a face), bell frames whose clappers have been cut out and wrapped in black cloth. ONE
+light accent only: a cold pale-blue glow (candle flames, mist, glints on porcelain). Dust, stillness, grief.
+Palette: black, charcoal, bone white, pale blue.
+ABSOLUTELY NO TEXT of any kind: no letters, no numbers, no runes that read as writing, no watermark.
+NEGATIVE: eyes, faces, mouths, expressions, text, letters, watermark, characters, creatures, green fringing,
+motion blur.
+```
+
+**Backdrops**
+
+```
+FAR (bg_gallery_far): [PREAMBLE] [GALLERY LOOK] Wide far-distance backdrop, 16:9. The endless Hushed Gallery
+seen from its far end: a colossal vaulted hall of black stone receding into pale-blue mist, hundreds of tall
+black veils hanging from the vault like curtains, endless ranks of blank white porcelain masks lining the
+distant walls like tiny pale dots, the silhouettes of enormous silent bells with no clappers high in the dark.
+Low contrast, deep atmospheric perspective, calm empty centre, a faint pale-blue glow far away. No foreground,
+no ground line, no characters.
+```
+```
+MID (bg_gallery_mid): [PREAMBLE] [GALLERY LOOK] Mid-ground layer, 16:9, on flat green #00FF00. Hanging black
+veils of different lengths, tall pointed gothic arches whose openings are filled with veils, colonnade pillars
+lined with blank masks, bell frames holding wrapped bells, thin dangling black chains. Keep the centre and the
+lower 25% clear so the player and enemies stay readable. No ground, no characters.
+```
+```
+TILE (tex_gallery): [PREAMBLE] [GALLERY LOOK] Seamless tile, 512x512, perfectly tileable on all four edges.
+Polished black stone blocks, hairline cracks, a little dust, a faint pale-blue sheen along the block edges, a
+few shallow carved grooves (no letters). Flat front-facing texture, no perspective.
+```
+
+**Props** (each one single object on green `#00FF00`, flat bottom edge unless said otherwise, no shadow)
+
+```
+1 VEIL (deco_hg_veil): [PREAMBLE] [GALLERY LOOK] A single tall hanging funeral veil: a long panel of black
+gauze-like silk with a ragged torn lower edge, gathered at the top on an iron rod with two hooks, soft folds,
+a faint pale-blue sheen. It hangs straight down, so the top is the anchor. Front view. Object on green
+#00FF00.
+```
+```
+2 MOURNER STATUE (deco_hg_statue): [PREAMBLE] [GALLERY LOOK] A tall stone statue of a hunched mourner in a
+long hooded robe, hands clasped, head bowed, a smooth blank bone-white mask for a face with no features at
+all, black stone with pale-blue glints, standing on a low square plinth. Side view facing right. Object on
+green #00FF00.
+```
+```
+3 SILENT BELL (deco_hg_bell): [PREAMBLE] [GALLERY LOOK] A large old bronze bell hanging from a black iron
+frame, the clapper cut away and the mouth stuffed and wrapped with black cloth bound with thread, dark patina,
+a pale-blue glint along the lip. Side view. Object on green #00FF00.
+```
+```
+4 MASK RACK (deco_hg_masks): [PREAMBLE] [GALLERY LOOK] A wall rack of eight blank bone-white porcelain masks
+hung in two rows from black iron hooks on a dark wooden board. Every mask is a smooth featureless oval: no
+eyes, no mouth, no marks. Front view. Object on green #00FF00.
+```
+```
+5 CANDLES (deco_hg_candles): [PREAMBLE] [GALLERY LOOK] A cluster of five tall black wax candles of different
+heights on a black iron stand, each burning with a cold pale-blue flame, melted black wax drips, a soft cold
+glow around the flames. Front view. Object on green #00FF00.
+```
+```
+6 MASK PILE (deco_hg_maskpile): [PREAMBLE] [GALLERY LOOK] A heap of broken and whole blank white porcelain
+masks piled together, shards and chips, black dust. Every mask is a smooth featureless oval with no eyes.
+Side view, flat bottom. Object on green #00FF00.
+```
+```
+7 WINDOW (deco_hg_window): [PREAMBLE] [GALLERY LOOK] A tall narrow gothic window with a pointed arch in a
+black stone frame, the glass a single pane of frosted pale white-blue glass with a soft cold light coming
+through, no pictures and no lettering. Front view. Object on green #00FF00.
+```
+```
+8 PILLAR (deco_hg_pillar): [PREAMBLE] [GALLERY LOOK] A tall black stone pillar with a flared base, wrapped in
+torn black veils in a spiral, topped with a blank white porcelain mask as its capital, pale-blue rim light.
+Front view, full height. Object on green #00FF00.
+```
+
+**Objects** (two states are two prompts: make the first, then use it as the reference image for the second)
+
+```
+9 LANTERN, UNLIT (obj_hg_lantern): [PREAMBLE] [GALLERY LOOK] A resting-place lantern: a tall black iron post
+with a hanging glass lantern shaped like a small bell, black filigree, the glass dark and unlit. Front view.
+Object on green #00FF00.
+```
+```
+10 LANTERN, LIT (obj_hg_lantern_lit): Same object as the reference image, same shape, scale and camera, but
+lit: a cold pale-blue flame inside the glass, a soft blue glow blooming around it. Object on green #00FF00.
+```
+```
+11 TABLET (obj_hg_tablet): [PREAMBLE] [GALLERY LOOK] A black slate memorial tablet leaning on a short stone
+base, its face carved with faint vertical grooves and a small blank-mask relief, pale-blue glints in the
+grooves. No readable text. Front view. Object on green #00FF00.
+```
+```
+12 HUSH GATE, SEALED (obj_hg_gate): [PREAMBLE] [GALLERY LOOK] The boss gate: a tall pointed archway in a black
+carved stone frame, sealed by a thick curtain of black veils hanging across the opening, tied with silver
+thread, blank white porcelain masks as keystones, a faint pale-blue glow at the seams. Front view. Object on
+green #00FF00. Sealed state.
+```
+```
+13 HUSH GATE, OPEN (obj_hg_gate_open): Same gate as the reference image, same frame, scale and camera, but
+open: the veils drawn aside and tied back to the two sides, the opening dark and empty with a faint pale-blue
+glow inside. Object on green #00FF00.
+```
+```
+14 BIER (obj_hg_bier): [PREAMBLE] [GALLERY LOOK] A low wide stone bier, a funeral bed, draped in black veils
+that hang over its sides, with a shallow hollow in the middle as if something large was curled up on it, a
+cold pale-blue glow under it. Side view, flat bottom, wide and low. Object on green #00FF00.
+```
+
+**The key and the Last Door**
+
+```
+15 SILENT KEY (item_silentkey): [PREAMBLE] [GALLERY LOOK] A game item icon, 1:1, centred: THE SILENT KEY, a
+long slender black key. Its bow is a smooth blank bone-white porcelain oval (no features), the shaft is a thin
+needle, the bit is shaped like a tiny bell without a clapper, a strand of silver thread wound around the
+shaft, a cold pale-blue glow. On green #00FF00, no shadow, generous margin.
+```
+```
+16 KEY ALTAR (obj_hg_keyaltar): [PREAMBLE] [GALLERY LOOK] A waist-high black stone pedestal with a shallow
+dish on top shaped like the mouth of a small bell, EMPTY, a black veil draped at its base, a faint pale-blue
+glow in the dish. Front view. Object on green #00FF00.
+```
+```
+17 LAST DOOR, SEALED (obj_lastdoor): [PREAMBLE] [GALLERY LOOK] A colossal black double door set in a tall
+pointed arch, the doors one smooth plate of black metal, a large keyhole in the centre shaped like a blank
+mask's oval, bell-shaped bolts around the edge, silver thread binding the seam, a faint pale-blue glow in the
+keyhole. Front view. Object on green #00FF00. Sealed state.
+```
+```
+18 LAST DOOR, OPEN (obj_lastdoor_open): Same door as the reference image, same arch, scale and camera, but
+open: the two doors swung inward, a bright cold pale-blue-white light pouring out of the opening. Object on
+green #00FF00.
+```
+
+**Extras**
+
+```
+19 REALM ART (bg_gallery_realm): [PREAMBLE] [GALLERY LOOK] A wide painting, 16:9, for the Gallery menu and the
+area title card: the Hushed Gallery seen from its entrance, a long central aisle between ranks of blank white
+masks and hanging black veils, a tiny silhouette of a small cloaked insect hero with a silver needle walking
+down the aisle, pale-blue mist and light. No text.
+```
+```
+20 MOURNER PORTRAIT (portrait_mourner): Use the reference image of THE LONG MOURNER. A painterly full-body
+portrait, three-quarter view, centred against deep black-blue mist with a faint pale-blue glow behind it, the
+mask completely blank (no eyes, no features), the same design as the reference. 3:4 portrait. No text.
 ```
 
 ## 6. Shared objects & UI art
