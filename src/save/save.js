@@ -39,7 +39,7 @@
                 lanternRoom: null,
                 maxHp: 5,
                 difficulty: 'action', // story | action | nightmare
-                character: 'weaver', // weaver | ronin: which hero this journey was started with
+                character: 'ronin', // the hero of this journey (the Faceless Ronin)
                 shade: 0, // the Ronin's gauge (0..100), full to transform
                 silkMax: 9,
                 glints: 0,
@@ -84,7 +84,7 @@
             d.glints = Math.max(0, d.glints | 0);
             d.xp = Math.max(0, d.xp | 0);
             d.shade = BW.clamp(+d.shade || 0, 0, 100);
-            if (d.character !== 'ronin') d.character = 'weaver';
+            d.character = 'ronin'; // the Faceless Ronin is the only hero
 
             if (!BW.Difficulty.valid(d.difficulty)) d.difficulty = BW.Difficulty.DEFAULT;
 
@@ -215,8 +215,8 @@
                 m.lantern && room
                     ? room.name
                     : m.lastRoom && BW.ROOMS[m.lastRoom]
-                      ? BW.ROOMS[m.lastRoom].name
-                      : 'Fallen Light';
+                    ? BW.ROOMS[m.lastRoom].name
+                    : 'Fallen Light';
 
             return {
                 place: lan,

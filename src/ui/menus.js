@@ -168,7 +168,10 @@
                                 if (BW.Difficulty.LEVELS[id].lock) {
                                     this.push('warn', { id });
                                     this.sel = 1;
-                                } else this.push('character', { difficulty: id });
+                                } else {
+                                    this.closeAll();
+                                    g.newGame(id, 'ronin');
+                                }
                             },
                         })),
                         { label: 'Back', act: () => this.pop() },
@@ -178,22 +181,12 @@
                         {
                             label: 'Descend into Nightmare',
                             tint: '#d4283a',
-                            act: () => this.push('character', { difficulty: s.data.id }),
-                        },
-                        { label: 'Turn back', act: () => this.pop() },
-                    ];
-                case 'character':
-                    return [
-                        ...['weaver', 'ronin'].map((id) => ({
-                            id,
-                            label: BW.CHARACTERS[id].name,
-                            desc: BW.CHARACTERS[id].desc,
                             act: () => {
                                 this.closeAll();
-                                g.newGame(s.data.difficulty, id);
+                                g.newGame(s.data.id, 'ronin');
                             },
-                        })),
-                        { label: 'Back', act: () => this.pop() },
+                        },
+                        { label: 'Turn back', act: () => this.pop() },
                     ];
                 case 'options':
                     return [
@@ -597,7 +590,6 @@
             if (s.name === 'pause') this.drawPause(ctx);
             else if (s.name === 'controls') this.drawControls(ctx);
             else if (s.name === 'warn') this.drawWarn(ctx);
-            else if (s.name === 'character') this.drawCharacter(ctx);
             else if (s.name === 'confirm') this.drawConfirm(ctx);
             else if (s.name === 'guide') this.drawGuide(ctx);
             else if (s.name === 'slots') this.drawSlots(ctx);
@@ -641,66 +633,6 @@
             }
 
             this.drawMsg(ctx);
-        }
-
-        // the two heroes side by side: the one under the needle stands lit, the other waits in the dark
-        drawCharacter(ctx) {
-            const ids = ['weaver', 'ronin'],
-                sel = ids[this.sel] || null,
-                t = this.t;
-
-            // the wanderer under the needle sets the story, the title and the music the game will begin with
-            if (sel && sel !== this.charPreview) {
-                this.charPreview = sel;
-                BW.Lore.set(sel);
-                BW.Audio.retheme(1.5);
-            }
-
-            ctx.save();
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.font = `600 40px ${BW.FONT_T}`;
-            ctx.fillStyle = '#f2e6cc';
-            ctx.fillText('CHOOSE YOUR WANDERER', BW.VW / 2, 70);
-            ornament(ctx, BW.VW / 2, 104, 190);
-
-            ids.forEach((id, i) => {
-                const on = id === sel,
-                    x = BW.VW * (i ? 0.66 : 0.34),
-                    y = 410,
-                    C = BW.CHARACTERS[id];
-
-                ctx.save();
-
-                if (on) {
-                    ctx.globalCompositeOperation = 'lighter';
-                    ctx.globalAlpha = 0.45 + 0.1 * Math.sin(t * 3);
-                    ctx.drawImage(BW.glowSprite(id === 'ronin' ? '#8aa0ff' : '#ffe7b5'), x - 230, y - 330, 460, 420);
-                    ctx.globalCompositeOperation = 'source-over';
-                }
-
-                ctx.globalAlpha = on ? 1 : 0.32;
-
-                const pose = id === 'ronin' ? 'ronin_' + (on ? 'transformed' : 'idle_a') : 'hero_idle';
-
-                if (!BW.Assets.draw(ctx, pose, 0, x, y, { scale: id === 'ronin' ? 3.3 : 3.6 })) {
-                    ctx.fillStyle = 'rgba(200,190,170,0.5)';
-                    ctx.fillRect(x - 40, y - 200, 80, 200);
-                }
-
-                ctx.restore();
-                ctx.font = `600 26px ${BW.FONT_B}`;
-                ctx.fillStyle = on ? '#fff1d0' : 'rgba(225,214,192,0.45)';
-                ctx.fillText(C.name, x, y + 44);
-            });
-
-            ctx.font = `italic 500 22px ${BW.FONT_B}`;
-            ctx.fillStyle = '#cbbd9f';
-
-            if (sel) BW.wrapText(ctx, BW.CHARACTERS[sel].desc, BW.VW / 2, 528, BW.VW * 0.6, 28);
-
-            ctx.restore();
-            this.drawList(ctx, '', BW.VH - 120, BW.VW / 2, 44);
         }
 
         drawMsg(ctx) {

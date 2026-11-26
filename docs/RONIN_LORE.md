@@ -1,4 +1,4 @@
-# VEILED KNELL: the Faceless Ronin's story
+# THE UNCALLED: the Faceless Ronin's story
 
 The Ronin's journey is the same game (same city, rooms, creatures, bosses and moves) told as a much darker tale. Only
 words and music change. The Bellweaver's story is untouched and is restored whenever that hero is on the field.

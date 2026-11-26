@@ -1,6 +1,6 @@
 'use strict';
 
-// Node-only checks for the Faceless Ronin's story (VEILED KNELL), no browser: node tools/smoke_lore.js
+// Node-only checks for the Faceless Ronin's story (THE UNCALLED), no browser: node tools/smoke_lore.js
 //
 //   * every lore note (the world's and the Hushed Gallery's) has a rewritten Ronin version, and nothing else is overridden
 //   * Lore.set('ronin') swaps the chapters, interludes and notes, and Lore.set('weaver') restores the original text exactly
@@ -80,7 +80,7 @@ check(
     'notes keep the flag that unlocks them',
 );
 check(L.BY_ID.ledger.room === 'M1' && L.BY_ID.ledger.x === 16, 'notes keep their place in the world');
-check(BW.TITLE.name === 'VEILED KNELL', 'the title is VEILED KNELL');
+check(BW.TITLE.name === 'THE UNCALLED', 'the title is THE UNCALLED');
 
 for (const n of L.NOTES) {
     if (!n.title || !n.hint || !n.from || !n.text || !n.text.length || n.text.some((t) => !t))

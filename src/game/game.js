@@ -323,7 +323,7 @@
 
             if (this.player.constructor !== want) this.player = new want(this);
 
-            // the hero decides the story, the title and the soundtrack (Veiled Knell for the Ronin)
+            // the hero decides the story, the title and the soundtrack (The Uncalled)
             if (BW.Lore && BW.Lore.set) BW.Lore.set(id === 'ronin' ? 'ronin' : 'weaver');
 
             if (BW.Audio.musicRaw === 'mus_title') BW.Audio.retheme(2);
@@ -335,7 +335,7 @@
             const d = BW.Save.defaults();
 
             d.difficulty = BW.Difficulty.valid(difficulty) ? difficulty : BW.Difficulty.DEFAULT;
-            d.character = character === 'ronin' ? 'ronin' : 'weaver';
+            d.character = 'ronin'; // the Faceless Ronin is the only hero
             this.state = Object.assign(d, { hp: d.maxHp, silk: 0 });
             this.setCharacter(d.character);
             this.stats = {};
@@ -2526,47 +2526,20 @@
             ctx.restore();
         }
 
+        // the main menu has no artwork for now: a flat dark panel with a placeholder mark, to be replaced
         drawTitleBackdrop(ctx, t) {
-            ctx.fillStyle = '#05080a';
-            ctx.fillRect(0, 0, BW.VW, BW.VH);
-
-            const img = BW.Assets.img('title_art');
-
-            if (img) {
-                const s = Math.max((BW.VW * 1.08) / img.width, (BW.VH * 1.08) / img.height);
-
-                const w = img.width * s,
-                    h = img.height * s;
-
-                const ox = (BW.VW - w) / 2 + Math.sin(t * 0.07) * 20,
-                    oy = (BW.VH - h) / 2 + Math.cos(t * 0.05) * 10;
-
-                ctx.globalAlpha = Math.min(1, t / 2);
-                ctx.drawImage(img, ox, oy, w, h);
-                ctx.globalAlpha = 1;
-            }
-
             const g = ctx.createLinearGradient(0, 0, 0, BW.VH);
 
-            g.addColorStop(0, 'rgba(0,0,0,0.25)');
-            g.addColorStop(0.5, 'rgba(0,0,0,0.05)');
-            g.addColorStop(1, 'rgba(0,0,0,0.7)');
+            g.addColorStop(0, '#0b0d12');
+            g.addColorStop(1, '#040506');
             ctx.fillStyle = g;
             ctx.fillRect(0, 0, BW.VW, BW.VH);
-            // drifting silk motes
             ctx.save();
-            ctx.globalCompositeOperation = 'lighter';
-
-            for (let i = 0; i < 40; i++) {
-                const x = ((i * 137.5 + t * (8 + (i % 5) * 3)) % (BW.VW + 40)) - 20,
-                    y = BW.VH - ((i * 89.3 + t * (10 + (i % 7) * 2)) % (BW.VH + 40)) + 20;
-
-                ctx.fillStyle = `rgba(255,236,200,${0.25 + (i % 3) * 0.12})`;
-                ctx.beginPath();
-                ctx.arc(x, y, 1 + (i % 3) * 0.6, 0, Math.PI * 2);
-                ctx.fill();
-            }
-
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = `500 16px ${BW.FONT_B}`;
+            ctx.fillStyle = 'rgba(200,200,210,0.16)';
+            ctx.fillText('[ main menu background placeholder ]', BW.VW / 2, BW.VH - 52);
             ctx.restore();
         }
     }

@@ -1,6 +1,6 @@
 'use strict';
 
-// VEILED KNELL: the Faceless Ronin's story. The same city, rooms, creatures and bosses as the Bellweaver's journey, told
+// THE UNCALLED: the Faceless Ronin's story. The same city, rooms, creatures and bosses as the Bellweaver's journey, told
 // as a much darker tale. Only words change: the chapter slides, the region interludes, every lore note, Odo's talk, the
 // title and the epilogue. The Bellweaver's text stays as written in lore.js / hushed.js and is restored whenever that
 // hero is on the field.
@@ -25,7 +25,7 @@
     // ================================================================ title
     const TITLES = {
         weaver: { name: 'BELLWEAVER', tag: 'a thread through the silent bells', doc: 'Bellweaver' },
-        ronin: { name: 'VEILED KNELL', tag: 'the bells cannot call a face that is not there', doc: 'Veiled Knell' },
+        ronin: { name: 'THE UNCALLED', tag: 'a face the bells cannot call', doc: 'The Uncalled' },
     };
 
     // ================================================================ the opening chapters
@@ -457,6 +457,8 @@
         return st && st.character === 'ronin' && ODO[key] ? ODO[key] : fallback;
     };
 
+    // the Faceless Ronin is the only hero: his story, title and soundtrack are in place from the first frame
+    L.set('ronin');
+
     BW.RoninLore = { TITLES, INTRO, INTERLUDES, NOTES, ODO, EPILOGUE };
-    BW.TITLE = Object.assign({}, TITLES.weaver);
 })(window.BW);
