@@ -104,7 +104,57 @@ DROP_A = [(1100, 1660, 1478, 1800)]
 # the caption strips under the labelled rows of sheet B
 DROP_B = [(0, 1196, 1696, 1264), (0, 1604, 1696, 1650), (0, 2030, 1696, 2072), (0, 2490, 1696, 2528)]
 
-SHEETS = [('ronin_normal.jpg', SHEET_A, DROP_A), ('ronin_transform.jpg', SHEET_B, DROP_B)]
+# Sheet C (tools/art/ronin_extra.jpg, 1194 x 1600, drawn at about half the size of A and B, so it is enlarged 2x first):
+# block, parry, perfect parry and perfect dodge, walking, jump and the air poses (normal and transformed), the transformed
+# attacks, and the giant. Rectangles are in the sheet's own pixels; the captions under each pose are wiped by DROP_C.
+# Its names replace the older art of the same name (walk, jump, midair, airslash).
+ROW1, ROW2 = (8, 238), (282, 518)
+COL4 = [(12, 300), (300, 610), (610, 900), (900, 1194)]
+COL5 = [(22, 255), (255, 480), (480, 705), (705, 935), (935, 1194)]
+ROW3, ROW4 = (570, 797), (838, 1082)
+
+SHEET_C = {}
+
+for (y0, y1), names in [
+    (ROW1, ['block', 'parry', 'parry_perfect', 'dodge']),
+    (ROW2, ['form_block', 'form_parry', 'form_parry_perfect', 'form_dodge']),
+]:
+    for (x0, x1), n in zip(COL4, names):
+        SHEET_C[n] = (x0, y0, x1, y1)
+
+for (y0, y1), names in [
+    (ROW3, ['walk', 'jump', 'midair', 'airslash', 'juggle']),
+    (ROW4, ['form_walk', 'form_jump', 'form_midair', 'form_airslash', 'form_juggle']),
+]:
+    for (x0, x1), n in zip(COL5, names):
+        SHEET_C[n] = (x0, y0, x1, y1)
+
+SHEET_C.update(
+    {
+        'giant_summon': (12, 1100, 312, 1556),
+        'form_attack': (312, 1105, 600, 1268),
+        'form_special': (600, 1085, 940, 1268),
+        'giant_walk': (322, 1295, 600, 1556),
+        'giant_ready': (600, 1295, 900, 1556),
+        'giant_strike': (900, 1160, 1194, 1556),
+    }
+)
+
+DROP_C = [
+    (0, 238, 1194, 276),
+    (0, 518, 1194, 556),
+    (0, 797, 1194, 832),
+    (0, 1082, 1194, 1106),
+    (300, 1268, 960, 1296),
+    (0, 1558, 1194, 1600),
+]
+
+# (file, pose rectangles, wiped regions, enlargement, may it replace a pose of the same name?)
+SHEETS = [
+    ('ronin_normal.jpg', SHEET_A, DROP_A, 1.0, False),
+    ('ronin_transform.jpg', SHEET_B, DROP_B, 1.0, False),
+    ('ronin_extra.jpg', SHEET_C, DROP_C, 2.0, True),
+]
 
 
 def components(mask):
@@ -167,9 +217,14 @@ def dilate(m, k):
     return m
 
 
-def key_sheet(path):
+def key_sheet(path, up=1.0):
     """Returns an RGBA array: the grey background is transparent, everything else is un-mixed from it."""
-    rgb = np.asarray(Image.open(path).convert('RGB')).astype(np.float32)
+    im = Image.open(path).convert('RGB')
+
+    if up != 1.0:
+        im = im.resize((round(im.width * up), round(im.height * up)), Image.LANCZOS)
+
+    rgb = np.asarray(im).astype(np.float32)
     d = np.abs(rgb - BG).max(axis=2)
 
     # flat grey: close to the background colour AND smooth (dark cloth is textured and hatched, so it never qualifies)
@@ -363,16 +418,17 @@ def merge_manifest(frames):
 def main():
     poses = {}
 
-    for fname, rects, drop in SHEETS:
-        rgba = key_sheet(ART / fname)
+    for fname, rects, drop, up, replace in SHEETS:
+        rgba = key_sheet(ART / fname, up)
 
         for x0, y0, x1, y1 in drop:
-            rgba[y0:y1, x0:x1, 3] = 0
+            rgba[round(y0 * up):round(y1 * up), round(x0 * up):round(x1 * up), 3] = 0
 
+        rects = {k: tuple(round(v * up) for v in r[:4]) + tuple(r[4:]) for k, r in rects.items()}
         got = cut_poses(rgba, rects)
 
         for name, v in got.items():
-            if name in poses:
+            if name in poses and not replace:
                 raise SystemExit('duplicate pose name ' + name)
 
             poses[name] = v

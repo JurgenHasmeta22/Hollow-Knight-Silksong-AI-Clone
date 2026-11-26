@@ -61,6 +61,7 @@ BW.gfx = { motes: 1 };
 BW.FONT_T = 'serif';
 BW.FONT_B = 'serif';
 BW.glowSprite = () => sink;
+BW.roundRect = () => {};
 BW.Assets = {
     draw: (c, name) => !!manifest.sprites[name],
     drawImg: () => true,
@@ -280,7 +281,7 @@ console.log('art');
         return [w, h];
     })();
 
-    check(bounds[0] <= 3072 && bounds[1] <= 1000, `every pose lies inside the atlas (${bounds.join(' x ')})`);
+    check(bounds[0] <= 3072 && bounds[1] <= 2000, `every pose lies inside the atlas (${bounds.join(' x ')})`);
 
     let bad_ = 0;
 

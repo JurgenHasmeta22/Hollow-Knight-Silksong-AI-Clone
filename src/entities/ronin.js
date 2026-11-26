@@ -128,6 +128,13 @@
         },
     ];
 
+    // the scale that draws a sprite `h` world px tall (poses drawn at different sizes on the sheet, like the giant's)
+    function fitScale(name, h) {
+        const s = BW.Assets.sprite(name);
+
+        return s ? h / (s.frames[0][3] * s.scale) : 1;
+    }
+
     // run cycle, rest and the like: pose lists with the speed they play at
     const ANIMS = {
         idle: { poses: ['idle_a', 'breath', 'idle_b', 'breath'], fps: 1.3 },
@@ -351,9 +358,15 @@
             const t = this.t,
                 a = t < 0.55 ? smooth(t / 0.55) : t < 1.4 ? 1 : BW.clamp((2 - t) / 0.6, 0, 1);
 
+            // arrives in flames, walks in, raises the club, and brings it down where the star lands
+            const step = t < 0.4 ? 'giant_summon' : t < 0.8 ? 'giant_walk' : t < 1.15 ? 'giant_ready' : 'giant_strike',
+                pose = BW.Assets.sprite(SPR(step)) ? step : 'giant', // the older single pose, if the new art is missing
+                want = { giant_summon: 270, giant_walk: 215, giant_ready: 235, giant_strike: 330, giant: 210 }[pose],
+                walkIn = t < 0.8 ? lerp(-130, 0, smooth((t - 0.4) / 0.4)) : 0;
+
             ctx.save();
-            ctx.globalAlpha = 0.6 * a;
-            BW.Assets.draw(ctx, SPR('giant'), 0, this.x, this.y + 8, { scale: 2.5 });
+            ctx.globalAlpha = (step === 'giant_strike' ? 0.85 : 0.7) * a;
+            BW.Assets.draw(ctx, SPR(pose), 0, this.x + walkIn, this.y + 8, { scale: fitScale(SPR(pose), want) });
             ctx.restore();
 
             // the star: it falls from above the screen over 0.6 s
@@ -650,7 +663,7 @@
         // ---- Void Slash: a huge arc and a wave that carries on
         void: {
             dur: TUNE.void.dur,
-            pose: (p, s) => (s.t < 0.26 ? 'slash1' : 'void'),
+            pose: (p, s) => (s.t < 0.26 ? 'slash1' : p.form ? 'form_special' : 'void'),
             start(p, s) {
                 s.dir = p.facing;
                 p.skillInv = 0.3;
@@ -709,7 +722,6 @@
                         new Set(),
                         'side',
                     );
-                    p.game.fx.slash(p.cx + s.dir * 30, p.cy - 8, 'side', s.dir, { r: 86, w: 30, big: true });
                 }
 
                 p.vx = lerp(p.vx, 0, 1 - Math.exp(-8 * dt));
@@ -742,7 +754,6 @@
                             new Set(),
                             'side',
                         );
-                        g.fx.slash(p.cx + s.dir * 40, p.cy - 10, 'side', s.dir, { r: 100, w: 34, big: true });
                         g.fx.shake(5, 0.12);
                         BW.Audio.play('bladedual', { vol: 0.7, rate: 1 + t0, minGap: 0 });
                     }
@@ -829,7 +840,6 @@
 
                     const ex = p.cx + f * (best ? (best.cx - p.cx) * f : TUNE.grab.reach);
 
-                    g.fx.thread(p.cx + f * 30, p.cy - 6, ex, best ? best.cy : p.cy - 6, 0.4, '#8a7bff');
                     g.fx.ring(ex, best ? best.cy : p.cy - 6, 8, 70, 0.3, '#8a7bff', 4);
 
                     if (best) {
@@ -906,16 +916,6 @@
                 if (s.phase === 'dive') {
                     p.vy = TUNE.pound.speed;
                     p.vx = 0;
-
-                    if (Math.random() < dt * 50)
-                        g.fx.thread(
-                            p.cx + BW.rand(-12, 12),
-                            p.cy - 60,
-                            p.cx + BW.rand(-12, 12),
-                            p.cy - 160,
-                            0.2,
-                            '#6f8cff',
-                        );
 
                     if (p.onGround) {
                         s.phase = 'land';
@@ -1262,7 +1262,7 @@
                         life: 0.3,
                         size: 2,
                         color: '#fff3d6',
-                        kind: 'thread',
+                        kind: 'glow',
                         add: true,
                         drag: 0,
                     });
@@ -1329,7 +1329,7 @@
                     angle: this.dashDir > 0 ? Math.PI : 0,
                     spread: 1.2,
                     life: 0.35,
-                    kind: 'thread',
+                    kind: 'glow',
                     add: true,
                 });
 
@@ -1354,14 +1354,6 @@
                         0.22,
                         BW.HERO_SCALE,
                     );
-
-                g.fx.thread(
-                    this.cx - this.dashDir * 30,
-                    this.cy + BW.rand(-12, 12),
-                    this.cx - this.dashDir * 90,
-                    this.cy + BW.rand(-16, 16),
-                    0.25,
-                );
 
                 if (this.dashT <= 0) {
                     this.vx = this.dashDir * P.runSpeed;
@@ -2640,10 +2632,6 @@
                 this.attackCD = this.counterT > 0 ? 0.15 : 0.28 / (F ? TUNE.form.atk : 1);
                 BW.Audio.play('bladedual', { vol: 0.5, vary: 0.12, rate: 1.2, minGap: 0.04 });
 
-                const o = this.slashOrigin(d);
-
-                g.fx.slash(o.x, o.y, d, this.facing, { r: 64, w: 22 });
-
                 return;
             }
 
@@ -2670,16 +2658,6 @@
                 rate: 1 - this.comboN * 0.06,
                 minGap: 0.03,
             });
-
-            const o = this.slashOrigin('side');
-
-            g.fx.slash(
-                o.x + this.facing * 10,
-                o.y,
-                'side',
-                this.facing,
-                Object.assign({ color: F ? '#ffd0c8' : '#f4fbff', edge: F ? '#ff5a4a' : '#8fd7ff' }, C.fx),
-            );
         }
 
         attackBox() {
@@ -2846,7 +2824,7 @@
                 case 'heal':
                     return 'drink';
                 case 'guard':
-                    return 'ready';
+                    return this.parryT > 0 ? this.firstPose('parry', 'ready') : 'ready';
                 case 'block':
                     return this.firstPose('block', 'ready');
                 case 'broken':
@@ -2856,8 +2834,12 @@
                 case 'atk': {
                     if (this.attackDir === 'up') return 'swordup';
                     if (this.attackDir === 'down') return 'pound';
-                    if (!this.onGround && this.comboN === 0) return 'airslash';
+                    if (!this.onGround) return this.comboN === 0 ? 'airslash' : 'juggle';
                     if (!this.atk) return 'ready';
+
+                    // the transformed hero's own cuts: a red crescent, and a burning finisher
+                    if (F && this.comboN < 3 && BW.Assets.sprite(SPR('form_attack'))) return 'form_attack';
+                    if (F && this.comboN === 3 && BW.Assets.sprite(SPR('form_special'))) return 'form_special';
 
                     const L = this.atk.poses,
                         k = BW.clamp((this.atkDur - this.attackT) / this.atkDur, 0, 0.999);
@@ -2970,40 +2952,56 @@
         }
 
         // the Shade gauge under the experience bar; while transformed it shows the form's time left
+        // The Shade gauge: the third and smallest bar, tucked under the health and posture bars. It fills with every blow; full,
+        // it pulses and names the key that transforms; transformed, it drains with the form's time.
         drawGauge(ctx, x, y, alpha) {
             const st = this.game.state,
                 t = this.game.time,
-                w = 150,
+                w = (70 + st.maxHp * 26) * 0.55,
+                h = 5,
                 full = (st.shade || 0) >= TUNE.shade.max && !this.form,
                 ratio = this.form
                     ? BW.clamp(this.formT / this.formMax(), 0, 1)
                     : BW.clamp((st.shade || 0) / TUNE.shade.max, 0, 1);
 
             ctx.save();
-            ctx.globalAlpha = alpha;
-            ctx.fillStyle = 'rgba(8,10,14,0.65)';
-            ctx.fillRect(x, y - 4, w, 9);
+            ctx.globalAlpha = alpha * (full || this.form ? 1 : 0.8);
+            ctx.fillStyle = 'rgba(6,7,10,0.8)';
+            BW.roundRect(ctx, x - 3, y - 3, w + 6, h + 6, 3);
+            ctx.fill();
 
             const grd = ctx.createLinearGradient(x, 0, x + w, 0);
 
             grd.addColorStop(0, this.form ? '#ff5a4a' : '#5a6fd8');
             grd.addColorStop(1, this.form ? '#ffb25a' : '#c23a4a');
             ctx.fillStyle = grd;
-            ctx.fillRect(x, y - 4, w * ratio, 9);
+            ctx.fillRect(x, y, w * ratio, h);
+            ctx.fillStyle = 'rgba(255,255,255,0.22)';
+            ctx.fillRect(x, y, w * ratio, h * 0.4);
 
             if (full) {
                 ctx.globalCompositeOperation = 'lighter';
                 ctx.globalAlpha = alpha * (0.35 + 0.35 * Math.sin(t * 8));
                 ctx.fillStyle = '#ffd0c8';
-                ctx.fillRect(x - 3, y - 7, w + 6, 15);
+                ctx.fillRect(x - 3, y - 3, w + 6, h + 6);
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.globalAlpha = alpha;
+                ctx.font = `600 12px ${BW.FONT_B}`;
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#ffd0c8';
+                ctx.fillText(BW.Input.label('transform').split(' ')[0] + '  TRANSFORM', x + w + 12, y + h / 2 + 1);
+            } else if (this.form) {
+                ctx.globalAlpha = alpha * (0.5 + 0.5 * Math.sin(t * 6));
+                ctx.fillStyle = '#ffb25a';
+                ctx.fillRect(x + w * ratio - 2, y - 1, 3, h + 2);
             }
 
-            ctx.restore();
-            ctx.save();
-            ctx.globalAlpha = alpha * 0.5;
+            ctx.globalAlpha = alpha * 0.45;
             ctx.strokeStyle = 'rgba(230,220,200,0.6)';
             ctx.lineWidth = 1;
-            ctx.strokeRect(x - 0.5, y - 4.5, w + 1, 10);
+            BW.roundRect(ctx, x - 3, y - 3, w + 6, h + 6, 3);
+            ctx.stroke();
             ctx.restore();
         }
     }

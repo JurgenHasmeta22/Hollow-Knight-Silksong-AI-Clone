@@ -132,88 +132,9 @@
             ctx.save();
             ctx.globalAlpha = alpha;
 
-            // ---- silk spool ----
-            const sx = 66,
-                sy = 66;
-
-            const ratio = st.silk / st.silkMax;
-            const can = st.silk >= 3;
-            const shake = this.denies.silk > 0 ? Math.sin(this.denies.silk * 60) * 4 : 0;
-
-            ctx.save();
-            ctx.translate(sx + shake, sy);
-            // backing disc
-            ctx.fillStyle = 'rgba(8,10,14,0.65)';
-            ctx.beginPath();
-            ctx.arc(0, 0, 38, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(230,220,200,0.35)';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(0, 0, 38, 0, Math.PI * 2);
-            ctx.stroke();
-            // thread ring
-            ctx.lineCap = 'butt';
-            ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-            ctx.lineWidth = 9;
-            ctx.beginPath();
-            ctx.arc(0, 0, 29, 0, Math.PI * 2);
-            ctx.stroke();
-
-            const a0 = -Math.PI / 2;
-            const grd = ctx.createLinearGradient(-30, -30, 30, 30);
-
-            grd.addColorStop(0, '#fffaf0');
-            grd.addColorStop(1, '#ffd894');
-            ctx.strokeStyle = grd;
-            ctx.lineWidth = 9;
-            ctx.beginPath();
-            ctx.arc(0, 0, 29, a0, a0 + Math.PI * 2 * ratio);
-            ctx.stroke();
-            // ticks every 3 threads (cost of a mend)
-            ctx.strokeStyle = 'rgba(10,10,14,0.9)';
-            ctx.lineWidth = 2.5;
-
-            for (let i = 0; i < st.silkMax; i += 3) {
-                const a = a0 + Math.PI * 2 * (i / st.silkMax);
-
-                ctx.beginPath();
-                ctx.moveTo(Math.cos(a) * 23, Math.sin(a) * 23);
-                ctx.lineTo(Math.cos(a) * 35, Math.sin(a) * 35);
-                ctx.stroke();
-            }
-
-            // spool body
-            ctx.fillStyle = '#3a2c22';
-            ctx.fillRect(-11, -16, 22, 32);
-            ctx.fillStyle = can ? '#ffe9bf' : '#9a8f80';
-
-            for (let i = 0; i < 6; i++) ctx.fillRect(-10, -12 + i * 4.4, 20, 2.4);
-
-            ctx.fillStyle = '#5a4532';
-            ctx.fillRect(-15, -19, 30, 5);
-            ctx.fillRect(-15, 14, 30, 5);
-
-            if (can) {
-                ctx.globalCompositeOperation = 'lighter';
-
-                const g2 = ctx.createRadialGradient(0, 0, 0, 0, 0, 44);
-
-                g2.addColorStop(0, `rgba(255,230,180,${0.25 + this.pulses.silk * 0.4})`);
-                g2.addColorStop(1, 'rgba(0,0,0,0)');
-                ctx.fillStyle = g2;
-                ctx.beginPath();
-                ctx.arc(0, 0, 44, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.globalCompositeOperation = 'source-over';
-            }
-
-            ctx.restore();
-
-            // ---- health bells ----
             // ---- health: a red bar, with a pale trail where it just fell ----
-            const hx = 120,
-                hy = 36,
+            const hx = 52,
+                hy = 34,
                 hh = 20,
                 hw = 70 + st.maxHp * 26;
 
@@ -299,21 +220,50 @@
             ctx.restore();
             ctx.globalAlpha = alpha;
 
-            // ---- glints: the yellow stones, the one currency ----
-            const gy = py + ph + 24;
+            // ---- silk: small diamonds in threes, under the bars ----
+            const sy = py + ph + 30;
 
-            BW.drawGlintShard(ctx, hx + 6, gy, 1.5, this.game.time);
-            ctx.font = `600 26px ${FONT_B}`;
+            for (let i = 0; i < st.silkMax; i++) {
+                const x = hx + 5 + i * 13 + Math.floor(i / 3) * 7,
+                    on = i < Math.floor(st.silk);
+
+                ctx.save();
+                ctx.translate(x, sy);
+                ctx.rotate(Math.PI / 4);
+                ctx.fillStyle = on ? '#fff0cc' : 'rgba(255,255,255,0.12)';
+                ctx.fillRect(-3.4, -3.4, 6.8, 6.8);
+                ctx.strokeStyle = on ? 'rgba(255,225,160,0.9)' : 'rgba(225,214,192,0.25)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(-3.4, -3.4, 6.8, 6.8);
+                ctx.restore();
+            }
+
+            if (this.denies.silk > 0) {
+                ctx.strokeStyle = `rgba(255,90,74,${this.denies.silk * 1.6})`;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(hx - 4, sy - 9, st.silkMax * 13 + Math.floor(st.silkMax / 3) * 7 + 2, 18);
+            }
+
+            // ---- glints: the yellow stones, the one currency, at the top right ----
+            const gx = BW.VW - 52,
+                gy = 50,
+                num = String(Math.floor(this.glintShown));
+
+            ctx.font = `600 30px ${FONT_B}`;
             ctx.textBaseline = 'middle';
-            ctx.textAlign = 'left';
+            ctx.textAlign = 'right';
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+            ctx.strokeText(num, gx, gy);
             ctx.fillStyle = this.glintFlash > 0 ? '#ffffff' : '#ffe9a8';
-            ctx.fillText(String(Math.floor(this.glintShown)), hx + 24, gy + 1);
+            ctx.fillText(num, gx, gy);
+            BW.drawGlintShard(ctx, gx - ctx.measureText(num).width - 22, gy, 1.7, this.game.time);
 
             if (this.glintPop) {
                 ctx.font = `600 18px ${FONT_B}`;
                 ctx.globalAlpha = alpha * Math.min(1, (1.8 - this.glintPop.t) * 2);
                 ctx.fillStyle = '#ffd86a';
-                ctx.fillText(`+${this.glintPop.n}`, hx + 34 + ctx.measureText(String(Math.floor(this.glintShown))).width + 14, gy + 1);
+                ctx.fillText(`+${this.glintPop.n}`, gx, gy + 28 - this.glintPop.t * 8);
                 ctx.globalAlpha = alpha;
             }
 
@@ -340,7 +290,7 @@
             }
 
             // the Ronin's Shade gauge
-            if (this.game.player && this.game.player.drawGauge) this.game.player.drawGauge(ctx, hx, gy + 30, alpha);
+            if (this.game.player && this.game.player.drawGauge) this.game.player.drawGauge(ctx, hx + 6, py + ph + 6, alpha);
 
             // red alert: a boss is winding up a blow that cannot be parried, so the screen's edges flood red
             let alert = 0;

@@ -606,7 +606,9 @@ console.log('the poses');
     const unused = Object.keys(manifest.sprites)
         .filter((k) => k.startsWith('ronin_'))
         .map((k) => k.slice(6))
-        .filter((n) => !text.includes("'" + n + "'"));
+        .filter((n) => !text.includes("'" + n + "'"))
+        // ronin_form_<pose> is picked up through formPose() whenever <pose> is drawn
+        .filter((n) => !(n.startsWith('form_') && text.includes("'" + n.slice(5) + "'")));
 
     check(
         unused.length === 0,
