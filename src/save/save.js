@@ -46,7 +46,6 @@
                 quick: 'charge', // the selected quick item
                 silkMax: 9,
                 glints: 0,
-                xp: 0, // experience; the level is derived from it (xp.js)
                 abilities: { dash: false, parry: false, dodge: false }, // dash: Silk Dash, parry: Answering Toll, dodge: Shadow Step
                 flags: {}, // bells, shortcuts, broken walls, collected pickups, story beats...
                 visited: {}, // room id -> true (map discovery)
@@ -85,7 +84,6 @@
             d.maxHp = BW.clamp(d.maxHp | 0 || 5, 1, 12);
             d.silkMax = BW.clamp(d.silkMax | 0 || 9, 3, 18);
             d.glints = Math.max(0, d.glints | 0);
-            d.xp = Math.max(0, d.xp | 0);
             d.shade = BW.clamp(+d.shade || 0, 0, 100);
             d.skills = Object.assign({}, data.skills || {});
             d.items = Object.assign({}, BW.Items ? BW.Items.starter() : {}, data.items || {});

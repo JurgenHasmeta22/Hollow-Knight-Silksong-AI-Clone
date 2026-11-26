@@ -345,7 +345,7 @@
             f['note_' + id] = true;
             g.hud.toast('Lore note found', `${BY_ID[id].title}  \u00b7  ${this.count(g.state)} / ${NOTES.length}`, 3.4);
             BW.Audio.play('glint', { vol: 0.7, minGap: 0 });
-            g.gainXp(BW.XP.REWARD.note);
+            g.earnGlints(BW.Rewards.note);
             g.saveGame();
 
             return true;

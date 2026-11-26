@@ -215,7 +215,7 @@
             g.stats.kills = (g.stats.kills || 0) + 1;
 
             if (!this.boss) g.codexKill(this.kind);
-            if (!this.noXp) g.gainXp(this.xp);
+            if (!this.noXp) g.earnGlints(this.xp);
         }
 
         update(dt) {

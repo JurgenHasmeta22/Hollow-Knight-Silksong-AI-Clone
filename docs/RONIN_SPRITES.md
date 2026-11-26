@@ -11,6 +11,8 @@ Add a new pose rectangle there, re-run the script, and the code below picks it u
 | `form_<pose>` (any existing pose, e.g. `form_run1`, `form_walk`, `form_jump`, `form_midair`, `form_idle_a`, `form_ready`) | the transformed hero's own version of that pose | the normal pose |
 | `parry_perfect` | the moment a parry lands cleanly | `ready` |
 | `dodge` | a Shadow Step / perfect dodge | `tumble` |
+| `block` | the guard held (posture draining) | `ready` |
+| `guard_break` | the guard is broken and the hero reels | `knock` |
 
 The existing poses and where they appear: idle (`idle_a`, `breath`, `idle_b`), `walk` (slow), `run1-3` (fast), `jump` / `midair`,
 `crouch` (a short fall) / `slam` (a long fall), `ready` (parry stance), `knock` (a heavy hit) / `hurt`, `kneel` (one bell left),

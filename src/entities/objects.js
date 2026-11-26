@@ -206,7 +206,6 @@
                 this.dead = true;
                 this.flags['pk_' + this.def.id] = true;
                 this.game.addGlints(this.def.n || 3);
-                this.game.gainXp(BW.XP.REWARD.glints);
                 BW.Audio.play('pickup', { vol: 0.6 });
 
                 this.game.fx.burst(this.x, this.y, 10, {
@@ -268,7 +267,7 @@
                 this.dead = true;
                 this.flags['pk_' + this.def.id] = true;
                 this.game.spawnGlints(this.x, this.y - 30, (this.def.n || 20) - 4);
-                this.game.gainXp(BW.XP.REWARD.cache);
+                this.game.earnGlints(BW.Rewards.cache);
                 BW.Audio.play('break', { vol: 0.8 });
 
                 this.game.fx.burst(this.x, this.y - 24, 24, {
@@ -322,7 +321,7 @@
             if (p.state !== 'dead' && Math.abs(p.cx - this.x) < 28 && Math.abs(p.cy - this.y) < 42) {
                 this.dead = true;
                 this.flags['pk_' + this.def.id] = true;
-                this.game.gainXp(BW.XP.REWARD[this.def.kind] || 0);
+                this.game.earnGlints(BW.Rewards[this.def.kind] || 0);
                 this.game.collectUpgrade(this.def.kind, this.x, this.y);
             }
         }

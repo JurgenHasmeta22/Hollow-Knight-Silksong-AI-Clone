@@ -21,15 +21,17 @@
             this.crack = [];
             this.glintShown = 0;
             this.glintFlash = 0;
-            this.xpShown = null;
-            this.xpPop = null;
+            this.glintPop = null;
+            this.ghostHp = 5;
             this.saveIcon = 0;
         }
-        xpGain(n) {
-            if (this.xpPop && this.xpPop.t < 1.2) {
-                this.xpPop.n += n;
-                this.xpPop.t = 0;
-            } else this.xpPop = { n, t: 0 };
+        glintGain(n) {
+            if (this.glintPop && this.glintPop.t < 1.2) {
+                this.glintPop.n += n;
+                this.glintPop.t = 0;
+            } else this.glintPop = { n, t: 0 };
+
+            this.glintFlash = 0.3;
         }
         pulse(k, hurt) {
             this.pulses[k] = 1;
@@ -86,17 +88,15 @@
 
                 this.glintFlash = Math.max(0, this.glintFlash - dt);
 
-                const xp = st.xp | 0;
+                if (this.glintPop) {
+                    this.glintPop.t += dt;
 
-                if (this.xpShown == null || this.xpShown > xp) this.xpShown = xp;
-                else if (this.xpShown < xp)
-                    this.xpShown = Math.min(xp, this.xpShown + Math.max(1, (xp - this.xpShown) * dt * 5));
-
-                if (this.xpPop) {
-                    this.xpPop.t += dt;
-
-                    if (this.xpPop.t > 1.8) this.xpPop = null;
+                    if (this.glintPop.t > 1.8) this.glintPop = null;
                 }
+
+                // the pale trail behind the health bar: it follows the fill down slowly, and up at once
+                if (this.ghostHp > st.hp) this.ghostHp = Math.max(st.hp, this.ghostHp - dt * 2.2);
+                else this.ghostHp = st.hp;
 
                 if (Math.ceil(st.hp) < Math.ceil(this.shownHp)) {
                     for (let i = Math.ceil(st.hp); i < Math.ceil(this.shownHp); i++) this.crack.push({ i, t: 0 });
@@ -202,123 +202,107 @@
             ctx.restore();
 
             // ---- health bells ----
+            // ---- health: a red bar, with a pale trail where it just fell ----
             const hx = 120,
-                hy = 52;
+                hy = 36,
+                hh = 20,
+                hw = 70 + st.maxHp * 26;
 
-            const hshake = this.denies.hp > 0 ? Math.sin(this.denies.hp * 60) * 3 : 0;
-            // one gradient shared by every bell: it is evaluated in each bell's translated space
-            const bellGrad = ctx.createLinearGradient(0, -12, 0, 12);
+            const hshake = this.denies.hp > 0 ? Math.sin(this.denies.hp * 60) * 3 : 0,
+                hr = BW.clamp(st.hp / st.maxHp, 0, 1),
+                tr = BW.clamp(this.ghostHp / st.maxHp, 0, 1),
+                low = st.hp > 0 && st.hp <= 1;
 
-            bellGrad.addColorStop(0, '#fff1cf');
-            bellGrad.addColorStop(0.5, '#e7b65c');
-            bellGrad.addColorStop(1, '#a8752e');
+            ctx.save();
+            ctx.translate(hshake, 0);
+            ctx.fillStyle = 'rgba(6,7,10,0.82)';
+            BW.roundRect(ctx, hx - 4, hy - 4, hw + 8, hh + 8, 6);
+            ctx.fill();
+            ctx.fillStyle = '#ecd6cc';
+            ctx.fillRect(hx, hy, hw * tr, hh);
 
-            for (let i = 0; i < st.maxHp; i++) {
-                const x = hx + i * 32 + hshake,
-                    y = hy;
+            const hg = ctx.createLinearGradient(0, hy, 0, hy + hh);
 
-                const frac = BW.clamp(st.hp - i, 0, 1),
-                    full = frac >= 1;
+            hg.addColorStop(0, low ? '#ff7a6a' : '#f2504a');
+            hg.addColorStop(0.5, '#c4202a');
+            hg.addColorStop(1, '#7a0e18');
+            ctx.fillStyle = hg;
+            ctx.fillRect(hx, hy, hw * hr, hh);
+            ctx.fillStyle = 'rgba(255,255,255,0.2)';
+            ctx.fillRect(hx, hy, hw * hr, hh * 0.33);
+            ctx.fillStyle = 'rgba(0,0,0,0.4)';
 
-                ctx.save();
-                ctx.translate(x, y);
+            for (let i = 1; i < st.maxHp; i++) ctx.fillRect(hx + (hw * i) / st.maxHp - 1, hy, 2, hh);
 
-                const pop =
-                    frac > 0 && this.pulses.hp > 0 && i === Math.ceil(st.hp) - 1 ? 1 + this.pulses.hp * 0.35 : 1;
-
-                ctx.scale(pop, pop);
-                ctx.fillStyle = 'rgba(5,6,10,0.7)';
-                BW.bellIcon(ctx, 0, 1.5, 12.5);
-
-                if (full) {
-                    ctx.fillStyle = bellGrad;
-                    BW.bellIcon(ctx, 0, 0, 11);
-                    ctx.fillStyle = 'rgba(255,255,255,0.55)';
-                    ctx.fillRect(-4, -6, 2, 8);
-                } else if (frac > 0) {
-                    // a wounded bell: the empty shell with the remaining part filled from the bottom
-                    ctx.strokeStyle = 'rgba(200,190,170,0.55)';
-                    ctx.lineWidth = 1.5;
-                    ctx.fillStyle = 'rgba(40,36,44,0.9)';
-                    BW.bellIcon(ctx, 0, 0, 11);
-                    ctx.beginPath();
-                    ctx.moveTo(-3, -7);
-                    ctx.lineTo(1, -1);
-                    ctx.lineTo(-2, 4);
-                    ctx.lineTo(2, 9);
-                    ctx.stroke();
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.rect(-16, 13 - 27 * frac, 32, 27 * frac);
-                    ctx.clip();
-                    ctx.fillStyle = bellGrad;
-                    BW.bellIcon(ctx, 0, 0, 11);
-                    ctx.restore();
-                } else {
-                    ctx.strokeStyle = 'rgba(200,190,170,0.55)';
-                    ctx.lineWidth = 1.5;
-                    ctx.fillStyle = 'rgba(40,36,44,0.9)';
-                    BW.bellIcon(ctx, 0, 0, 11);
-                    ctx.beginPath();
-                    ctx.moveTo(-3, -7);
-                    ctx.lineTo(1, -1);
-                    ctx.lineTo(-2, 4);
-                    ctx.lineTo(2, 9);
-                    ctx.stroke();
-                }
-
-                ctx.restore();
+            if (this.pulses.hp > 0) {
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.globalAlpha = alpha * this.pulses.hp * 0.5;
+                ctx.fillStyle = '#ffd0c0';
+                ctx.fillRect(hx, hy, hw * hr, hh);
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.globalAlpha = alpha;
             }
 
-            for (const c of this.crack) {
-                const x = hx + c.i * 32,
-                    k = c.t / 0.6;
+            ctx.strokeStyle = low ? `rgba(255,120,110,${0.6 + 0.3 * Math.sin(this.game.time * 7)})` : 'rgba(236,222,190,0.55)';
+            ctx.lineWidth = 1.5;
+            BW.roundRect(ctx, hx - 4, hy - 4, hw + 8, hh + 8, 6);
+            ctx.stroke();
 
-                ctx.fillStyle = `rgba(255,220,160,${1 - k})`;
+            // ---- posture: the guard. It drains when a blow is blocked, and breaks when it is empty ----
+            const pl = this.game.player,
+                pm = pl.postureMax ? pl.postureMax() : 100,
+                pr = BW.clamp((pl.posture == null ? pm : pl.posture) / pm, 0, 1),
+                broken = pl.breakT > 0,
+                py = hy + hh + 9,
+                ph = 9,
+                pw = hw * 0.8;
 
-                for (let j = 0; j < 5; j++) {
-                    const a = j * 1.3;
+            const quiet = pr >= 0.999 && !broken && !(pl.blocking || this.denies.posture > 0);
 
-                    ctx.fillRect(x + Math.cos(a) * k * 26, hy + Math.sin(a) * k * 26, 3, 3);
-                }
+            ctx.globalAlpha = alpha * (quiet ? 0.4 : 1);
+            ctx.fillStyle = 'rgba(6,7,10,0.8)';
+            BW.roundRect(ctx, hx - 3, py - 3, pw + 6, ph + 6, 4);
+            ctx.fill();
+            ctx.fillStyle = broken
+                ? `rgba(255,70,60,${0.55 + 0.45 * Math.sin(this.game.time * 22)})`
+                : pr < 0.25
+                ? '#f08a4a'
+                : '#efe3c0';
+            ctx.fillRect(hx, py, pw * pr, ph);
+            ctx.fillStyle = 'rgba(255,255,255,0.25)';
+            ctx.fillRect(hx, py, pw * pr, ph * 0.35);
+            ctx.strokeStyle = 'rgba(236,222,190,0.4)';
+            ctx.lineWidth = 1;
+            BW.roundRect(ctx, hx - 3, py - 3, pw + 6, ph + 6, 4);
+            ctx.stroke();
+
+            if (broken) {
+                ctx.globalAlpha = alpha;
+                ctx.font = `600 13px ${FONT_B}`;
+                ctx.textBaseline = 'middle';
+                ctx.textAlign = 'left';
+                ctx.fillStyle = '#ff9a8a';
+                ctx.fillText('GUARD BROKEN', hx + pw + 12, py + ph / 2);
             }
 
-            // ---- glints ----
-            const gy = 92;
+            ctx.restore();
+            ctx.globalAlpha = alpha;
 
-            BW.drawGlintShard(ctx, hx + 2, gy, 1.3, this.game.time);
-            ctx.font = `600 24px ${FONT_B}`;
+            // ---- glints: the yellow stones, the one currency ----
+            const gy = py + ph + 24;
+
+            BW.drawGlintShard(ctx, hx + 6, gy, 1.5, this.game.time);
+            ctx.font = `600 26px ${FONT_B}`;
             ctx.textBaseline = 'middle';
             ctx.textAlign = 'left';
-            ctx.fillStyle = this.glintFlash > 0 ? '#ffffff' : '#efe6d2';
-            ctx.fillText(String(Math.floor(this.glintShown)), hx + 18, gy + 1);
+            ctx.fillStyle = this.glintFlash > 0 ? '#ffffff' : '#ffe9a8';
+            ctx.fillText(String(Math.floor(this.glintShown)), hx + 24, gy + 1);
 
-            // ---- level and experience ----
-            const xy = 124,
-                xr = BW.XP.progress(this.xpShown == null ? st.xp | 0 : this.xpShown),
-                bx = hx + 40,
-                bw = 110;
-
-            ctx.font = `600 16px ${FONT_B}`;
-            ctx.fillStyle = '#d9cdf0';
-            ctx.fillText(`LV ${xr.level}`, hx - 8, xy + 1);
-            ctx.fillStyle = 'rgba(8,10,14,0.65)';
-            ctx.fillRect(bx, xy - 3, bw, 7);
-            ctx.fillStyle = this.xpPop ? '#e6dcff' : '#b8a2ff';
-            ctx.fillRect(bx, xy - 3, bw * xr.ratio, 7);
-            ctx.strokeStyle = 'rgba(230,220,200,0.35)';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(bx - 0.5, xy - 3.5, bw + 1, 8);
-
-            if (xr.max) {
-                ctx.fillStyle = '#d9cdf0';
-                ctx.fillText('MAX', bx + bw + 8, xy + 1);
-            }
-
-            if (this.xpPop) {
-                ctx.globalAlpha = alpha * Math.min(1, (1.8 - this.xpPop.t) * 2);
-                ctx.fillStyle = '#e6dcff';
-                ctx.fillText(`+${this.xpPop.n} XP`, bx + bw + (xr.max ? 52 : 8), xy + 1);
+            if (this.glintPop) {
+                ctx.font = `600 18px ${FONT_B}`;
+                ctx.globalAlpha = alpha * Math.min(1, (1.8 - this.glintPop.t) * 2);
+                ctx.fillStyle = '#ffd86a';
+                ctx.fillText(`+${this.glintPop.n}`, hx + 34 + ctx.measureText(String(Math.floor(this.glintShown))).width + 14, gy + 1);
                 ctx.globalAlpha = alpha;
             }
 
@@ -345,7 +329,7 @@
             }
 
             // the Ronin's Shade gauge
-            if (this.game.player && this.game.player.drawGauge) this.game.player.drawGauge(ctx, hx, 148, alpha);
+            if (this.game.player && this.game.player.drawGauge) this.game.player.drawGauge(ctx, hx, gy + 30, alpha);
 
             // red alert: a boss is winding up a blow that cannot be parried, so the screen's edges flood red
             let alert = 0;

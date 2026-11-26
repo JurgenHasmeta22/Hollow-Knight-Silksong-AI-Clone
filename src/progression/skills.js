@@ -1,12 +1,12 @@
 'use strict';
 
-// The skill tree. Three branches (Blade, Shade, Resolve) of learnable skills and passives, paid for with skill points.
-// Points come from rising a level and from the great foes; what is learned lives in state.skills (id -> true).
+// The skill tree. Three branches (Blade, Shade, Resolve) of learnable skills and passives, paid for with glints,
+// the yellow stones (there is no experience). What is learned lives in state.skills (id -> true).
 //
 //   BW.Skills.has(st, id)      is it learned?
 //   BW.Skills.mod(st, key)     the sum of one passive's bonuses over everything learned
-//   BW.Skills.points(st)       {earned, spent, free}
-//   BW.Skills.learn(g, id)     learn a node (spends points; returns true)
+//   BW.Skills.price(id)        what a node costs in glints (cost x PRICE)
+//   BW.Skills.learn(g, id)     learn a node (spends the glints; returns true)
 //   BW.Skills.unlockAll(st)    for the test saves
 (function (BW) {
     // at: [column, row] on the tree screen. `unlock` names a move the Ronin only has once the node is learned;
@@ -18,9 +18,9 @@
             branch: 'blade',
             at: [0, 0],
             name: 'Whetted Edge',
-            desc: 'Every blow hits 12% harder.',
+            desc: 'Every blow hits 15% harder.',
             cost: 1,
-            fx: { dmg: 0.12 },
+            fx: { dmg: 0.15 },
         },
         {
             id: 'flow',
@@ -138,9 +138,9 @@
             branch: 'resolve',
             at: [2, 2],
             name: 'Steady Guard',
-            desc: 'The parry window is 25% wider.',
+            desc: 'The parry window is 25% wider and your posture bar is 30% larger.',
             cost: 1,
-            fx: { parry: 0.25 },
+            fx: { parry: 0.25, posture: 0.3 },
         },
         {
             id: 'satchel',
@@ -174,6 +174,7 @@
     ];
 
     const Skills = {
+        PRICE: 80, // glints per point of a node's cost
         NODES,
         BY_ID,
         BRANCHES,
@@ -193,25 +194,18 @@
 
             return true;
         },
-        points(st) {
-            const f = (st && st.flags) || {};
-            const earned =
-                Math.max(0, BW.XP.level(st && st.xp) - 1) + (f.warden_defeated ? 2 : 0) + (f.mourner_defeated ? 2 : 0);
-
-            let spent = 0;
-
-            for (const n of NODES) if (this.has(st, n.id)) spent += n.cost;
-
-            return { earned, spent, free: Math.max(0, earned - spent) };
+        // what a node costs in glints
+        price(id) {
+            return BY_ID[id].cost * this.PRICE;
         },
-        // 'learned' | 'open' (can be bought now) | 'afford' (open, but too few points) | 'locked' (a requirement is missing)
+        // 'learned' | 'open' (can be bought now) | 'afford' (open, but too few glints) | 'locked' (a requirement is missing)
         status(st, id) {
             const n = BY_ID[id];
 
             if (this.has(st, id)) return 'learned';
             if (n.req && !this.has(st, n.req)) return 'locked';
 
-            return this.points(st).free >= n.cost ? 'open' : 'afford';
+            return (st.glints | 0) >= this.price(id) ? 'open' : 'afford';
         },
         learn(g, id) {
             const st = g.state,
@@ -219,6 +213,7 @@
 
             if (!n || this.status(st, id) !== 'open') return false;
 
+            st.glints -= this.price(id);
             st.skills = st.skills || {};
             st.skills[id] = true;
 

@@ -247,7 +247,7 @@
         st.flags.warden_defeated = true;
         st.stats.wardenWinTime = st.stats.wardenWinTime || st.stats.playTime;
         BW.Codex.kill(st, 'warden');
-        this.gainXp(BW.XP.REWARD.warden);
+        this.earnGlints(BW.Rewards.warden);
         this.saveGame();
 
         // a trade of final blows: the victory still counts, the player wakes at the lantern and finds the bell waiting
@@ -1078,7 +1078,7 @@
             add('Secrets', 'stat', 42, `${secrets} / ${secretKeys.length}`);
             add('Lore notes', 'stat', 42, `${BW.Lore.count(st)} / ${BW.Lore.NOTES.length}`);
             add('Attempts against the Warden', 'stat', 42, `${st.stats.wardenAttempts || 1}`);
-            add('Level', 'stat', 120, `${BW.XP.level(st.xp | 0)}`);
+            add('Skills learned', 'stat', 120, `${BW.Skills.NODES.filter((n) => BW.Skills.has(st, n.id)).length} / ${BW.Skills.NODES.length}`);
             add('Thank you for playing', 'logo2', 0);
 
             return L;

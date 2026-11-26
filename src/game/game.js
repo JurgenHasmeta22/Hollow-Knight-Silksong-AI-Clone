@@ -444,7 +444,6 @@
                 difficulty: s.difficulty,
                 silkMax: s.silkMax,
                 glints: s.glints,
-                xp: s.xp | 0,
                 abilities: s.abilities,
                 shade: s.shade | 0,
                 skills: s.skills,
@@ -1152,7 +1151,7 @@
                         s.revealing = true;
                         this.state.flags['sec_' + s.id] = true;
                         BW.Audio.play('pickup', { rate: 0.6, vol: 0.6 });
-                        this.gainXp(BW.XP.REWARD.secret);
+                        this.earnGlints(BW.Rewards.secret);
                     }
 
                     s.a = Math.max(0, s.a - dt * 1.5);
@@ -1279,7 +1278,7 @@
 
                 hits.add(e);
 
-                const r = e.damage(BW.XP.power(st) * (p.hitMul || 1), dir, p);
+                const r = e.damage(BW.Rewards.power(st) * (p.hitMul || 1), dir, p);
 
                 if (r === 'blocked') {
                     res.blocked = true;
@@ -1419,58 +1418,15 @@
             this.state.glints += n;
         }
 
-        // Experience. Rematches give nothing, like glints.
-        gainXp(n) {
+        // Glints are the one currency. Rematches give nothing.
+        earnGlints(n) {
             const st = this.state;
 
             if (!st || this.rematch || !(n > 0)) return;
 
             n = Math.round(n);
-
-            const before = BW.XP.level(st.xp);
-
-            st.xp = (st.xp | 0) + n;
-            this.hud.xpGain(n);
-
-            const after = BW.XP.level(st.xp);
-
-            if (after > before) this.levelUp(after);
-        }
-        levelUp(lv) {
-            const st = this.state,
-                p = this.player;
-
-            const alive = p && p.state !== 'dead';
-
-            if (alive) {
-                st.hp = st.maxHp;
-                st.silk = st.silkMax;
-                this.hud.pulse('hp');
-                this.hud.pulse('silk');
-            }
-
-            this.hud.toast(
-                `Level ${lv}`,
-                `Strike power +${Math.round(BW.XP.BONUS * (lv - 1) * 100)}%  \u00b7  A skill point to spend${
-                    alive ? '  \u00b7  Health and silk restored' : ''
-                }`,
-                3.6,
-            );
-
-            BW.Audio.play('shrine', { vol: 0.5, minGap: 0 });
-
-            if (p) {
-                this.fx.ring(p.cx, p.cy, 10, 150, 0.6, '#d9c8ff', 3);
-
-                this.fx.burst(p.cx, p.cy, 22, {
-                    color: ['#efe6ff', '#c7a8ff', '#ffffff'],
-                    kind: 'glow',
-                    speed: 200,
-                    life: 0.8,
-                    add: true,
-                    size: 8,
-                });
-            }
+            st.glints += n;
+            this.hud.glintGain(n);
         }
         addLight(x, y, r, color, a) {
             const n = this.lightN;
@@ -1871,71 +1827,22 @@
                 );
             }
 
-            if (!f.odo_sold) {
-                pages.push(
-                    `I found a Lifethread in the dark once. It’s yours for 180 glints, if you have them. (You have ${st.glints}.)`,
-                );
+            pages.push('Take a look at what I carry, if you like. Supplies for whoever still walks the dark.');
 
-                this.dialog.open('Odo the Lamplighter', pages, {
-                    speaker: 'odo',
-                    choices: ['Buy Lifethread', 'Buy supplies', 'Not now'],
-                    onClose: (c) => {
-                        if (c === 'Buy supplies') return this.odoShop();
-
-                        if (c !== 'Buy Lifethread') return;
-
-                        if (st.glints < 180) {
-                            this.dialog.open(
-                                'Odo the Lamplighter',
-                                ['Ah, not quite enough glints. Bring me 180 and it’s yours.'],
-                                { speaker: 'odo' },
-                            );
-
-                            return;
-                        }
-
-                        st.glints -= 180;
-                        f.odo_sold = true;
-                        this.collectUpgrade('lifethread', this.player.cx, this.player.cy - 40);
-                    },
-                });
-            } else
-                this.dialog.open('Odo the Lamplighter', pages, {
-                    speaker: 'odo',
-                    choices: ['Buy supplies', 'Not now'],
-                    onClose: (c) => {
-                        if (c === 'Buy supplies') this.odoShop();
-                    },
-                });
+            this.dialog.open('Odo the Lamplighter', pages, {
+                speaker: 'odo',
+                choices: ['Open the shop', 'Not now'],
+                onClose: (c) => {
+                    if (c === 'Open the shop') this.odoShop();
+                },
+            });
 
             this.saveGame();
         }
 
-        // Odo's satchel: the quick items for glints
-        odoShop(note) {
-            const st = this.state,
-                I = BW.Items;
-
-            const labels = I.ORDER.map((id) => `${I.DEFS[id].name}  (${I.DEFS[id].price} glints, have ${I.count(st, id)})`);
-
-            this.dialog.open('Odo the Lamplighter', [note || `Take what you need. (You have ${st.glints} glints.)`], {
-                speaker: 'odo',
-                choices: [...labels, 'Leave'],
-                onClose: (c) => {
-                    const id = I.ORDER.find((k) => c && c.startsWith(I.DEFS[k].name));
-
-                    if (!id) return;
-
-                    if (I.count(st, id) >= I.cap(st, id)) return this.odoShop('Your satchel cannot hold any more of those.');
-                    if (st.glints < I.DEFS[id].price) return this.odoShop('Not enough glints for that one.');
-
-                    st.glints -= I.DEFS[id].price;
-                    I.add(st, id, 1);
-                    BW.Audio.play('ui_ok');
-                    this.saveGame();
-                    this.odoShop(`One ${I.DEFS[id].name}. Anything else?`);
-                },
-            });
+        // Odo's satchel: the shop screen (src/ui/shop.js)
+        odoShop() {
+            this.menu.push('shop', { sel: 0 });
         }
 
         // ================================================================ sequences (cutscenes)
@@ -2740,7 +2647,7 @@
         p.state = 'normal';
         p.glow = 0.6;
         g.hud.toast(A.toast[0], `${BW.Input.label(A.toast[1])}`);
-        g.gainXp(BW.XP.REWARD.shrine);
+        g.earnGlints(BW.Rewards.shrine);
         g.saveGame();
     }
 
@@ -2799,7 +2706,7 @@
                 both ? 'The Belfry Seal is broken. The Cord Lift wakes.' : 'The Cord Lift wakes.',
             );
 
-        g.gainXp(BW.XP.REWARD.loom);
+        g.earnGlints(BW.Rewards.loom);
         g.saveGame();
     }
 

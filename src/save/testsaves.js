@@ -49,8 +49,7 @@
         d.difficulty = diff;
         d.maxHp = 12;
         d.silkMax = 18;
-        d.glints = 999;
-        d.xp = BW.XP.total(id === 'warden' ? 8 : BW.XP.MAX);
+        d.glints = 9999;
         d.abilities = { dash: true, parry: true, dodge: true };
 
         const f = (d.flags = {

@@ -46,6 +46,17 @@
             ],
         },
         {
+            id: 'guard',
+            cat: 'Combat',
+            title: 'Guard & Posture',
+            keys: [['Guard (hold)', 'parry']],
+            body: () => [
+                `Under the health bar is your posture bar. Hold ${L('parry')} after the parry window to raise the guard: blows from the front drain posture instead of health.`,
+                'Posture does not refill while you guard. Empty, and the guard breaks: you reel, and every blow hurts half as much again until it returns. A clean parry gives some back.',
+                'Blows from behind, traps and attacks with the red tell cannot be blocked.',
+            ],
+        },
+        {
             id: 'items',
             cat: 'Combat',
             title: 'Quick Items',
@@ -65,7 +76,7 @@
             title: 'Skills',
             keys: [],
             body: () => [
-                'Pause and open Skills. Each level and each great foe you defeat gives skill points.',
+                'Pause (or rest at a lantern) and open Skills. Every skill is paid for in glints.',
                 'Three branches: Blade (the sword and its special strikes), Shade (the burning form) and Resolve (the gourd, the guard and the satchel). The Void Slash, Energy Barrage, Whirlwind Dash, Dash Slash and the Giant Spectral Summon are learned there.',
             ],
         },
@@ -188,7 +199,7 @@
             body: () => [
                 'A bar appears over a creature when you come close or strike it. The pale trail shows the damage you have just dealt.',
                 'The Warden has its own larger bar along the bottom of the screen for the whole fight. Under it sits a thinner, segmented bar: its poise, or guard. Strikes fill it a little, a perfect parry or Shadow Step fills it a lot, and it drains away again if you stop pressing. When it is full the Warden is staggered, and the bar then empties as the stagger runs out.',
-                'The diamond on the poise bar sits at the 60% mark and lights up once you have built enough poise for a parry plus a Shadow Step to break its guard. Poise is a posture bar, not a second life. Only the Warden has one. Ordinary creatures are dazed or frozen by a parry or a Shadow Step instead, and you have no poise bar: your bells and silk are your only meters.',
+                'The diamond on the poise bar sits at the 60% mark and lights up once you have built enough poise for a parry plus a Shadow Step to break its guard. Poise is a posture bar, not a second life. Only the Warden has one. Ordinary creatures are dazed or frozen by a parry or a Shadow Step instead. You have a posture bar of your own, under your health: see Guard & Posture.',
             ],
         },
         {
@@ -206,18 +217,18 @@
                 `A perfect parry (${L('parry')}) or a Shadow Step (${L('dash')}) cuts its blow short with a burst of light and builds a big part of its poise. Plain strikes build very little (almost nothing on Nightmare), so parries and Shadow Steps are the way to fill the bar. It only drains after a few quiet seconds.`,
                 'This is how the Warden is meant to be beaten. On Action and especially Nightmare its health is huge, so plain strikes barely dent it. It takes about three or four clean parries and Shadow Steps to fill the poise bar and stagger it: stunned for over three seconds and every blow lands for roughly three times the damage. Land a parry AND a Shadow Step within about six seconds of each other, with the poise at least 60% up, and its guard breaks: a longer stun and about four times the damage. Running away or trading blows will not win this fight; weave parries and Shadow Steps together, then punish.',
                 'The Peal, the shockwaves, falling debris and silk spears cannot be parried or slipped: jump or dash them instead. Its charge stops short if you dodge it, or if it hits the wall.',
-                'Winning earns a great deal of experience. A rematch from any lantern gives none.',
+                'Winning earns a great many glints. A rematch from any lantern gives none.',
             ],
         },
         {
             id: 'xp',
             cat: 'Combat',
-            title: 'Experience & Levels',
+            title: 'Glints',
             keys: [],
             body: () => [
-                `Defeating creatures earns experience, and so does finding things: glint stashes, Lifethreads and Silk Spools, lore notes, hidden nooks, toll-looms and the stitches taught at shrines. Lanterns give none, and neither do boss rematches. The Warden is worth a great deal.`,
-                `Your level (shown under the glints) goes up to ${BW.XP.MAX}. Each level makes every blow you land ${Math.round(BW.XP.BONUS * 100)}% stronger and restores your health and silk.`,
-                'Only found things are earned once. Creatures return when you rest at a lantern, but each level asks for more than the last.',
+                'Glints, the yellow stones, are the only currency: there is no experience and there are no levels. Creatures drop them, stones and caches break into them, and lore notes, hidden nooks, toll-looms, shrines and bells are worth a handful. Lanterns give none, and neither do boss rematches. The great foes are worth a great deal.',
+                'Spend them in the Skills screen (Pause or the lantern menu) to learn the special moves and passives, and with Odo, who sells quick items and Lifethreads.',
+                'Found things are earned once. Creatures return when you rest at a lantern.',
             ],
         },
         {

@@ -71,4 +71,18 @@ full (it is, in a test save) press **O** on the ground. About 24 seconds, extend
 | Ash Veil | Untouchable for 1.5 s. |
 | Rage Draught | Blows hit 25% harder for 20 s. |
 | Odo's shop | Talk to Odo → Buy supplies. Prices: 60 / 40 / 80 / 120 glints. Fallen foes also drop items now and then (10%). |
-| Skills | Pause → Skills. Three branches: Blade (Whetted Edge, Flowing Strikes, Dash Slash, Void Slash, Energy Barrage), Shade (Whirlwind Dash, Quickening, Lingering Shade, Burning Shade, Giant Spectral Summon) and Resolve (Deep Gourd, Sweet Gourd, Steady Guard, Deep Satchel, Iron Resolve). One point per level above 1, two for the Warden, two for the Long Mourner: 13 in all for 22 points of skills. |
+| Skills | Pause (or the lantern menu) → Skills. Three branches: Blade (Whetted Edge, Flowing Strikes, Dash Slash, Void Slash, Energy Barrage), Shade (Whirlwind Dash, Quickening, Lingering Shade, Burning Shade, Giant Spectral Summon) and Resolve (Deep Gourd, Sweet Gourd, Steady Guard, Deep Satchel, Iron Resolve). Each costs glints: 80 per point of cost, 22 points (1,760 glints) for the lot. |
+| Glints | The yellow stones: the only currency (no experience, no levels). Earned from kills, stones and caches, lore notes, hidden nooks, bells, shrines, looms and the two great foes. Spent on skills and in Odo's shop. |
+
+## The guard and the posture bar
+
+Under the red health bar is the **posture bar**. Hold the parry button (I / LB) *after* its window to raise the guard:
+
+- A blow from the front costs posture, not health (about 26 per ordinary blow). Walking slowly is allowed while guarding.
+- A clean **parry** (a tap just before a blow) costs nothing and gives 25 posture back.
+- Posture does not refill while you guard. After a short pause it refills at 14 a second.
+- **Empty = guard broken**: you reel for 1.2 s and stay open for 1.6 s, taking 50% more damage, and the bar creeps back at 8 a second.
+- Blows from behind, traps, and attacks with the red tell cannot be blocked.
+- Steady Guard in the Skills screen makes the bar 30% larger.
+
+When new art arrives, a `block` pose (the held guard) and a `guard_break` pose are picked up by name (see RONIN_SPRITES.md).

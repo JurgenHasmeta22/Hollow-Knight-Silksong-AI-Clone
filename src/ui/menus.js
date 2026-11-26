@@ -486,6 +486,12 @@
                 return;
             }
 
+            if (s.name === 'shop') {
+                this.shopUpdate(dt, inp);
+
+                return;
+            }
+
             if (s.name === 'pause' && inp.pressed.map && this.t > 0.1) {
                 BW.Audio.play('ui_ok');
                 this.push('map');
@@ -589,6 +595,7 @@
             if (s.name === 'map') return this.drawMap(ctx);
             if (s.name === 'gallery') return this.galleryDraw(ctx);
             if (s.name === 'skills') return this.skillsDraw(ctx);
+            if (s.name === 'shop') return this.shopDraw(ctx);
 
             ctx.save();
             ctx.fillStyle = 'rgba(3,4,8,0.78)';
@@ -834,14 +841,7 @@
                 ['Abilities learned', `${['dash', 'parry', 'dodge'].filter((a) => st.abilities[a]).length} / 3`],
                 ['Health bells', `${st.maxHp}`],
                 ['Silk capacity', `${st.silkMax}`],
-                [
-                    'Level',
-                    (() => {
-                        const x = BW.XP.progress(st.xp | 0);
-
-                        return x.max ? `${x.level} (max)` : `${x.level}  \u00b7  ${x.into} / ${x.span} XP`;
-                    })(),
-                ],
+                ['Skills learned', `${BW.Skills.NODES.filter((n) => BW.Skills.has(st, n.id)).length} / ${BW.Skills.NODES.length}`],
                 ['Glints', `${st.glints}`],
                 ['Rooms discovered', `${BW.ROOM_LIST.filter((r) => st.visited[r.id]).length} / ${BW.ROOM_LIST.length}`],
                 ['Lore notes', `${BW.Lore.count(st)} / ${BW.Lore.NOTES.length}`],

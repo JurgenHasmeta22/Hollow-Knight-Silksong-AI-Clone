@@ -82,7 +82,7 @@
             } else if (first) this.hud.toast(`Bell unwrapped (${done}/${group.length})`, 'The Hushed have heard it', 3);
         }
 
-        if (first) this.gainXp(BW.XP.REWARD.bell || 20);
+        if (first) this.earnGlints(BW.Rewards.bell || 20);
 
         this.saveGame();
     };
@@ -139,7 +139,7 @@
         });
 
         st.flags[altar.def.relic] = true;
-        g.gainXp(BW.XP.REWARD.relic || 100);
+        g.earnGlints(BW.Rewards.relic || 100);
         g.saveGame();
         yield 0.6;
 
@@ -165,7 +165,7 @@
         st.flags.mourner_defeated = true;
         st.stats.mournerWinTime = st.stats.mournerWinTime || st.stats.playTime;
         BW.Codex.kill(st, 'mourner');
-        this.gainXp(BW.XP.REWARD.mourner);
+        this.earnGlints(BW.Rewards.mourner);
         this.saveGame();
 
         // a trade of final blows: the victory counts, the player wakes at a lantern and finds the way open
@@ -283,7 +283,7 @@
         });
 
         st.flags.silent_key = true;
-        g.gainXp(BW.XP.REWARD.key || 120);
+        g.earnGlints(BW.Rewards.key || 120);
         g.saveGame();
         yield 0.6;
 

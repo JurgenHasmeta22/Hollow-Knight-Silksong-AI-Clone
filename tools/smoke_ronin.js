@@ -72,7 +72,7 @@ for (const f of [
     'src/world/world.js',
     'src/world/rooms.js',
     'src/progression/difficulty.js',
-    'src/progression/xp.js',
+    'src/progression/rewards.js',
     'src/progression/skills.js',
     'src/progression/items.js',
     'src/entities/ronin.js',
@@ -175,7 +175,7 @@ function makeGame(flags = {}) {
         hitstop() {},
         addLight() {},
         saveGame() {},
-        gainXp() {},
+        earnGlints() {},
         onHazard() {
             g.hazardHits++;
         },

@@ -190,7 +190,7 @@ const p = g.player;
 
 check(BW.Gourd.left(st) === 3 && BW.Gourd.max(st) === 3, 'the gourd starts with three draughts');
 check(BW.Items.count(st, 'charge') === 3 && st.quick === 'charge', 'the satchel starts stocked, Toll Charge selected');
-check(BW.Skills.points(st).free === 0, 'no skill points at level 1');
+check(BW.Skills.price('edge') === 80 && st.xp === undefined, 'skills are priced in glints, and there is no experience');
 
 // skills are locked until learned
 st.silk = st.silkMax;
@@ -238,21 +238,28 @@ console.log('the skill tree');
 {
     const s2 = g.state;
 
-    s2.xp = BW.XP.total(4);
-    check(BW.Skills.points(s2).free === 3, 'level 4 has earned three points');
+    s2.glints = 50;
+    check(
+        BW.Skills.status(s2, 'edge') === 'afford' && !BW.Skills.learn(g, 'edge'),
+        'too few glints: a skill cannot be learned',
+    );
+
+    s2.glints = 300;
     check(
         BW.Skills.status(s2, 'edge') === 'open' && BW.Skills.status(s2, 'flow') === 'locked',
         'edge is open, flow is locked behind it',
     );
-    check(BW.Skills.learn(g, 'edge') && BW.Skills.has(s2, 'edge'), 'learning Whetted Edge works');
+    check(
+        BW.Skills.learn(g, 'edge') && BW.Skills.has(s2, 'edge') && s2.glints === 220,
+        'learning Whetted Edge spends 80 glints',
+    );
     check(!BW.Skills.learn(g, 'dashslash'), 'a node behind an unlearned one cannot be learned');
-    check(BW.Skills.learn(g, 'flow'), 'Flowing Strikes follows');
-    check(BW.Skills.points(s2).free === 1, 'points are spent');
+    check(BW.Skills.learn(g, 'flow') && s2.glints === 140, 'Flowing Strikes follows');
     check(
         BW.Skills.learn(g, 'dashslash') && !BW.Skills.learn(g, 'void'),
-        'the last point buys Dash Slash, Void Slash (2) is out of reach',
+        'Dash Slash fits the purse, Void Slash (160) does not',
     );
-    check(Math.abs(BW.XP.power(s2) - (1 + BW.XP.BONUS * 3) * 1.12) < 1e-9, 'Whetted Edge adds 12% to every blow');
+    check(Math.abs(BW.Rewards.power(s2) - 1.15) < 1e-9, 'Whetted Edge adds 15% to every blow, and nothing else does');
 
     // a learned unlock opens the move
     s2.skills.barrage = true;
@@ -262,6 +269,12 @@ console.log('the skill tree');
     tap('lance', 'lance');
     check(!!p.skill && p.skill.name === 'barrage', 'once learned, the Energy Barrage fires');
     run(1, 'barrage');
+
+    // glints come from kills and finds, nothing else
+    const before = s2.glints;
+
+    g.earnGlints(30);
+    check(s2.glints === before + 30, 'earnGlints adds glints');
 }
 
 // ---------------------------------------------------------------- the quick items
@@ -317,25 +330,140 @@ console.log("Odo's shop");
 
     s4.glints = 500;
     s4.items.charge = 0;
+    s4.flags.odo_sold = false;
     g.odoShop();
-    check(
-        g.dialog.active && g.dialog.choices.length === BW.Items.ORDER.length + 1,
-        'the shop lists every item and Leave',
-    );
-    g.dialog.close(g.dialog.choices[0]);
+    check(g.menu.open && g.menu.screen.name === 'shop', 'Odo opens the shop screen');
+    check(run(0.5, 'shop screen') === true, 'the shop draws');
+
+    check(g.menu.shopWares(s4).length === BW.Items.ORDER.length + 1, 'it sells every item and, once, the Lifethread');
+    BW.Input.pressed.confirm = true;
+    run(DT, 'buying');
+    BW.Input.pressed.confirm = false;
+    run(0.2, 'bought');
     check(
         BW.Items.count(s4, 'charge') === 1 && s4.glints === 500 - BW.Items.DEFS.charge.price,
         'buying takes the glints and fills the satchel',
     );
-    g.dialog.close('Leave');
-    g.dialog.active = false;
+
+    s4.glints = 5;
+    BW.Input.pressed.confirm = true;
+    run(DT, 'too poor');
+    BW.Input.pressed.confirm = false;
+    check(s4.glints === 5 && BW.Items.count(s4, 'charge') === 1, 'with too few glints nothing is sold');
+
+    g.menu.closeAll();
 }
 
-// ---------------------------------------------------------------- the skills screen and the HUD, drawn
+// ---------------------------------------------------------------- posture and the guard
+console.log('posture and the guard');
+
+{
+    BW.TestSaves.load(g, 'skills');
+    g.mode = 'play';
+    g.seq = null;
+    g.state.flags.test_save = false;
+    run(1, 'test save');
+
+    const P3 = g.player,
+        s5 = g.state;
+
+    P3.state = 'normal';
+    P3.onGround = true;
+    P3.facing = 1;
+    P3.invulnT = 0;
+    P3.skillInv = 0;
+    s5.hp = s5.maxHp;
+
+    BW.Input.down.parry = true;
+    run(0.6, 'raising the guard');
+    check(P3.blocking, 'holding the parry button raises the guard');
+
+    const max = P3.postureMax();
+    const hp0 = s5.hp;
+
+    P3.hurt(1, P3.cx + 60, { strike: true });
+    check(
+        s5.hp === hp0 && P3.posture < max,
+        `a blow from the front is blocked: no damage, posture ${P3.posture.toFixed(0)} / ${max}`,
+    );
+
+    // from behind it is not
+    const post = P3.posture;
+
+    P3.invulnT = 0;
+    P3.hurt(1, P3.cx - 60, { strike: true });
+    check(s5.hp < hp0, 'a blow from behind still hurts');
+    s5.hp = s5.maxHp;
+    P3.invulnT = 0;
+    P3.lockT = 0;
+
+    // an unblockable blow
+    BW.Input.down.parry = true;
+    run(0.5, 're-guarding');
+    const hp1 = s5.hp;
+
+    P3.hurt(1, P3.cx + 60, { strike: true, noParry: true });
+    check(s5.hp < hp1, 'a blow marked unblockable goes through the guard');
+    s5.hp = s5.maxHp;
+
+    // blocking until the guard breaks
+    P3.invulnT = 0;
+    P3.lockT = 0;
+    P3.posture = 10;
+    P3.blocking = true;
+    P3.hurt(2, P3.cx + 60, { strike: true });
+    check(P3.breakT > 0 && P3.posture === 0 && !P3.blocking, 'an empty posture bar breaks the guard');
+    check(s5.hp === s5.maxHp, 'the blow that breaks it does no damage');
+    BW.Input.down.parry = false;
+
+    // open while broken
+    P3.invulnT = 0;
+
+    const hp2 = s5.hp;
+
+    P3.hurt(1, P3.cx + 60, { strike: true });
+    check(hp2 - s5.hp >= 1 && P3.breakT > 0, 'a broken guard takes the next blow (' + (hp2 - s5.hp) + ' bells)');
+
+    // and it comes back, slowly
+    s5.hp = s5.maxHp;
+    run(2, 'recovering');
+    check(P3.breakT === 0 || P3.breakT < 0.01, 'the guard comes back after about a second and a half');
+    check(P3.posture < max * 0.5, 'but the bar refills slowly (' + P3.posture.toFixed(0) + ' / ' + max + ')');
+    run(8, 'refilling');
+    check(P3.posture > max * 0.7, 'and is nearly full again in time (' + P3.posture.toFixed(0) + ' / ' + max + ')');
+
+    // a clean parry gives some back
+    P3.posture = 10;
+    P3.state = 'normal';
+    P3.invulnT = 0;
+    P3.lockT = 0;
+    P3.parryT = 0.1;
+    P3.hurt(1, P3.cx + 60, { strike: true });
+    check(P3.posture >= 35, 'a clean parry returns posture');
+
+    // the poses for the guard and the break
+    for (const [label, f] of [
+        ['blocking', () => ((P3.blocking = true), (P3.breakT = 0))],
+        ['guard broken', () => ((P3.blocking = false), (P3.breakT = 0.5))],
+    ]) {
+        f();
+        P3.pickAnim();
+        run(0.05, label);
+        check(
+            BW.Assets.sprite('ronin_' + P3.formPose(P3.poseNow())) !== null,
+            label + ' has a pose (' + P3.poseNow() + ')',
+        );
+    }
+
+    P3.blocking = false;
+    P3.breakT = 0;
+}
+
 console.log('the skills screen');
 
 {
     g.menu.push('skills', { sel: 0 });
+    g.state.glints = 600;
     check(run(0.5, 'skills screen') === true, 'the Skills screen opens and draws');
 
     for (const k of ['right', 'down', 'down', 'left', 'up', 'confirm', 'right', 'right', 'down']) {

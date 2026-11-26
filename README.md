@@ -54,26 +54,18 @@ Click the game once (or press any key) so the browser allows sound. A 16:9 windo
 
 The game detects gamepads automatically (standard layout: Xbox, PlayStation and most others), and on-screen prompts switch to match the device you used last. The full list of controls is at **Options → Controls** (also on the title screen), and the same screen is where **Controller Icons** cycles **Auto** (detects the pad), **Xbox**, **PlayStation**, **Switch** and **Generic** (numbered buttons). The Controls screen, Archive tip chips, world prompts and tutorial hints all show the keyboard key and the matching pad button.
 
-## Experience and levels
+## Glints: the one currency
 
-Defeating creatures earns **XP**, and so does finding things: glint stashes and loose glints, Lifethreads and Silk Spools, lore notes, hidden nooks, toll-looms and the stitches taught at the shrines. Lanterns give none, and neither do boss rematches. The level and an XP bar sit under the glints in the HUD, with a `+N XP` pop-up on every gain, and the pause Journal shows your progress.
+There is no experience and there are no levels. **Glints**, the yellow stones, are the only currency. Defeating creatures drops
+them, stones and caches break into them, and lore notes, hidden nooks, toll-looms, shrines, bells, relics and keys are worth a
+handful; the two great foes are worth hundreds. Lanterns give none, and neither do boss rematches.
 
-| Source | XP |
-|---|---|
-| Moss Crawler / Lantern-moth | 8 |
-| Glow Spitter | 12 |
-| Cave-cricket | 14 |
-| Pike Sentinel | 20 (pale variants earn 1.5×) |
-| Glint pile / glint cache | 6 / 10 (once) |
-| Lore note, hidden nook | 15, 20 (once) |
-| Lifethread / Silk Spool | 40 each (once) |
-| Toll-loom | 60 each (once) |
-| Shrine stitch | 80 each (once) |
-| The Bellbound Warden | 350 |
+They are spent in two places:
 
-There are ten levels (50 XP to reach level 2, then 30 more for each next one, 1,530 in total). Every level makes every strike and Lance hit 4% stronger (up to +36%) and fully restores health and silk. Creatures come back when you rest, so they can be farmed a little, but each level asks for more than the last. Rematches give no XP. Saves from older builds start at level 1.
+- **Skills** (Pause, or the lantern menu): the skill tree. Every special move and passive is paid for in glints (80 per point of cost).
+- **Odo's shop** (talk to Odo): the quick items and, once, a Lifethread.
 
----
+See `docs/RONIN_SKILLS.md` for the skills, the gourd, the quick items and the guard.
 
 ## Difficulty
 
@@ -224,7 +216,7 @@ The game opens with a short run of intro chapters, plus an interlude card the fi
 
 - **The Faceless Ronin:** a straw-hatted swordsman with a heavier, much bigger moveset (art from two pose sheets, `tools/art/`).
   - **Normal form:** a three-hit dual-blade combo (the third hit lunges and shakes the floor), an air slash, up and bouncing down strikes, the **Void Slash** (hold the strike button, release when the aura closes; 4 silk), the **Energy Barrage** (L; throws a black crescent, 3 silk), the **Whirlwind Dash** (U; 2 silk), a **dash-slash** (strike in the middle of a dash), plus Silk Dash, parry, Shadow Step and mending, which are shared with the Weaver.
-  - **Shade:** a gauge under the experience bar. Every blow fills it a little, a parry or a Shadow Step fills it a lot. When it is full, **O** (or L3) starts the transformation: focus, flare, float, absorb, unleash.
+  - **Shade:** a gauge under the glint counter. Every blow fills it a little, a parry or a Shadow Step fills it a lot. When it is full, **O** (or L3) starts the transformation: focus, flare, float, absorb, unleash.
   - **Transformed** (about 24 seconds, extended by every hit and every parry): faster and about 40% harder-hitting, a four-hit combo, a double jump (**Flame Ascent**), the **Phantom Clone Dash** (the dash button: an untouchable dash that leaves clones), the **Clashing Shadow Slash** (strike in a dash), a five-way Barrage, the **Phantom Grab** (U + Up: drags the nearest foe in front of you), **Ground Eruption** (U + Down on the ground), the **Ground Pound** (U + Down in the air), the **Illusion Burst** (answers a Shadow Step and staggers everything near) and the **Giant Spectral Summon** (O again: a spectral giant drops a burning star on a target; it spends the form). Being hurt costs form time.
   - Test saves for it: **Save Data → Test Saves → Faceless Ronin** (Shade already full).
 
@@ -301,7 +293,9 @@ src/                game code (classic scripts, no build step; load order is set
                     the key altar and the Last Door
   progression/
     difficulty.js   Story / Action / Nightmare presets and extra-enemy placement
-    xp.js           experience curve, levels and the strike-power bonus
+    rewards.js      what finds are worth in glints, and the strike-power multiplier
+    skills.js       the skill tree (Blade, Shade, Resolve), priced in glints
+    items.js        the Healing Gourd and the quick items
     codex.js        Archive data (tips, bestiary, unlocks)
     lore.js         intro chapters, region interludes, collectible lore notes
     hushed.js       Chapter II's Archive pages, lore notes and region interlude

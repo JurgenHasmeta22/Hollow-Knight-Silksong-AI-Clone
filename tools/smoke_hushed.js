@@ -90,7 +90,7 @@ for (const f of [
     'src/world/hushed.js',
     'src/world/hushed_wings.js',
     'src/progression/difficulty.js',
-    'src/progression/xp.js',
+    'src/progression/rewards.js',
     'src/progression/skills.js',
     'src/progression/items.js',
     'src/entities/enemies.js',
@@ -233,7 +233,7 @@ function makeGame(roomId, flags) {
             showAnnounce: (o) => (g.announce = o),
             announce: null,
             pulse() {},
-            xpGain() {},
+            glintGain() {},
             savedBlip() {},
         },
         dialog: {
@@ -255,7 +255,7 @@ function makeGame(roomId, flags) {
         codexSee() {},
         codexKill() {},
         codexMove() {},
-        gainXp(n) {
+        earnGlints(n) {
             g.xpGained += n || 0;
         },
         spawnGlints() {},
@@ -578,7 +578,7 @@ console.log('bells and gates');
             g.state.flags.hb_h4 && g.gatesOpened.includes('hb_h4'),
             'H4: all three bells unwrapped, the veil gate opens',
         );
-        check(g.xpGained > 0, 'H4: unwrapping bells earns experience');
+        check(g.xpGained > 0, 'H4: unwrapping bells earns glints');
 
         // H2: a single bell opens its gate at once
         const g2 = makeGame('H2', {});
@@ -694,11 +694,11 @@ function runSeq(g, label, maxSteps = 100000, beforeWait) {
     win.hitstop = () => {};
     win.rematch = false;
     BW.Codex.kill = () => {};
-    BW.XP.REWARD = Object.assign({ mourner: 500 }, BW.XP.REWARD);
+    BW.Rewards = Object.assign({ mourner: 500 }, BW.Rewards);
 
     G.onWardenDefeated.call(win, boss);
     check(win.state.flags.mourner_defeated === true, 'mourner: its defeat sets mourner_defeated');
-    check(win.xpGained >= 500, `mourner: its defeat is worth ${win.xpGained} experience`);
+    check(win.xpGained >= 500, `mourner: its defeat is worth ${win.xpGained} glints`);
     check(!!win.seq, 'mourner: the victory sequence starts');
 
     boss.state = 'remains';
@@ -887,7 +887,7 @@ console.log('the wings');
             runSeq(gS, 'shears sequence', 100000, () => (gS.hud.announce = null)),
             'N1: the sequence runs to the end',
         );
-        check(gS.state.flags.shears === true && gS.xpGained > 0, 'N1: the Shears are in the save and earn experience');
+        check(gS.state.flags.shears === true && gS.xpGained > 0, 'N1: the Shears are in the save and earn glints');
         check(gS.announce && gS.announce.title === 'Mourners’ Shears', 'N1: the pick-up card names them');
         check(!altar.canInteract(), 'N1: the Shears cannot be taken twice');
 

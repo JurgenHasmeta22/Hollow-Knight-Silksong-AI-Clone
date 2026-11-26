@@ -45,6 +45,7 @@
             if (was === 'open' && BW.Skills.learn(g, cur.id)) {
                 d.flash = 1;
                 g.hud.toast('Learned ' + cur.name, cur.desc, 3);
+                g.hud.glintFlash = 0.3;
             } else BW.Audio.play('ui_back', { vol: 0.6 });
         }
 
@@ -63,8 +64,6 @@
             VH = BW.VH,
             t = d.t || 0;
 
-        const pts = BW.Skills.points(st);
-
         ctx.save();
         ctx.fillStyle = '#05060b';
         ctx.fillRect(0, 0, VW, VH);
@@ -81,15 +80,13 @@
         ctx.font = `600 40px ${BW.FONT_T}`;
         ctx.fillStyle = '#f2e6cc';
         ctx.fillText('SKILLS', VW / 2, 52);
-        ctx.font = `500 22px ${BW.FONT_B}`;
-        ctx.fillStyle = pts.free > 0 ? '#ffe0a0' : 'rgba(225,214,192,0.6)';
-        ctx.fillText(
-            `${pts.free} skill point${pts.free === 1 ? '' : 's'} to spend   ·   ${pts.spent} spent of ${
-                pts.earned
-            } earned`,
-            VW / 2,
-            92,
-        );
+        // the purse: glints, the yellow stones, are the only currency
+        BW.drawGlintShard(ctx, VW / 2 - 56, 92, 1.4, t);
+        ctx.textAlign = 'left';
+        ctx.font = `600 26px ${BW.FONT_B}`;
+        ctx.fillStyle = '#ffe9a8';
+        ctx.fillText(String(st.glints | 0) + ' glints', VW / 2 - 36, 93);
+        ctx.textAlign = 'center';
 
         // branch headings
         for (const b of BW.Skills.BRANCHES) {
@@ -138,9 +135,16 @@
             ctx.strokeStyle = s === 'learned' ? '#fff6dc' : s === 'open' ? col : 'rgba(225,214,192,0.25)';
             ctx.stroke();
 
-            ctx.font = `600 18px ${BW.FONT_B}`;
-            ctx.fillStyle = s === 'learned' ? '#10121a' : s === 'locked' ? 'rgba(225,214,192,0.3)' : '#fff1d0';
-            ctx.fillText(s === 'learned' ? '✓' : String(n.cost), 0, 1);
+            ctx.font = `600 ${s === 'learned' ? 22 : 15}px ${BW.FONT_B}`;
+            ctx.fillStyle =
+                s === 'learned'
+                    ? '#10121a'
+                    : s === 'locked'
+                    ? 'rgba(225,214,192,0.3)'
+                    : s === 'afford'
+                    ? '#ff9a8a'
+                    : '#ffe9a8';
+            ctx.fillText(s === 'learned' ? '✓' : String(BW.Skills.price(n.id)), 0, 1);
             ctx.restore();
 
             ctx.font = `500 15px ${BW.FONT_B}`;
@@ -169,8 +173,8 @@
                 : s === 'locked'
                 ? `Needs ${BW.Skills.BY_ID[n.req].name} first`
                 : s === 'afford'
-                ? `Costs ${n.cost}: not enough points yet`
-                : `Costs ${n.cost}: ${BW.Input.label('confirm')} to learn`;
+                ? `${BW.Skills.price(n.id)} glints: ${BW.Skills.price(n.id) - (st.glints | 0)} more needed`
+                : `${BW.Skills.price(n.id)} glints: ${BW.Input.label('confirm')} to learn`;
 
         ctx.textAlign = 'right';
         ctx.font = `500 19px ${BW.FONT_B}`;

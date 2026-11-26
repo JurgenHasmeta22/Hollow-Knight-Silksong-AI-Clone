@@ -315,6 +315,11 @@
                 act: () => g.openTravel(),
             },
             {
+                label: 'Skills',
+                desc: 'Spend glints on the special moves and passives of the skill tree.',
+                act: () => this.push('skills', { sel: 0 }),
+            },
+            {
                 label: 'Save Game',
                 desc: 'Write your progress to one of five manual slots.',
                 act: () => this.push('slots', { mode: 'save' }),

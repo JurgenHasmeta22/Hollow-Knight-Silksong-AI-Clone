@@ -1855,9 +1855,16 @@
                 return true;
             }
 
+            // holding the guard: a blow from the front costs posture instead of health (unless it cannot be blocked)
+            if (this.blocking && !opts.trap && !noParry && (srcX == null || (this.cx < srcX ? 1 : -1) === this.facing))
+                return this.blockHit(dmg, srcX, opts);
+
             const D = BW.Difficulty.get(st);
             // traps scale with the trap setting (none in Story); everything else with the enemy damage setting
-            const amount = opts.trap ? Math.round(dmg * D.trap) : BW.Difficulty.hit(st, dmg);
+            let amount = opts.trap ? Math.round(dmg * D.trap) : BW.Difficulty.hit(st, dmg);
+
+            // a broken guard leaves you wide open
+            if (this.breakT > 0) amount = Math.ceil(amount * 1.5);
 
             st.hp = Math.max(0, st.hp - amount);
             g.lastHitBy = opts.cause || null;
@@ -1929,6 +1936,22 @@
             ctx.restore();
         }
 
+        // the guard: a pale arc in front of the blade, brighter the more posture is left
+        drawBlock(ctx, x, y) {
+            const k = BW.clamp(this.posture / this.postureMax(), 0, 1),
+                f = this.facing;
+
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.strokeStyle = `rgba(${k < 0.3 ? '255,150,110' : '230,240,255'},${0.25 + 0.35 * k})`;
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.arc(x + f * 6, y - 46, 46, f > 0 ? -1.1 : Math.PI - 1.1, f > 0 ? 1.1 : Math.PI + 1.1);
+            ctx.stroke();
+            ctx.restore();
+        }
+
         drawParry(ctx, x, y) {
             const k = this.parryT / this.parryMax,
                 f = this.facing;
@@ -1971,6 +1994,10 @@
             this.hitMul = 1;
             this.noSilk = false;
             this.auraT = 0;
+            this.posture = this.postureMax();
+            this.postureDelay = 0;
+            this.blocking = false;
+            this.breakT = 0;
             this.rageT = 0;
             this.veilT = 0;
             this.deflectT = 0;
@@ -2083,7 +2110,9 @@
             this.dashWin = this.dashT > 0 ? 0.2 : Math.max(0, this.dashWin - dt);
             this.holdT = inp.down.attack ? this.holdT + dt : 0;
             this.heldDir = (inp.down.right ? 1 : 0) - (inp.down.left ? 1 : 0);
-            this.speedMul = this.form ? TUNE.form.speed : 1;
+            this.speedMul = (this.form ? TUNE.form.speed : 1) * (this.blocking ? 0.45 : 1);
+
+            this.updatePosture(dt, inp);
 
             // test saves (Save Data > Test Saves): the Shade is full again as soon as a form ends, and silk never runs out
             this.rageT = Math.max(0, this.rageT - dt);
@@ -2318,6 +2347,111 @@
             }
 
             return false;
+        }
+
+        // ---------------------------------------------------------------- posture, the guard
+        postureMax() {
+            return 100 * (1 + BW.Skills.mod(this.game.state, 'posture'));
+        }
+
+        // Hold the parry button after its window to guard. Blocked blows drain the posture bar; empty, the guard breaks. The
+        // bar then refills slowly (and a clean parry gives some of it back).
+        updatePosture(dt, inp) {
+            const st = this.game.state,
+                max = this.postureMax();
+
+            if (this.breakT > 0) {
+                this.breakT = Math.max(0, this.breakT - dt);
+                this.blocking = false;
+                this.posture = Math.min(max, this.posture + 8 * dt);
+
+                if (this.breakT <= 0) this.postureDelay = 0.4;
+
+                return;
+            }
+
+            this.blocking =
+                inp.down.parry &&
+                !!st.abilities.parry &&
+                this.state === 'normal' &&
+                this.onGround &&
+                !this.skill &&
+                this.parryT <= 0 &&
+                this.attackT <= 0 &&
+                this.dashT <= 0 &&
+                this.lockT <= 0 &&
+                this.castT <= 0 &&
+                this.posture > 0;
+
+            this.postureDelay = Math.max(0, this.postureDelay - dt);
+
+            if (!this.blocking && this.postureDelay <= 0) this.posture = Math.min(max, this.posture + 14 * dt);
+
+            this.posture = Math.min(this.posture, max);
+        }
+
+        blockHit(dmg, srcX, opts) {
+            const g = this.game,
+                st = g.state,
+                amount = Math.max(1, BW.Difficulty.hit(st, dmg));
+
+            this.posture -= 14 + 12 * amount;
+            this.postureDelay = 1.2;
+            this.vx = -this.facing * 190;
+            this.sx = 1.1;
+            this.sy = 0.94;
+            this.glow = 0.6;
+            this.addShade(4);
+            g.hitstop(0.06);
+            g.fx.shake(4, 0.14);
+            BW.Audio.play('clink', { vol: 0.9, minGap: 0 });
+            g.fx.burst(this.cx + this.facing * 34, this.cy - 8, 12, {
+                color: ['#ffffff', '#ffe9b0', '#cfe0ff'],
+                kind: 'spark',
+                speed: 340,
+                life: 0.25,
+                add: true,
+            });
+            g.fx.ring(this.cx + this.facing * 30, this.cy - 8, 6, 60, 0.25, '#ffe9b0', 3);
+            g.hud.deny('posture');
+
+            if (this.posture <= 0) this.breakGuard(srcX);
+
+            const src = opts && opts.src;
+
+            if (src && src.onBlocked) src.onBlocked(this);
+
+            return true;
+        }
+
+        breakGuard() {
+            const g = this.game;
+
+            this.posture = 0;
+            this.breakT = 1.6;
+            this.blocking = false;
+            this.lockT = Math.max(this.lockT, 1.2);
+            this.attackT = 0;
+            this.skill = null;
+            this.vx = -this.facing * 300;
+            this.vy = -200;
+            this.onGround = false;
+            this.flash = 1;
+            g.hitstop(0.14);
+            g.fx.shake(11, 0.3);
+            g.fx.flash('#ff5a4a', 0.16);
+            g.fx.ring(this.cx, this.cy, 10, 170, 0.4, '#ff5a4a', 5);
+            g.fx.burst(this.cx, this.cy, 22, {
+                color: ['#ff5a4a', '#ffd0c0', '#ffffff'],
+                kind: 'shard',
+                speed: 380,
+                life: 0.5,
+                size: 4,
+            });
+            BW.Audio.play('hurt', { vol: 0.8, rate: 0.8, minGap: 0 });
+            BW.Audio.play('boss_slam', { vol: 0.6, rate: 1.3, minGap: 0 });
+            g.hud.pulse('hp', true);
+            g.hud.toast('Guard broken', 'Your posture is gone: you are open until it returns', 2.2);
         }
 
         // ---------------------------------------------------------------- skill tree and items
@@ -2615,6 +2749,7 @@
         deflect(srcX, opts) {
             this.baseDeflect(srcX, opts);
             this.deflectT = 0.28;
+            this.posture = Math.min(this.postureMax(), this.posture + 25);
             this.addShade(TUNE.shade.parry);
 
             if (this.form) this.formT = Math.min(this.formMax(), this.formT + TUNE.form.parryTime);
@@ -2660,10 +2795,12 @@
             if (this.skill) return 'skill:' + this.skill.name;
             if (this.state === 'rest') return 'sit';
             if (this.state === 'heal') return 'heal';
+            if (this.breakT > 0) return 'broken';
             if (this.itemAnimT > 0) return 'item';
             if (this.deflectT > 0) return 'deflect';
             if (this.dodgeAnimT > 0) return 'dodge';
             if (this.parryT > 0 || this.guardT > 0.3) return 'guard';
+            if (this.blocking) return 'block';
             if (this.dashT > 0) return 'dash';
             if (this.attackT > 0) return 'atk';
             if (this.lockT > 0) return 'hurt';
@@ -2703,6 +2840,10 @@
                     return 'drink';
                 case 'guard':
                     return 'ready';
+                case 'block':
+                    return this.firstPose('block', 'ready');
+                case 'broken':
+                    return this.firstPose('guard_break', 'knock');
                 case 'dash':
                     return F ? 'speed' : 'run4';
                 case 'atk': {
@@ -2817,6 +2958,7 @@
             });
 
             if (this.parryT > 0) this.drawParry(ctx, x, y);
+            if (this.blocking) this.drawBlock(ctx, x, y);
             if (this.counterT > 0) this.drawCounter(ctx, x, y);
         }
 
