@@ -2,6 +2,7 @@
 
 Paste-ready prompts for an image generator (GPT-Image, Higgsfield, etc.). Companion to [EXPANSION_PLAN.md](./EXPANSION_PLAN.md).
 Area A (Garrison Road & Hollow Keep) backdrops are already generated, so §3 starts with its bosses and enemies; its backdrop prompts are kept in §5 for reference.
+**Area G, The Hushed Gallery**, is a further area added after A to F: its boss (§3.7), its five enemies (§4, #13 to #17) and the shared **[HUSHED LOOK]** block (§2.1) are all below.
 
 ## 0. How to use
 
@@ -32,7 +33,24 @@ design, scale and proportions in every pose. Feet/lowest point of every pose on 
 All characters face right. Clean outlines (no green fringing), no motion-blur smears.
 ```
 
-## 3. Bosses (6) — pose sheets, 12–14 poses each
+### 2.1 Area G look block, [HUSHED LOOK] (paste after the preamble for every Area G prompt)
+
+Every creature of the Hushed Gallery shares this look, so the boss and its servants read as one family. The mask must stay blank, so keep the NEGATIVE line: image generators like to add eyes. If one slips through, regenerate with "the mask is a blank smooth oval, like an egg".
+
+```
+THE HUSHED (shared look): matte pitch-black, inky silk-like bodies, very long thin limbs with too many
+joints, tattered black mourning veils, and a smooth bone-white porcelain MASK that is completely
+featureless: no eyes, no eye holes, no nose, no mouth, no cracks that form a face. Only a faint cold
+pale-blue glimmer leaking from joints and from under the mask edge. Accent colour: cold pale blue.
+ABSOLUTELY NO TEXT of any kind in the image: no labels, no numbers, no captions, no pose names, no
+titles, no watermark. The space under every pose is plain flat #00FF00.
+NEGATIVE: eyes, eye sockets, eye glow, pupils, mouth, nose, facial features, expression, text, labels,
+numbers, captions, pose names, watermark, green fringing, motion blur, background scenery.
+```
+
+Labels are the common failure: if the generator adds them anyway, they cannot be removed by asking, so strip them in an image editor (paint the strip under each pose with the same flat #00FF00) before packing.
+
+## 3. Bosses (7) — pose sheets, 12–14 poses each
 
 Every boss sheet has the common poses first, then one pose per move tell/strike. A **tell pose** is the readable wind-up; the strike/recovery are separate poses.
 Common poses (all bosses): `idle`, `walk`, `roar` (phase change), `stagger` (poise/posture broken), `fallen` (defeated).
@@ -168,7 +186,89 @@ weapon. Eerie, graceful. 14 poses in order:
 [SPRITE RULES]
 ```
 
-## 4. Enemies (12) — pose sheets, 4–6 poses each
+### 3.7 The Long Mourner, Keeper of the Final Silence (Area G — The Hushed Gallery)
+
+Design: a colossal, very tall and gaunt black monster, about 2.5 times a person's height. Impossibly long thin arms ending in needle fingers, long stilt legs with backwards knees, tattered mourning veils, and a large smooth bone-white porcelain mask with NO facial features at all.
+Accent: cold pale blue (and the usual **blood-red glow** only on its unparryable execution tell). Palette: pitch black, bone white, pale blue.
+
+This boss has its **own poses and its own moveset** (it does not reuse the Warden's). It is built around reach, the ceiling and silence. Two sheets, like Sir Aldric: sheet A has phase one, sheet B has phase two and the specials. Generate A first, then use its best pose as the reference image for B.
+
+| Move (phase) | Poses it needs | Idea for the code |
+|---|---|---|
+| Long Reach (1, 2) | reach tell, reach strike, reach recover | one arm shoots along the floor to far beyond its body length; jump or Shadow Step it |
+| Needle Garden (1, 2) | needle tell, needle plant | the arm is driven into the floor; needle fingers burst up in a row, telegraphed one by one |
+| Veil Net (1, 2) | veil tell, veil cast | it flings its veil as a net of black threads; slow, wide, can be dashed through |
+| Scuttle (1, 2) | scuttle | drops low and crab-walks fast along the floor to reposition; the lead-in to the pounce |
+| Silent Wail (2) | hush, rise | arms spread, all sound is cut and a ring of silence expands; also the phase-change pose |
+| Ceiling Drop (2) | cling, drop, land | it climbs to the ceiling, crawls overhead, then falls on you; a floor marker shows the spot |
+| Pounce (2) | pounce | from the scuttle it springs across the arena on all limbs |
+| Mourning Embrace (2, execution) | embrace tell, embrace strike | both arms open wide, then close in a crushing hug; blood-red tell, only Shadow Step beats it |
+
+Common poses on the sheets: idle, walk, stagger, fallen.
+
+**Sheet A: phase one (12 poses, two rows of 6)**
+```
+[PREAMBLE] [HUSHED LOOK] Character pose sheet of THE LONG MOURNER, Keeper of the Final Silence: a
+colossal, very tall and gaunt monstrous black creature, roughly 2.5 times the height of a person,
+pitch-black matte inky silk-like body, impossibly long thin arms that reach below the knees and end in
+long needle-like fingers, long stilt legs with extra joints and backwards knees, a narrow hunched torso
+wrapped in tattered black mourning veils and frayed black thread, a small head crowned with thin
+drooping antennae-like threads, and a large smooth bone-white porcelain MASK that is completely
+featureless: no eyes, no eye holes, no nose, no mouth, no cracks, only a faint cold pale-blue glow
+leaking from under the mask edge and from the joints. Silent, tragic, towering, inhuman. The silhouette
+is much taller than wide. 12 poses in this exact order, two rows of 6:
+1 idle (arms hanging low, head slightly bowed, veils still),
+2 walk (slow, long stalking stride, arms swaying),
+3 reach tell (one very long arm drawn far back behind the body, torso twisted away, needle fingers
+spread, the other arm held low),
+4 reach strike (the arm shot far forward at hip height, fully extended to nearly twice the body's length,
+fingers spread, body stretched and leaning through the strike),
+5 reach recover (the long arm dragging limply on the ground, torso off balance, head turned away),
+6 needle tell (one arm raised straight up high, needle fingers pointing down like a dagger, the other
+arm braced, torso arched back),
+7 needle plant (the arm driven down into the floor up to the elbow, body bent low over it, small
+cracks in the ground),
+8 veil tell (both arms crossed over the chest gripping the front of the veil, shoulders hunched,
+body coiled),
+9 veil cast (both arms flung forward and wide, the veil blown out in front like a net of long black
+threads, body leaning in),
+10 scuttle (folded down very low onto all limbs, crab-like, knees high above the back, head forward),
+11 stagger (hunched, one knee buckled, one long arm braced on the ground, veils torn),
+12 fallen (collapsed in a long heap on the ground, arms outstretched, the mask lying cracked beside it
+but still blank).
+Same height, same scale and proportions in every pose, feet on one common baseline.
+No text of any kind: no labels, no numbers, no captions under the poses. [SPRITE RULES]
+```
+
+**Sheet B: phase two and specials (8 poses, two rows of 4)**
+```
+[PREAMBLE] [HUSHED LOOK] Same character as the reference: THE LONG MOURNER, phase two. The veils are more
+tattered and some of the thread is torn loose, the pale-blue glow under the mask edge and at the joints is
+brighter, the mask is still completely smooth and blank. 8 poses in this exact order, two rows of 4:
+1 rise (unfolding from a tight huddle on the ground, the long limbs unfolding one by one, head just
+lifting),
+2 hush (standing tall, arms spread very wide, head thrown back, the mask tilted skyward, a pale-blue
+glow pouring from under the mask, absolute stillness, no mouth),
+3 cling (hanging UPSIDE DOWN from a flat ceiling line at the TOP of the pose: all four limbs gripping the
+ceiling with needle fingers, the body dangling and curled below it, the veil hanging upward-down,
+the mask turned toward the floor),
+4 drop (falling straight down, all four limbs stretched down in front, veils streaming upward,
+needle fingers pointing at the floor),
+5 land (crouched in impact on all limbs, the fingers planted, the knees high, the head up, the ground
+cracking),
+6 pounce (airborne, limbs splayed wide like a spider mid-spring, the arms reaching forward, veils
+streaming),
+7 embrace tell (standing tall and leaning forward, both long arms flung wide open to the sides, fingers
+spread, a faint blood-red glow in the palms, the mask tilted down),
+8 embrace strike (the arms swung inward and closed in a crushing hug in front of the body, the torso
+folded forward over the arms, the blood-red glow where the hands meet).
+Pose 3 (cling) hangs from the top edge of its cell; every other pose stands on the same floor baseline.
+Same height, same scale and proportions in every pose.
+No text of any kind: no labels, no numbers, no captions under the poses. The space under every pose is plain flat #00FF00.
+The mask is a blank smooth featureless oval in every pose: no eyes, no eye holes, no glowing eyes. [SPRITE RULES]
+```
+
+## 4. Enemies (17) — pose sheets, 4–6 poses each
 
 All enemies: scale roughly the same as the existing enemies (hero-sized or smaller) unless noted. Standard poses: `idle/walk`, `windup` (the readable tell), `strike`, `recover/dazed`.
 
@@ -186,6 +286,11 @@ All enemies: scale roughly the same as the existing enemies (hero-sized or small
 | 10 | Needle Centipede | ceiling-crawl, drop, coil tell, strike, recover |
 | 11 | Lamprey | water-ripple, leap, snap, fall |
 | 12 | Silk Husk | idle, walk, whip tell, whip strike, collapse (thread cut) |
+| 13 | Hushling (Area G) | idle, crawl A, crawl B, lunge tell, lunge strike, dazed |
+| 14 | Shroud Drifter (Area G) | drift A, drift B, dive tell, dive strike, dazed |
+| 15 | Stilt Mourner (Area G) | idle, walk A, walk B, reach tell, reach strike, recover |
+| 16 | Gallows Reacher (Area G) | hang idle, hang tell, drop strike, landed, dazed |
+| 17 | Shade Brute (Area G) | idle, walk A, walk B, slam tell, slam strike, dazed |
 
 ### Paste-ready prompts
 
@@ -288,6 +393,67 @@ upright by visible silver marionette threads going up out of frame, a hollow dar
 violet pinprick eyes. 5 poses in order: idle (threads taut), walk (jerky puppet step), thread-whip
 tell (an arm raised, a long thread coiling), thread-whip strike (thread lashing out to the right),
 collapse (threads cut, a heap of cloth and armour). [SPRITE RULES]
+```
+
+### Area G — The Hushed Gallery (enemies 13 to 17)
+
+Paste the preamble and the **[HUSHED LOOK]** block (§2.1) before each. The Hushed are all pitch black with a blank white mask, so their silhouettes must differ: small and low (Hushling), floating (Shroud Drifter), tall with a long reach (Stilt Mourner), hanging from the ceiling (Gallows Reacher) and heavy (Shade Brute).
+
+**13. Hushling** (small crawler, about half the hero's height)
+```
+[PREAMBLE] [HUSHED LOOK] Character pose sheet of a HUSHLING: a small pitch-black crawler that moves on
+all fours with long spindly arms and legs bent like a spider's, a bone-white featureless porcelain
+mask on a round head, a ragged black veil dragging behind. Creepy, quick, child-sized. 6 poses in
+order: 1 idle (crouched low, arms folded under the body), 2 crawl A (left limbs forward), 3 crawl B
+(right limbs forward), 4 lunge tell (body pulled back, all limbs coiled, mask tilted down),
+5 lunge strike (fully airborne, arms stretched far forward, claws open), 6 dazed (flat on its belly,
+limbs splayed, a few pale stars). [SPRITE RULES]
+```
+
+**14. Shroud Drifter** (flyer)
+```
+[PREAMBLE] [HUSHED LOOK] Character pose sheet of a SHROUD DRIFTER: a floating tattered black funeral
+shroud with no legs, a bone-white featureless porcelain mask at the top, two impossibly long thin
+arms hanging far below the body, a ragged hem trailing like smoke. Silent, weightless. 5 poses in
+order: 1 drift A (arms hanging, shroud billowing up), 2 drift B (shroud billowing down),
+3 dive tell (arms drawn up and crossed over the mask, shroud pulled tight, hovering high),
+4 dive strike (streamlined diagonal dive, arms stretched ahead like spears, shroud streaming behind),
+5 dazed (spiralling, shroud knotted, arms limp). [SPRITE RULES]
+```
+
+**15. Stilt Mourner** (tall reach enemy, about 1.6x the hero's height)
+```
+[PREAMBLE] [HUSHED LOOK] Character pose sheet of a STILT MOURNER: a tall gaunt black figure on very
+long thin stilt-like legs with backwards knees, a narrow torso, and arms nearly as long as its body
+ending in thin needle fingers, a bone-white featureless porcelain mask on a small head, a short
+tattered veil. Patient and unnerving. 6 poses in order: 1 idle (arms hanging to the ground, head
+slightly bowed), 2 walk A (slow stalking step), 3 walk B, 4 reach tell (one long arm drawn far back,
+body leaning away, fingers spread), 5 reach strike (arm shot far forward to full length, body
+stretched thin, needle fingers pointing), 6 recover (arm dragging on the ground, off balance).
+[SPRITE RULES]
+```
+
+**16. Gallows Reacher** (ceiling ambusher)
+```
+[PREAMBLE] [HUSHED LOOK] Character pose sheet of a GALLOWS REACHER: a long black spidery creature that
+hangs from the ceiling, gripping with very long thin arms, body and veil dangling below, a bone-white
+featureless porcelain mask on a small head, legs folded up like a crushed insect. Lurking, patient.
+ALL poses hang from a single common ceiling line at the TOP of each pose (not a floor baseline).
+5 poses in order: 1 hang idle (arms gripping the ceiling, body swaying, veil hanging), 2 hang tell
+(body curled up tight, arms flexed, coiled to drop), 3 drop strike (falling, arms stretched straight
+down, body stretched, veil streaming up), 4 landed (crouched on the floor, arms planted, head up),
+5 dazed (collapsed, arms folded over the mask). [SPRITE RULES]
+```
+
+**17. Shade Brute** (heavy melee, about 1.4x the hero's height, bulky)
+```
+[PREAMBLE] [HUSHED LOOK] Character pose sheet of a SHADE BRUTE: a hulking pitch-black creature with a
+hunched back and enormous long arms ending in huge heavy fists that reach almost to the ground, short
+thin legs, a bone-white featureless porcelain mask on a small head sunk between the shoulders, shreds
+of black veil. Slow and crushing. 6 poses in order: 1 idle (knuckles resting on the ground),
+2 walk A (heavy knuckle-walk), 3 walk B, 4 slam tell (both fists raised high overhead, body arched
+back), 5 slam strike (both fists driven into the ground, body folded forward, ground cracking),
+6 dazed (slumped forward, fists limp, a few pale stars). [SPRITE RULES]
 ```
 
 ## 5. Area backdrops (far / mid / tile / props)
