@@ -52,7 +52,7 @@
             keys: [['Guard (hold)', 'parry']],
             body: () => [
                 `Under the health bar is your posture bar. Hold ${L('parry')} after the parry window to raise the guard: blows from the front drain posture instead of health.`,
-                'Posture does not refill while you guard. Empty, and the guard breaks: you reel, and every blow hurts half as much again until it returns. A clean parry gives some back.',
+                'Holding the guard drains posture by itself, and every blocked blow drains more. Empty, and the guard breaks: you reel, and every blow hurts half as much again until it returns. A clean parry gives some back.',
                 'Blows from behind, traps and attacks with the red tell cannot be blocked.',
             ],
         },

@@ -23,6 +23,7 @@
             this.glintFlash = 0;
             this.glintPop = null;
             this.ghostHp = 5;
+            this.ghostPosture = 100;
             this.saveIcon = 0;
         }
         glintGain(n) {
@@ -97,6 +98,14 @@
                 // the pale trail behind the health bar: it follows the fill down slowly, and up at once
                 if (this.ghostHp > st.hp) this.ghostHp = Math.max(st.hp, this.ghostHp - dt * 2.2);
                 else this.ghostHp = st.hp;
+
+                // and the same behind the posture bar
+                const pl = this.game.player,
+                    pm = pl && pl.postureMax ? pl.postureMax() : 100,
+                    pv = pl && pl.posture != null ? pl.posture : pm;
+
+                if (this.ghostPosture > pv) this.ghostPosture = Math.max(pv, this.ghostPosture - dt * 40);
+                else this.ghostPosture = pv;
 
                 if (Math.ceil(st.hp) < Math.ceil(this.shownHp)) {
                     for (let i = Math.ceil(st.hp); i < Math.ceil(this.shownHp); i++) this.crack.push({ i, t: 0 });
@@ -263,6 +272,8 @@
             ctx.fillStyle = 'rgba(6,7,10,0.8)';
             BW.roundRect(ctx, hx - 3, py - 3, pw + 6, ph + 6, 4);
             ctx.fill();
+            ctx.fillStyle = 'rgba(255,140,110,0.55)';
+            ctx.fillRect(hx, py, pw * BW.clamp(this.ghostPosture / pm, 0, 1), ph);
             ctx.fillStyle = broken
                 ? `rgba(255,70,60,${0.55 + 0.45 * Math.sin(this.game.time * 22)})`
                 : pr < 0.25

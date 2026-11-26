@@ -80,6 +80,7 @@ Under the red health bar is the **posture bar**. Hold the parry button (I / LB) 
 
 - A blow from the front costs posture, not health (about 26 per ordinary blow). Walking slowly is allowed while guarding.
 - A clean **parry** (a tap just before a blow) costs nothing and gives 25 posture back.
+- Keeping the guard up costs posture all the while (9 a second), so it cannot be held for ever; at zero it breaks.
 - Posture does not refill while you guard. After a short pause it refills at 14 a second.
 - **Empty = guard broken**: you reel for 1.2 s and stay open for 1.6 s, taking 50% more damage, and the bar creeps back at 8 a second.
 - Blows from behind, traps, and attacks with the red tell cannot be blocked.

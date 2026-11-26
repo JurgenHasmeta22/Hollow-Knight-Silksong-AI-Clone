@@ -48,6 +48,7 @@
     // The pose sheets were drawn pose by pose, so the same figure is 190 to 245 px tall from one pose to the next: idle
     // swapped a tall pose for a short one, the run cycle pulsed, the transformation swelled and shrank. These poses are
     // drawn at one common figure height (atlas px); the rest keep their own size (their sword, flames or lean are part of it).
+    const GUARD_DRAIN = 9; // posture lost a second while the guard is held
     const STAND_H = 205;
     const RUN_H = 172;
     const STAND = new Set([
@@ -2385,7 +2386,13 @@
 
             this.postureDelay = Math.max(0, this.postureDelay - dt);
 
-            if (!this.blocking && this.postureDelay <= 0) this.posture = Math.min(max, this.posture + 14 * dt);
+            // keeping the guard up costs posture all the while, so it cannot be held for ever; empty, it breaks
+            if (this.blocking) {
+                this.posture -= GUARD_DRAIN * dt;
+                this.postureDelay = Math.max(this.postureDelay, 0.8);
+
+                if (this.posture <= 0) this.breakGuard();
+            } else if (this.postureDelay <= 0) this.posture = Math.min(max, this.posture + 14 * dt);
 
             this.posture = Math.min(this.posture, max);
         }

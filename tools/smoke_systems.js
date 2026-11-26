@@ -381,6 +381,41 @@ console.log('posture and the guard');
     const max = P3.postureMax();
     const hp0 = s5.hp;
 
+    // holding the guard drains posture all by itself, and held long enough it breaks
+    {
+        const p0 = P3.posture;
+
+        run(2, 'holding the guard');
+        check(
+            P3.blocking && P3.posture < p0 - 12,
+            `holding the guard drains posture (${p0.toFixed(0)} -> ${P3.posture.toFixed(0)} in 2 s)`,
+        );
+        BW.Input.down.parry = false;
+        run(0.3, 'lowering the guard');
+        P3.posture = max;
+        P3.postureDelay = 0;
+        P3.breakT = 0;
+        BW.Input.down.parry = true;
+
+        let broke = false;
+
+        for (let i = 0; i < 30 && !broke; i++) {
+            run(0.5, 'holding the guard for ever');
+            broke = P3.breakT > 0;
+        }
+
+        check(broke, 'a guard held with nothing hitting it eventually breaks');
+        BW.Input.down.parry = false;
+        s5.hp = s5.maxHp;
+        P3.breakT = 0;
+        P3.lockT = 0;
+        P3.posture = max;
+        P3.postureDelay = 0;
+        P3.invulnT = 0;
+        BW.Input.down.parry = true;
+        run(0.6, 'raising the guard again');
+    }
+
     P3.hurt(1, P3.cx + 60, { strike: true });
     check(
         s5.hp === hp0 && P3.posture < max,
