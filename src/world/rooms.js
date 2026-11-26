@@ -347,7 +347,7 @@
 
         r.ent('sign', 5, 10, {
             title: 'Guild Notice',
-            text: ['GUILD HALL OF THE BELLWEAVERS', 'Mind the shuttles. Mend what frays. Ring at dusk.'],
+            text: ['HALL OF THE WEAVERS’ CONCORD', 'Mind the shuttles. Mend what frays. Ring at dusk.'],
         });
 
         r.deco('loom', 8, 20, { layer: 'back' });

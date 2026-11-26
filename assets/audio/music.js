@@ -75,6 +75,11 @@ window.BW_MUSIC = {
   "gain": 0.8,
   "xfade": 1
  },
+ "mus_dark_intro": {
+  "src": "assets/audio/mus_dark_intro.wav",
+  "gain": 0.8,
+  "xfade": 1
+ },
  "amb_mosslit": {
   "src": "assets/audio/amb_mosslit.mp3",
   "gain": 0.55,

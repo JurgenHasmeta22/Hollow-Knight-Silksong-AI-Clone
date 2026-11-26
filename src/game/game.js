@@ -435,7 +435,7 @@
             const s = this.state;
 
             return {
-                game: 'bellweaver',
+                game: 'uncalled',
                 version: BW.Save.SAVE_VERSION,
                 createdAt: s.createdAt,
                 lantern: s.lantern,
@@ -2467,6 +2467,7 @@
             g.seqCard = null;
         }
 
+        BW.Audio.playMusic('mus_dark_intro', 1.5);
         yield* BW.Lore.play(g, BW.Lore.INTRO);
         g.seqText = null;
         g.fade = 0;
@@ -2490,6 +2491,7 @@
         g.seq.hideHud = false;
         g.player.state = 'normal';
         g.hud.areaTitle('Mosslit Hollow', 'Beneath the silent city');
+        BW.Audio.playMusic(g.room.area.music, 4);
         g.saveGame();
     }
 

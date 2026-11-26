@@ -2,10 +2,11 @@
 
 Usage: python tools/make_dark_music.py        (needs numpy)
 
-Three seamless loops, built only from synthesis (no samples, nothing copied from anywhere):
+Four seamless loops, built only from synthesis (no samples, nothing copied from anywhere):
   mus_dark_title    the opening: a sub drone, a funeral toll that never quite resolves, a veiled choir, a slow pulse
   mus_dark_belfry   the Silent Belfry and the Cathedral approach: lower, slower, a lament line under the tolling
   mus_dark_ending   the ending: a lone bell tolling a falling phrase over a pad that finally opens
+  mus_dark_intro    the start of a new game: a heart just beginning, a bowed phrygian line, thin far-off bells
 
 Each loop is rendered a few seconds long and the reverb tail is folded back onto the start, so it repeats without a seam.
 The calm tracks (mosslit, spindle) are untouched: the Ronin's journey keeps them for the quiet stretches (see ALIAS in
@@ -285,7 +286,38 @@ def ending():
     save('mus_dark_ending', fold(reverb(mix, rng, 4.8, 0.6), L))
 
 
+def intro():
+    """The start of a new game, waking among the dead: a slow heartbeat, a bowed phrygian line, thin bells far away."""
+    rng = np.random.default_rng(53)
+    L = 48
+    mix = render(L)
+    total = L + 7
+
+    place(mix, drone(41.2, total, rng, 0.8), 0, 0.4)  # E1
+    place(mix, wind(total, rng), 0, 0.2)
+
+    for f, at in [(82.41, 0), (87.31, 9), (98.0, 18), (87.31, 27), (82.41, 36), (77.78, 45)]:
+        place(mix, string(f, 12, rng), at, 0.3)
+
+    place(mix, pad((82.41, 98.0, 123.47), 26, rng, (550, 950, 2300)), 0, 0.12)
+    place(mix, pad((87.31, 103.83, 130.81), 26, rng, (550, 950, 2300)), 24, 0.12)
+
+    for at in (5.0, 17.5, 26.0, 41.0):  # thin and far, nothing like the deep funeral toll of the other loops
+        place(mix, bell(164.81, 9, rng), at, 0.5)
+
+    place(mix, swell(164.81, 4.0, rng), 13.5, 0.3)
+
+    for beat in np.arange(0.5, L, 1.9):  # a heart that has just started
+        place(mix, thud(48), beat, 0.45)
+        place(mix, thud(42), beat + 0.3, 0.28)
+
+    save('mus_dark_intro', fold(reverb(mix, rng, 4.4, 0.55), L))
+
+
 if __name__ == '__main__':
-    title()
-    belfry()
-    ending()
+    import sys
+
+    todo = sys.argv[1:] or ['title', 'belfry', 'ending', 'intro']
+
+    for name in todo:
+        globals()[name]()

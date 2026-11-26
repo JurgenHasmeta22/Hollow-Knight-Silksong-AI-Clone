@@ -1049,7 +1049,7 @@
             const L = [];
             const add = (text, style, gap, value) => L.push({ text, style, gap, value });
 
-            add('BELLWEAVER', 'logo', 86);
+            add('THE UNCALLED', 'logo', 86);
             add('a thread through the silent bells', 'tag', 96);
             add('', 'rule', 90);
             add('An original game', 'head', 40);

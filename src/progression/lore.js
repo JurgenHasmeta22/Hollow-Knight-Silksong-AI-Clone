@@ -21,7 +21,7 @@
             title: 'The Weavers’ Concord',
             art: 'bg_spindle_far',
             lines: [
-                'The Bellweavers tended the looms, and the looms spun the cord that hung every bell. Every bell answered to a thread, and every thread to a hand.',
+                'The Weavers tended the looms, and the looms spun the cord that hung every bell. Every bell answered to a thread, and every thread to a hand.',
                 'Nobody was ever told what the cord was spun from. Nobody was permitted to ask.',
             ],
         },

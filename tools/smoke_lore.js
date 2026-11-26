@@ -106,5 +106,15 @@ check(
     'the calm Hollow and Spindleworks tracks stay',
 );
 
+check(
+    music.mus_dark_intro && fs.existsSync(path.join(ROOT, music.mus_dark_intro.src)),
+    'the start of a new game has its own track (mus_dark_intro)',
+);
+check(game.includes("playMusic('mus_dark_intro'"), 'and the intro sequence plays it');
+
+const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+
+check(!/bellweaver/i.test(html), 'the loading screen and page no longer say Bellweaver');
+
 console.log(failures ? `\n${failures} check(s) FAILED` : '\nall lore checks passed');
 process.exit(failures ? 1 : 0);

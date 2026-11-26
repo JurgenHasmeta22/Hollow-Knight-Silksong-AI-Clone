@@ -1,8 +1,8 @@
-# Bellweaver
+# The Uncalled
 
-*a thread through the silent bells*
+*a face the bells cannot call*
 
-An original, hand-painted 2D action-exploration game that runs in the browser. You play the last Bellweaver, a small moth-knight with a silver needle. She climbs from the glowing caves of **Mosslit Hollow**, through the abandoned looms of **the Spindleworks**, up to **the Silent Belfry**. There she rethreads the two toll-looms that keep its seal shut, then opens the great doors of the **Cathedral of the Last Toll**.
+An original, hand-painted 2D action-exploration game that runs in the browser. You play the Faceless Ronin, the last of the murdered House of Vael, left among the dead with his face cut away so that no bell can find him. He climbs from the glowing caves of **Mosslit Hollow**, through the abandoned looms of **the Spindleworks**, up to **the Silent Belfry**. from the glowing caves of **Mosslit Hollow**, through the abandoned looms of **the Spindleworks**, up to **the Silent Belfry**. There he wakes the two toll-looms that keep its seal shut, then opens the great doors of the **Cathedral of the Last Toll**.
 
 **This is the complete game (v0.9.0 Alpha):** the full exploration adventure, the final boss and the ending.
 
@@ -147,7 +147,7 @@ Entries are stored in the save. Saves from older builds are filled in from the e
 Open **Gallery** from the pause menu. **Left / Right** switches category and **Up / Down** browses; everything is read-only, so nothing you do here touches your save or the world.
 
 - **Realms**: full-screen backdrops of Mosslit Hollow, the Spindleworks, the Silent Belfry and the Cathedral (unlocked by visiting each region), plus the title art and, after the ending, the dawn over the Hollow. Each plays its own music and shows how many of its rooms you have found.
-- **Creatures**: large animated portraits of every creature in the Bestiary, plus Odo and the Bellweaver, with their lore. Unmet ones are black silhouettes marked `???`.
+- **Creatures**: large animated portraits of every creature in the Bestiary, plus Odo and the Faceless Ronin, with their lore. Unmet ones are black silhouettes marked `???`.
 - **Memories**: replay story moments you have already seen: the prologue, the region interludes, the shrines, the toll-looms, the Warden's tale, the vow broken, and the ending with its epilogue and credits. Press confirm to watch; **Esc / Back** skips and returns to the Gallery.
 
 ## Map
@@ -218,11 +218,10 @@ The game opens with a short run of intro chapters, plus an interlude card the fi
 
 ---
 
-## Choosing your hero
+## Your hero
 
-**New Game** asks for a difficulty and then a hero. Both play the same story and the same world; the choice is saved with the game.
+**New Game** asks for a difficulty and starts the Faceless Ronin's journey. There is one hero and one story (see `docs/RONIN_LORE.md`).
 
-- **The Bellweaver:** the original. Quick and precise: needle, Silk Dash, Silk Lance, parry and Shadow Step.
 - **The Faceless Ronin:** a straw-hatted swordsman with a heavier, much bigger moveset (art from two pose sheets, `tools/art/`).
   - **Normal form:** a three-hit dual-blade combo (the third hit lunges and shakes the floor), an air slash, up and bouncing down strikes, the **Void Slash** (hold the strike button, release when the aura closes; 4 silk), the **Energy Barrage** (L; throws a black crescent, 3 silk), the **Whirlwind Dash** (U; 2 silk), a **dash-slash** (strike in the middle of a dash), plus Silk Dash, parry, Shadow Step and mending, which are shared with the Weaver.
   - **Shade:** a gauge under the experience bar. Every blow fills it a little, a parry or a Shadow Step fills it a lot. When it is full, **O** (or L3) starts the transformation: focus, flare, float, absorb, unleash.
@@ -291,8 +290,7 @@ src/                game code (classic scripts, no build step; load order is set
     hushed.js       Chapter II: the Hushed Gallery area and its eight main-road rooms
     hushed_wings.js the Gallery's ten extra rooms (Cloister, Underveil, Cells) and its score
   entities/
-    player.js       the Bellweaver
-    ronin.js        the Faceless Ronin: a Player subclass with a combo, charge, a dozen skills, the Shade gauge and
+    ronin.js        the Faceless Ronin: movement, dash, parry, a combo, charge, a dozen skills, the Shade gauge and
                     a transformation, plus its crescent / spike / summon effects
     enemies.js      enemy behaviours
     objects.js      lanterns, pickups, NPC, shrine, toll-looms, lifts, doors, the Great Bell

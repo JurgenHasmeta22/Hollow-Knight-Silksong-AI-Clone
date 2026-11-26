@@ -370,7 +370,7 @@
 
                                 this.flash(
                                     ok
-                                        ? 'Save exported as bellweaver-save.json (also copied to clipboard).'
+                                        ? 'Save exported as uncalled-save.json (also copied to clipboard).'
                                         : 'There is no save to export yet.',
                                 );
                             },
@@ -387,7 +387,7 @@
                         {
                             label: 'Paste Save Text',
                             act: () => {
-                                const txt = window.prompt('Paste the contents of a bellweaver-save.json file:');
+                                const txt = window.prompt('Paste the contents of a uncalled-save.json file:');
 
                                 if (txt) {
                                     const r = BW.Save.importText(txt);

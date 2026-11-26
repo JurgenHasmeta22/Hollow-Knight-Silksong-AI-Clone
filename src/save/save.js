@@ -3,8 +3,8 @@
 // Persistent progress. The save is a flat JSON object with a version number; unknown fields are
 // preserved on write so later builds (and older snapshots) can share one save safely.
 (function (BW) {
-    const KEY = 'bellweaver.save';
-    const SETTINGS_KEY = 'bellweaver.settings';
+    const KEY = 'uncalled.save';
+    const SETTINGS_KEY = 'uncalled.settings';
     const SAVE_VERSION = 1;
 
     function storage() {
@@ -30,7 +30,7 @@
 
         defaults() {
             return {
-                game: 'bellweaver',
+                game: 'uncalled',
                 version: SAVE_VERSION,
                 createdAt: new Date().toISOString(),
                 updatedAt: null,
@@ -56,7 +56,7 @@
         // Bring any older save object up to the current structure without losing data.
         migrate(data) {
             if (!data || typeof data !== 'object') return null;
-            if (data.game && data.game !== 'bellweaver') return null;
+            if (data.game && data.game !== 'uncalled') return null;
 
             const d = Object.assign(this.defaults(), data);
 
@@ -144,7 +144,7 @@
         // ---- Manual slots: each holds a full snapshot of the save, independent of the autosave.
         SLOTS: 5,
         slotKey(i) {
-            return 'bellweaver.slot.' + i;
+            return 'uncalled.slot.' + i;
         },
         readSlot(i) {
             const s = storage(),
@@ -252,7 +252,7 @@
             const a = document.createElement('a');
 
             a.href = URL.createObjectURL(blob);
-            a.download = 'bellweaver-save.json';
+            a.download = 'uncalled-save.json';
             document.body.appendChild(a);
             a.click();
 
