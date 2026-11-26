@@ -219,9 +219,7 @@
         this.codexSee((b && b.codexId) || 'warden');
         this.saveGame();
         this.startSequence(
-            b.introStyle === 'mourner'
-                ? mournerIntro(this, b, !mournerIntroSeen)
-                : wardenIntro(this, b, first),
+            b.introStyle === 'mourner' ? mournerIntro(this, b, !mournerIntroSeen) : wardenIntro(this, b, first),
         );
     };
 
@@ -503,8 +501,7 @@
 
             BW.Audio.playMusic('mus_boss', 0.3);
 
-            if (full && !g.bossTitle)
-                g.bossTitle = { name: b.bossName, sub: b.bossSub, t: 0, life: 2.6 };
+            if (full && !g.bossTitle) g.bossTitle = { name: b.bossName, sub: b.bossSub, t: 0, life: 2.6 };
 
             g.camFocus = null;
             yield 0.85;
@@ -1007,6 +1004,10 @@
     ];
 
     class Ending {
+        // the Ronin's journey ends on its own words (src/progression/lore_ronin.js)
+        epilogue() {
+            return (BW.Lore.epilogue && BW.Lore.epilogue(this.game.state)) || EPILOGUE;
+        }
         constructor(game, replay, state, fromTitle) {
             this.game = game;
             this.t = 0;
@@ -1128,7 +1129,7 @@
                     this.line++;
                     this.pt = 0;
 
-                    if (this.line >= EPILOGUE.length) {
+                    if (this.line >= this.epilogue().length) {
                         this.phase = 'credits';
                         this.scroll = 0;
                     }
@@ -1206,7 +1207,7 @@
                 ctx.globalAlpha = Math.max(0, a);
                 ctx.font = `italic 500 34px ${BW.FONT_B}`;
                 ctx.fillStyle = '#f6ecd6';
-                BW.wrapText(ctx, EPILOGUE[this.line] || '', W / 2, H - 150, 880, 44);
+                BW.wrapText(ctx, this.epilogue()[this.line] || '', W / 2, H - 150, 880, 44);
             } else if (this.phase === 'credits') {
                 let y = H + 40 - this.scroll;
 
@@ -1334,8 +1335,8 @@
                     this.fromTitle
                         ? 'Thank you for playing.'
                         : this.replay
-                          ? 'A memory, replayed. Nothing in your journey has changed.'
-                          : 'Your completion has been saved.',
+                        ? 'A memory, replayed. Nothing in your journey has changed.'
+                        : 'Your completion has been saved.',
                     W / 2,
                     H - 46,
                 );

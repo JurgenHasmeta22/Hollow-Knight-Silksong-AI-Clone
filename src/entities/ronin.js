@@ -1829,7 +1829,7 @@
             id: 'ronin',
             name: 'The Faceless Ronin',
             sprite: 'ronin_idle_a',
-            desc: 'Heavy blades and a shade that burns. A three-hit combo, charged slashes, and a second form that unleashes a dozen new skills.',
+            desc: 'Left among the dead with his face cut away, so the bells cannot find him. Heavy blades, a shade that burns, and a second form that unleashes a dozen new skills.',
         },
     };
 })(window.BW);

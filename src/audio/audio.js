@@ -358,7 +358,23 @@
             this.tracks[name] = new LoopPlayer(name, src, gain, xfade, name.startsWith('amb') ? 'amb' : 'music');
         },
 
+        // The Faceless Ronin's journey keeps the calm tracks for its quiet stretches (the Hollow, the Spindleworks) and swaps
+        // the opening, the Belfry and the ending for the dark loops from tools/make_dark_music.py.
+        setTheme(hero) {
+            this.theme = hero === 'ronin' ? THEME_RONIN : null;
+        },
+        themed(name) {
+            return (this.theme && this.theme[name]) || name;
+        },
+        // play the current theme's version of whatever was last asked for (e.g. the title music once a hero is picked)
+        retheme(fade = 1.5) {
+            if (this.musicRaw) this.playMusic(this.musicRaw, fade);
+        },
+
         playMusic(name, fade = 2.0) {
+            this.musicRaw = name;
+            name = name ? this.themed(name) : name;
+
             if (this.musicName === name) return;
 
             const prev = this.tracks[this.musicName];
@@ -566,6 +582,7 @@
 
     // the longest a single play of a bank may last (seconds of the recording): a safety net if a take still runs on
     const CAP = { bladedual: 0.55, slashbody: 0.5, combohit: 0.85 };
+    const THEME_RONIN = { mus_title: 'mus_dark_title', mus_belfry: 'mus_dark_belfry', mus_ending: 'mus_dark_ending' };
     const BASE_PITCH = { bell: 196 };
     const ALIAS = { bellfar: { sample: 'bell', vol: 0.32, lowpass: 900 } };
 

@@ -322,6 +322,11 @@
             const want = id === 'ronin' && BW.Ronin ? BW.Ronin : BW.Player;
 
             if (this.player.constructor !== want) this.player = new want(this);
+
+            // the hero decides the story, the title and the soundtrack (Veiled Knell for the Ronin)
+            if (BW.Lore && BW.Lore.set) BW.Lore.set(id === 'ronin' ? 'ronin' : 'weaver');
+
+            if (BW.Audio.musicRaw === 'mus_title') BW.Audio.retheme(2);
         }
 
         newGame(difficulty, character) {
@@ -522,9 +527,11 @@
                 if (f.chapter2_clear)
                     return 'The Hushed Gallery is quiet and its Last Door stands open. Beyond it, something is still unspun.';
 
-                if (f.lastdoor_open) return 'The Last Door stands open at the end of the Hushed Gallery. Step into the light.';
+                if (f.lastdoor_open)
+                    return 'The Last Door stands open at the end of the Hushed Gallery. Step into the light.';
 
-                if (f.silent_key) return 'You hold the Silent Key. Carry it to the Last Door at the far end of the Last Door Hall.';
+                if (f.silent_key)
+                    return 'You hold the Silent Key. Carry it to the Last Door at the far end of the Last Door Hall.';
 
                 if (f.mourner_defeated)
                     return 'The Long Mourner is still. Take the Silent Key from the altar in the hall east of the arena.';
@@ -553,7 +560,9 @@
                 return 'Both toll-looms sing. The Belfry Seal above the Gatehouse is open — climb into the Silent Belfry.';
 
             if (bells === 1)
-                return `One toll-loom rethreaded (1/2). Find the other loom to break the Belfry Seal.${this.state.abilities.dash ? '' : ' A wide gap may need a swifter stitch.'}`;
+                return `One toll-loom rethreaded (1/2). Find the other loom to break the Belfry Seal.${
+                    this.state.abilities.dash ? '' : ' A wide gap may need a swifter stitch.'
+                }`;
 
             return 'Rethread the two toll-looms that bind the Belfry Seal (0/2).';
         }
@@ -1492,7 +1501,9 @@
 
             this.hud.toast(
                 `Level ${lv}`,
-                `Strike power +${Math.round(BW.XP.BONUS * (lv - 1) * 100)}%${alive ? '  \u00b7  Health and silk restored' : ''}`,
+                `Strike power +${Math.round(BW.XP.BONUS * (lv - 1) * 100)}%${
+                    alive ? '  \u00b7  Health and silk restored' : ''
+                }`,
                 3.6,
             );
 
@@ -1835,77 +1846,149 @@
                 f.odo_met = true;
 
                 pages.push(
-                    'Oh! A Bellweaver? I thought the guild had gone quiet for good. I’m Odo. I keep these lamps lit, for whoever still walks the halls.',
+                    BW.Lore.odo(
+                        st,
+                        'met_a',
+                        'Oh! A Bellweaver? I thought the guild had gone quiet for good. I’m Odo. I keep these lamps lit, for whoever still walks the halls.',
+                    ),
                 );
 
                 pages.push(
-                    'The Belfry has been sealed since the bells stopped. Two old toll-looms bind its seal. Rethread them both and the way up should open.',
+                    BW.Lore.odo(
+                        st,
+                        'met_b',
+                        'The Belfry has been sealed since the bells stopped. Two old toll-looms bind its seal. Rethread them both and the way up should open.',
+                    ),
                 );
 
                 pages.push(
-                    'One loom hangs in the deep roots below the Hollow. The other lies past the Sundered Span… and nobody has crossed that in a long while.',
+                    BW.Lore.odo(
+                        st,
+                        'met_c',
+                        'One loom hangs in the deep roots below the Hollow. The other lies past the Sundered Span… and nobody has crossed that in a long while.',
+                    ),
                 );
             } else if (!st.abilities.parry) {
                 pages.push(
-                    'Before you go further, touch the shrine at the far end of this hall. The weavers called it the Answering Toll: it teaches you to turn a blow aside.',
+                    BW.Lore.odo(
+                        st,
+                        'parry',
+                        'Before you go further, touch the shrine at the far end of this hall. The weavers called it the Answering Toll: it teaches you to turn a blow aside.',
+                    ),
                 );
             } else if (!st.abilities.dash) {
                 pages.push(
-                    'The weavers had a shrine past the Loom Gallery, where they learned their swiftest stitch. Down through the gallery floor, if memory serves.',
+                    BW.Lore.odo(
+                        st,
+                        'dash',
+                        'The weavers had a shrine past the Loom Gallery, where they learned their swiftest stitch. Down through the gallery floor, if memory serves.',
+                    ),
                 );
             } else if (!f.bell2) {
                 pages.push(
-                    'That stitch of yours! With it you could cross the Sundered Span, east of the Lantern Grotto. The second loom waits beyond.',
+                    BW.Lore.odo(
+                        st,
+                        'bell2',
+                        'That stitch of yours! With it you could cross the Sundered Span, east of the Lantern Grotto. The second loom waits beyond.',
+                    ),
                 );
             } else if (!f.bell1) {
                 pages.push(
-                    'The first loom is still slack. Follow the roots down from the Lantern Grotto, then west through the thorns.',
+                    BW.Lore.odo(
+                        st,
+                        'bell1',
+                        'The first loom is still slack. Follow the roots down from the Lantern Grotto, then west through the thorns.',
+                    ),
                 );
             } else if (!f.reached_cathedral) {
                 pages.push(
-                    'Both looms sing again — I felt it in my shell! The seal above the Gatehouse should be open. Go on up.',
+                    BW.Lore.odo(
+                        st,
+                        'looms',
+                        'Both looms sing again — I felt it in my shell! The seal above the Gatehouse should be open. Go on up.',
+                    ),
                 );
             } else if (f.great_bell) {
                 if (f.chapter2_clear)
                     pages.push(
-                        'You went through the Last Door? Every lamp I own turned toward the east at once. I think the quiet you left behind is the good kind.',
+                        BW.Lore.odo(
+                            st,
+                            'clear',
+                            'You went through the Last Door? Every lamp I own turned toward the east at once. I think the quiet you left behind is the good kind.',
+                        ),
                     );
                 else if (f.silent_key)
                     pages.push(
-                        'A key with no voice… The Last Door is at the end of that hall, they say. I hope you’ll tell me what the light is like.',
+                        BW.Lore.odo(
+                            st,
+                            'key',
+                            'A key with no voice… The Last Door is at the end of that hall, they say. I hope you’ll tell me what the light is like.',
+                        ),
                     );
                 else if (f.mourner_defeated)
                     pages.push(
-                        'Did you feel that? The whole Gallery just let out a breath it had been holding for a thousand dusks. Look for an altar.',
+                        BW.Lore.odo(
+                            st,
+                            'mourner_done',
+                            'Did you feel that? The whole Gallery just let out a breath it had been holding for a thousand dusks. Look for an altar.',
+                        ),
                     );
                 else if (f.mourner_met)
                     pages.push(
-                        'Still on your feet? Good. The Long Mourner is only a mourner. Rest at the lantern outside its door; you will want it.',
+                        BW.Lore.odo(
+                            st,
+                            'mourner_met',
+                            'Still on your feet? Good. The Long Mourner is only a mourner. Rest at the lantern outside its door; you will want it.',
+                        ),
                     );
                 else if (st.visited.H1)
                     pages.push(
-                        'The Hushed Gallery… my grandmother’s grandmother hung those veils. Ring the bells in there if you must, but expect company. The silent ones hear everything.',
+                        BW.Lore.odo(
+                            st,
+                            'hushed',
+                            'The Hushed Gallery… my grandmother’s grandmother hung those veils. Ring the bells in there if you must, but expect company. The silent ones hear everything.',
+                        ),
                     );
                 else {
                     pages.push(
-                        'That sound… the Great Bell! I never thought I’d hear it again. Every lamp in the Hollow is burning brighter. Thank you, Bellweaver.',
+                        BW.Lore.odo(
+                            st,
+                            'gb_a',
+                            'That sound… the Great Bell! I never thought I’d hear it again. Every lamp in the Hollow is burning brighter. Thank you, Bellweaver.',
+                        ),
                     );
 
                     pages.push(
-                        'And there is something else. The black veils at the end of the Ashen Ramparts, east of the Cord Lift: I saw them move from the lift. Veils do not move, Bellweaver. They are listening.',
+                        BW.Lore.odo(
+                            st,
+                            'gb_b',
+                            'And there is something else. The black veils at the end of the Ashen Ramparts, east of the Cord Lift: I saw them move from the lift. Veils do not move, Bellweaver. They are listening.',
+                        ),
                     );
                 }
             } else if (f.warden_defeated) {
                 pages.push(
-                    'The air feels lighter. Whatever guarded the cathedral is gone, isn’t it? Then the Great Bell is waiting for you.',
+                    BW.Lore.odo(
+                        st,
+                        'warden_done',
+                        'The air feels lighter. Whatever guarded the cathedral is gone, isn’t it? Then the Great Bell is waiting for you.',
+                    ),
                 );
             } else if (f.cathedral_open) {
                 pages.push(
-                    'I heard the great doors groan open, all the way down here. Something keeps the Great Bell silent. Rest at the lantern before you face it.',
+                    BW.Lore.odo(
+                        st,
+                        'cathedral_open',
+                        'I heard the great doors groan open, all the way down here. Something keeps the Great Bell silent. Rest at the lantern before you face it.',
+                    ),
                 );
             } else {
                 pages.push(
-                    'You’ve seen the great doors, then. Strange… lately I hear a bell in my dreams. Just one. Very slow.',
+                    BW.Lore.odo(
+                        st,
+                        'dreams',
+                        'You’ve seen the great doors, then. Strange… lately I hear a bell in my dreams. Just one. Very slow.',
+                    ),
                 );
             }
 
@@ -2111,14 +2194,14 @@
                         (o.type === 'toll'
                             ? 330
                             : o.type === 'shrine'
-                              ? 210
-                              : o.type === 'npc'
-                                ? 130
-                                : o.type === 'door'
-                                  ? 160
-                                  : o.type === 'note'
-                                    ? 70
-                                    : 128),
+                            ? 210
+                            : o.type === 'npc'
+                            ? 130
+                            : o.type === 'door'
+                            ? 160
+                            : o.type === 'note'
+                            ? 70
+                            : 128),
                     { act: 'interact' },
                     o.prompt(),
                     1,

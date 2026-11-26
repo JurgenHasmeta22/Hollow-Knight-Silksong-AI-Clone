@@ -617,14 +617,14 @@
                     s.name === 'options'
                         ? 'OPTIONS'
                         : s.name === 'savedata'
-                          ? 'SAVE DATA'
-                          : s.name === 'testsaves'
-                            ? 'TEST SAVES'
-                            : s.name === 'difficulty'
-                              ? 'CHOOSE DIFFICULTY'
-                              : s.name === 'travel'
-                                ? 'TRAVEL BETWEEN LANTERNS'
-                                : '',
+                        ? 'SAVE DATA'
+                        : s.name === 'testsaves'
+                        ? 'TEST SAVES'
+                        : s.name === 'difficulty'
+                        ? 'CHOOSE DIFFICULTY'
+                        : s.name === 'travel'
+                        ? 'TRAVEL BETWEEN LANTERNS'
+                        : '',
                     s.name === 'testsaves' ? BW.VH * 0.28 : BW.VH * 0.32,
                     BW.VW / 2,
                     s.name === 'testsaves' ? 37 : 50, // ten test saves would run into the description below at 50
@@ -648,6 +648,13 @@
             const ids = ['weaver', 'ronin'],
                 sel = ids[this.sel] || null,
                 t = this.t;
+
+            // the wanderer under the needle sets the story, the title and the music the game will begin with
+            if (sel && sel !== this.charPreview) {
+                this.charPreview = sel;
+                BW.Lore.set(sel);
+                BW.Audio.retheme(1.5);
+            }
 
             ctx.save();
             ctx.textAlign = 'center';
@@ -808,12 +815,12 @@
                 ctx.fillStyle = it.disabled
                     ? 'rgba(200,190,170,0.3)'
                     : it.tint
-                      ? on
-                          ? '#ff5a68'
-                          : it.tint
-                      : on
-                        ? '#fff1d0'
-                        : 'rgba(225,214,192,0.75)';
+                    ? on
+                        ? '#ff5a68'
+                        : it.tint
+                    : on
+                    ? '#fff1d0'
+                    : 'rgba(225,214,192,0.75)';
 
                 let label = it.label;
 
@@ -1069,11 +1076,11 @@
             ctx.shadowBlur = 24;
             ctx.font = `600 104px ${BW.FONT_T}`;
             ctx.fillStyle = '#f7ecd6';
-            spaced(ctx, 'BELLWEAVER', BW.VW / 2, 190, 10);
+            spaced(ctx, BW.TITLE.name, BW.VW / 2, 190, 10);
             ctx.shadowBlur = 0;
             ctx.font = `italic 500 30px ${BW.FONT_B}`;
             ctx.fillStyle = '#e1d2b2';
-            ctx.fillText('a thread through the silent bells', BW.VW / 2, 262);
+            ctx.fillText(BW.TITLE.tag, BW.VW / 2, 262);
             ornament(ctx, BW.VW / 2, 300, 210);
 
             if (this.titleCleared()) {
@@ -1088,7 +1095,9 @@
                 ctx.save();
                 ctx.textAlign = 'center';
                 ctx.font = `500 28px ${BW.FONT_B}`;
-                ctx.fillStyle = `rgba(240,230,210,${Math.min(1, Math.max(0, tt - 1.8)) * (0.5 + Math.sin(tt * 2.5) * 0.35)})`;
+                ctx.fillStyle = `rgba(240,230,210,${
+                    Math.min(1, Math.max(0, tt - 1.8)) * (0.5 + Math.sin(tt * 2.5) * 0.35)
+                })`;
                 ctx.fillText('Press any key or button', BW.VW / 2, BW.VH * 0.66);
                 ctx.restore();
             } else {

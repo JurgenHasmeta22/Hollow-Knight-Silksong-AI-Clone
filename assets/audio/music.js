@@ -60,6 +60,21 @@ window.BW_MUSIC = {
   "gain": 0.9,
   "xfade": 3
  },
+ "mus_dark_title": {
+  "src": "assets/audio/mus_dark_title.wav",
+  "gain": 0.8,
+  "xfade": 1
+ },
+ "mus_dark_belfry": {
+  "src": "assets/audio/mus_dark_belfry.wav",
+  "gain": 0.8,
+  "xfade": 1
+ },
+ "mus_dark_ending": {
+  "src": "assets/audio/mus_dark_ending.wav",
+  "gain": 0.8,
+  "xfade": 1
+ },
  "amb_mosslit": {
   "src": "assets/audio/amb_mosslit.mp3",
   "gain": 0.55,
