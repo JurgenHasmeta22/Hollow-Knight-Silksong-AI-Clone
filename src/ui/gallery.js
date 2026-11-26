@@ -173,7 +173,7 @@
             sprite: 'ronin_idle_a',
             open: true,
             text: [
-                'The House of Vael's sword, left among the dead with his face cut away, so the bells cannot find him.',
+                'The House of Vael’s sword, left among the dead with his face cut away, so the bells cannot find him.',
                 'Two blades and a shade that burns: every blow gathers thread, and every thread is a chance to mend.',
             ],
         });

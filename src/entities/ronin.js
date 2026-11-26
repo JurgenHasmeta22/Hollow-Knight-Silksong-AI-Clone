@@ -2061,6 +2061,13 @@
             this.heldDir = (inp.down.right ? 1 : 0) - (inp.down.left ? 1 : 0);
             this.speedMul = this.form ? TUNE.form.speed : 1;
 
+            // test saves (Save Data > Test Saves): the Shade is full again as soon as a form ends, and silk never runs out
+            if (g.state.flags && g.state.flags.test_save) {
+                g.state.silk = g.state.silkMax;
+
+                if (!this.form && !this.skill) g.state.shade = TUNE.shade.max;
+            }
+
             if (this.onGround && this.form) this.airJumps = TUNE.jumps;
 
             if (this.form) {

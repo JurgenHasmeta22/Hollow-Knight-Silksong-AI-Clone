@@ -212,6 +212,11 @@
         load(g, id) {
             BW.Save.adopt(build(id));
             g.continueGame();
+
+            // a test save is for trying things: the Shade and the silk refill themselves (see Player.update in ronin.js)
+            g.state.flags.test_save = true;
+            g.state.shade = 100;
+            g.state.silk = g.state.silkMax;
         },
     };
 })(window.BW);
