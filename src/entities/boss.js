@@ -151,6 +151,16 @@
             this.glint = 0;
             this.marker = null;
             this.leap = null;
+            this.emberColors = ['#ff9a3c', '#ffd27a', '#ff6a24']; // phase-two heat motes
+            this.glowColors = ['#ff8a3c', '#ffd27a']; // phase-change glow (see startTransition and the roar)
+            this.flashColor = '#ff9a5a';
+            this.ringColor = '#ffb36a';
+            this.phaseAt = TUNE.phaseAt; // health at which phase two begins
+            this.bossName = 'The Bellbound Warden'; // shown on the boss bar, the title card and in death causes
+            this.bossSub = 'Keeper of the Last Toll';
+            // blow -> its recovery, when parried or dodged
+            this.recMap = { sweep: 'sweep_rec', slam: 'slam_rec', leap_land: 'leap_rec' };
+            this.crashStates = ['charge']; // blows that a Shadow Step leaves stumbling and stunned instead
 
             this.cords = [
                 [-34, -196],
@@ -277,8 +287,8 @@
             if (++this.hitCount % 4 === 0)
                 BW.Audio.play('bellfar', { pitch: BW.pick([110, 131, 147, 165]), vol: 0.7, minGap: 0.1 });
 
-            if (this.phase === 1 && this.hp <= TUNE.phaseAt) {
-                this.hp = TUNE.phaseAt;
+            if (this.phase === 1 && this.hp <= this.phaseAt) {
+                this.hp = this.phaseAt;
                 this.startTransition();
 
                 return 'hit';
@@ -291,7 +301,7 @@
                 return 'kill';
             }
 
-            if (this.poise >= TUNE.poise[this.phase - 1] && STAGGERABLE[this.state]) this.startStagger();
+            if (this.poise >= TUNE.poise[this.phase - 1] && this.canStagger()) this.startStagger();
 
             return 'hit';
         }
@@ -320,6 +330,18 @@
             return this.poise >= TUNE.poise[this.phase - 1] * TUNE.combo.need;
         }
 
+        // The health bar: how full the bar being fought is (0..1) for a health value, and how full the reserve bar is.
+        // One bar over the whole fight by default; a boss with two bars overrides both.
+        barFrac(v) {
+            return Math.max(0, v) / this.maxHp;
+        }
+        reserve() {
+            return 0;
+        }
+        // is this a moment its guard can break in? (a blow in flight cannot be staggered out of)
+        canStagger() {
+            return !!STAGGERABLE[this.state];
+        }
         // A parry cracks the Warden's poise and cuts the blow short.
         onParried(p) {
             if (this.dead || this.invuln) return;
@@ -334,7 +356,7 @@
             this.vulnT = Math.max(this.vulnT, K.vulnT);
             this.vulnMul = Math.max(this.vulnMul, K.vuln);
 
-            const rec = { sweep: 'sweep_rec', slam: 'slam_rec', leap_land: 'leap_rec' }[this.state];
+            const rec = this.recMap[this.state];
 
             if (rec) {
                 this.setState(rec);
@@ -342,7 +364,7 @@
                 this.combo = 1;
             }
 
-            if ((this.poiseFull() || (this.dodgeT > 0 && this.comboReady())) && (STAGGERABLE[this.state] || rec))
+            if ((this.poiseFull() || (this.dodgeT > 0 && this.comboReady())) && (this.canStagger() || rec))
                 this.startStagger();
 
             g.fx.shake(8, 0.25);
@@ -369,13 +391,13 @@
             this.vulnT = Math.max(this.vulnT, K.vulnT);
             this.vulnMul = Math.max(this.vulnMul, K.vuln);
 
-            const rec = { sweep: 'sweep_rec', slam: 'slam_rec', leap_land: 'leap_rec' }[this.state];
+            const rec = this.recMap[this.state];
 
             if (rec) {
                 this.setState(rec);
                 this.vx = 0;
                 this.combo = 1;
-            } else if (this.state === 'charge') {
+            } else if (this.crashStates.includes(this.state)) {
                 this.vx = 0;
                 this.setState('charge_hit');
                 this.pose = 'stagger';
@@ -393,7 +415,7 @@
                 }
             }
 
-            if ((this.poiseFull() || (this.parryT > 0 && this.comboReady())) && (STAGGERABLE[this.state] || rec))
+            if ((this.poiseFull() || (this.parryT > 0 && this.comboReady())) && (this.canStagger() || rec))
                 this.startStagger();
 
             this.game.fx.shake(6, 0.2);
@@ -466,7 +488,7 @@
             });
 
             g.fx.burst(e.x, e.y, 16, {
-                color: ['#ff8a3c', '#ffd27a'],
+                color: this.glowColors,
                 kind: 'glow',
                 speed: 140,
                 life: 0.7,
@@ -742,7 +764,7 @@
                     vy: BW.rand(-90, -40),
                     life: BW.rand(0.6, 1.2),
                     size: BW.rand(1.5, 3),
-                    color: BW.pick(['#ff9a3c', '#ffd27a', '#ff6a24']),
+                    color: BW.pick(this.emberColors),
                     kind: 'glow',
                     add: true,
                     drag: 0.5,
@@ -1128,10 +1150,10 @@
                         BW.Audio.play('bell', { pitch: 73.4, vol: 1, minGap: 0 });
                         BW.Audio.playMusic('mus_boss2', 0.6);
                         g.fx.shake(14, 1.0);
-                        g.fx.flash('#ff9a5a', 0.35);
+                        g.fx.flash(this.flashColor, 0.35);
 
                         for (let i = 0; i < 3; i++)
-                            g.fx.ring(this.cx, this.y + 100, 20, 500 + i * 160, 0.9 + i * 0.2, '#ffb36a', 5 - i);
+                            g.fx.ring(this.cx, this.y + 100, 20, 500 + i * 160, 0.9 + i * 0.2, this.ringColor, 5 - i);
 
                         const dx = p.cx - this.cx;
 
@@ -1143,7 +1165,7 @@
                         }
 
                         g.fx.burst(this.cx, this.y + 80, 40, {
-                            color: ['#ff9a3c', '#ffd27a', '#ff6a24'],
+                            color: this.emberColors,
                             kind: 'glow',
                             speed: 320,
                             life: 1,
@@ -1474,6 +1496,98 @@
             return { x: x + c.ox * this.facing, y: y + c.oy };
         }
 
+        // the dazed halo, the PARRY / SHADOW STEP call-outs and the telegraph glint (shared by bosses built on this one)
+        drawOverlays(ctx, x, y) {
+            const g = this.game,
+                s = this.state;
+
+            // dazed: a halo of stars over its head, brighter and wider when its guard is fully broken
+            if (s === 'stagger') {
+                const hx = x + this.facing * 20,
+                    hy = y - this.h - 10,
+                    k = this.broken ? 1 : 0.8;
+
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.fillStyle = this.broken ? '#ffe2a8' : '#fff3d6';
+
+                for (let i = 0; i < 5; i++) {
+                    const a = g.time * 4 + i * Math.PI * 0.4,
+                        r = 5 + 3 * Math.sin(g.time * 8 + i);
+
+                    ctx.globalAlpha = k * 0.9;
+                    ctx.beginPath();
+                    ctx.arc(hx + Math.cos(a) * 46, hy + Math.sin(a) * 12, r, 0, 6.2832);
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            }
+
+            // call-outs: PARRY / SHADOW STEP with the poise they built, floating up from its head
+            if (this.tags.length) {
+                const hx = x + this.facing * 10,
+                    hy = y - this.h - 36;
+
+                ctx.save();
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.lineJoin = 'round';
+
+                for (const tg of this.tags) {
+                    const k = tg.t / tg.life,
+                        a = Math.min(1, tg.t / 0.08, (1 - k) / 0.35),
+                        ty = hy - 46 * (1 - Math.pow(1 - Math.min(1, k * 1.6), 3));
+
+                    const pop = 1 + Math.max(0, 0.3 - tg.t) * 1.2;
+
+                    ctx.globalAlpha = Math.max(0, a);
+                    ctx.font = `700 ${Math.round(30 * pop)}px ${BW.FONT_T}`;
+                    ctx.lineWidth = 5;
+                    ctx.strokeStyle = 'rgba(6,7,10,0.85)';
+                    ctx.strokeText(tg.text, hx, ty);
+                    ctx.fillStyle = tg.color;
+                    ctx.fillText(tg.text, hx, ty);
+                    ctx.font = `600 20px ${BW.FONT_B}`;
+                    ctx.lineWidth = 4;
+                    ctx.strokeText(tg.sub, hx, ty + 26);
+                    ctx.fillStyle = '#fff3dc';
+                    ctx.fillText(tg.sub, hx, ty + 26);
+                }
+
+                ctx.restore();
+            }
+
+            // telegraph glint on the raised clapper
+            const gp = this.glintAt();
+
+            if (this.glint > 0 && gp) {
+                const gx = x + gp[0] * this.facing,
+                    gy = y + gp[1],
+                    k = this.glint,
+                    r = 18 + (1 - k) * 30;
+
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.globalAlpha = k;
+                ctx.drawImage(BW.glowSprite('#ffe2a8'), gx - r * 2, gy - r * 2, r * 4, r * 4);
+                ctx.strokeStyle = '#fffaf0';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(gx - r * 1.4, gy);
+                ctx.lineTo(gx + r * 1.4, gy);
+                ctx.moveTo(gx, gy - r * 1.4);
+                ctx.lineTo(gx, gy + r * 1.4);
+                ctx.stroke();
+                ctx.restore();
+                g.addLight(gx, gy, 120, '#ffe2a8', 0.5 * k);
+            }
+        }
+        // where the wind-up glint shows for the current pose (feet-centre relative, facing right), or undefined
+        glintAt() {
+            return GLINT[this.pose];
+        }
+
         draw(ctx, alpha) {
             const g = this.game,
                 s = this.state;
@@ -1611,87 +1725,7 @@
                 g.addLight(e.x, e.y, 90 + this.heat * 60, '#ff9a3c', 0.4 * Math.min(1, this.eye));
             }
 
-            // dazed: a halo of stars over its head, brighter and wider when its guard is fully broken
-            if (s === 'stagger') {
-                const hx = x + this.facing * 20,
-                    hy = y - this.h - 10,
-                    k = this.broken ? 1 : 0.8;
-
-                ctx.save();
-                ctx.globalCompositeOperation = 'lighter';
-                ctx.fillStyle = this.broken ? '#ffe2a8' : '#fff3d6';
-
-                for (let i = 0; i < 5; i++) {
-                    const a = g.time * 4 + i * Math.PI * 0.4,
-                        r = 5 + 3 * Math.sin(g.time * 8 + i);
-
-                    ctx.globalAlpha = k * 0.9;
-                    ctx.beginPath();
-                    ctx.arc(hx + Math.cos(a) * 46, hy + Math.sin(a) * 12, r, 0, 6.2832);
-                    ctx.fill();
-                }
-
-                ctx.restore();
-            }
-
-            // call-outs: PARRY / SHADOW STEP with the poise they built, floating up from its head
-            if (this.tags.length) {
-                const hx = x + this.facing * 10,
-                    hy = y - this.h - 36;
-
-                ctx.save();
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.lineJoin = 'round';
-
-                for (const tg of this.tags) {
-                    const k = tg.t / tg.life,
-                        a = Math.min(1, tg.t / 0.08, (1 - k) / 0.35),
-                        ty = hy - 46 * (1 - Math.pow(1 - Math.min(1, k * 1.6), 3));
-
-                    const pop = 1 + Math.max(0, 0.3 - tg.t) * 1.2;
-
-                    ctx.globalAlpha = Math.max(0, a);
-                    ctx.font = `700 ${Math.round(30 * pop)}px ${BW.FONT_T}`;
-                    ctx.lineWidth = 5;
-                    ctx.strokeStyle = 'rgba(6,7,10,0.85)';
-                    ctx.strokeText(tg.text, hx, ty);
-                    ctx.fillStyle = tg.color;
-                    ctx.fillText(tg.text, hx, ty);
-                    ctx.font = `600 20px ${BW.FONT_B}`;
-                    ctx.lineWidth = 4;
-                    ctx.strokeText(tg.sub, hx, ty + 26);
-                    ctx.fillStyle = '#fff3dc';
-                    ctx.fillText(tg.sub, hx, ty + 26);
-                }
-
-                ctx.restore();
-            }
-
-            // telegraph glint on the raised clapper
-            const gp = GLINT[this.pose];
-
-            if (this.glint > 0 && gp) {
-                const gx = x + gp[0] * this.facing,
-                    gy = y + gp[1],
-                    k = this.glint,
-                    r = 18 + (1 - k) * 30;
-
-                ctx.save();
-                ctx.globalCompositeOperation = 'lighter';
-                ctx.globalAlpha = k;
-                ctx.drawImage(BW.glowSprite('#ffe2a8'), gx - r * 2, gy - r * 2, r * 4, r * 4);
-                ctx.strokeStyle = '#fffaf0';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(gx - r * 1.4, gy);
-                ctx.lineTo(gx + r * 1.4, gy);
-                ctx.moveTo(gx, gy - r * 1.4);
-                ctx.lineTo(gx, gy + r * 1.4);
-                ctx.stroke();
-                ctx.restore();
-                g.addLight(gx, gy, 120, '#ffe2a8', 0.5 * k);
-            }
+            this.drawOverlays(ctx, x, y);
 
             // the bell-body hums while it gathers a peal
             if (s === 'peal_wind') {
@@ -2717,6 +2751,8 @@
     BW.PealWave = PealWave;
     BW.ThreadRain = ThreadRain;
     BW.Debris = Debris;
+    BW.Hazard = Hazard;
+    BW.BOSS_TYPES = { warden: true, mourner: true };
     BW.Eruption = Eruption;
     BW.Rimcutter = Rimcutter;
     BW.ToneVolley = ToneVolley;

@@ -162,7 +162,7 @@
 
             const def = room.def;
 
-            if (want <= 0 || def.ents.some((e) => e.type === 'warden')) return [];
+            if (want <= 0 || def.ents.some((e) => BW.BOSS_TYPES[e.type])) return [];
 
             const rng = BW.seeded(BW.hashStr(def.id + ':' + D.id));
             const taken = [];

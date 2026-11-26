@@ -863,7 +863,9 @@
             )
                 return false;
 
-            if (this.parryT > 0 && !opts.trap && !opts.noParry) {
+            const noParry = opts.noParry || (opts.src && opts.src.unparryable);
+
+            if (this.parryT > 0 && !opts.trap && !noParry) {
                 this.deflect(srcX, opts);
 
                 return true;

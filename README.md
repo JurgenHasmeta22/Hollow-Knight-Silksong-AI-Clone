@@ -254,12 +254,14 @@ src/                game code (classic scripts, no build step; load order is set
   world/
     world.js        room DSL, tile collision
     rooms.js        the world: areas and all rooms (incl. the cathedral)
-    fortress.js     the Ashen Ramparts test area
+    fortress.js     the Ashen Ramparts test area, including the Ramparts Throne boss arena
   entities/
     player.js       the Bellweaver
     enemies.js      enemy behaviours
     objects.js      lanterns, pickups, NPC, shrine, toll-looms, lifts, doors, the Great Bell
     boss.js         the Bellbound Warden and its attack hazards
+    mourner.js      the Long Mourner: a second boss with its own poses, a moveset of its own, two health bars and an
+                    opening cinematic (fights in the Ramparts Throne test arena)
   progression/
     difficulty.js   Story / Action / Nightmare presets and extra-enemy placement
     xp.js           experience curve, levels and the strike-power bonus

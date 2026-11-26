@@ -138,7 +138,8 @@
         brazier(r, 20, 31);
     });
 
-    // Boss test room: the Bellbound Warden reused as a stand-in (testBoss runs it like a rematch, see cathedral.js).
+    // Boss test room: the Long Mourner (src/entities/mourner.js) fights here as the throne's guardian. testBoss runs it
+    // like a rematch (see cathedral.js): nothing is earned and the story save is left alone.
     // A short vestibule with a lantern, a portcullis, then the arena. The floor row is 25, level with F3's terrace.
     R(
         {
@@ -164,11 +165,11 @@
                 title: 'Throne Warning',
                 text: [
                     'TEST ARENA',
-                    'The Bellbound Warden stands in for the throne\u2019s guardian. Nothing is earned here, and the story save is left untouched.',
+                    'The Long Mourner guards the throne. Nothing is earned here, and the story save is left untouched.',
                 ],
             });
 
-            r.ent('warden', 40, 24, { facing: -1 });
+            r.ent('mourner', 40, 24, { facing: -1 });
             r.trigger(14, 3, 49, 24, 'warden');
             prop(r, 'banner', 2, 25, 300);
             prop(r, 'banner', 9, 25, 300, { flip: true });

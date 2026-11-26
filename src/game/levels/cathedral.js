@@ -19,6 +19,9 @@
 
     const skipPressed = () => BW.Input.pressed.jump || BW.Input.pressed.attack || BW.Input.pressed.confirm;
 
+    // the Long Mourner's full opening plays once per session; after that it is the short version
+    let mournerIntroSeen = false;
+
     // ================================================================ game hooks
     G.bossActive = function () {
         return !!(this.boss && this.boss.active);
@@ -212,7 +215,11 @@
 
         this.codexSee('warden');
         this.saveGame();
-        this.startSequence(wardenIntro(this, b, first));
+        this.startSequence(
+            b.introStyle === 'mourner'
+                ? mournerIntro(this, b, !mournerIntroSeen)
+                : wardenIntro(this, b, first),
+        );
     };
 
     G.onWardenDefeated = function (b) {
@@ -468,7 +475,7 @@
                 b.rise();
                 roar(g, b);
                 BW.Audio.playMusic('mus_boss', 0.3);
-                g.bossTitle = { name: 'The Bellbound Warden', sub: 'Keeper of the Last Toll', t: 0, life: 3.6 };
+                g.bossTitle = { name: b.bossName, sub: b.bossSub, t: 0, life: 3.6 };
                 yield* wait(2.5);
             }
         }
@@ -482,13 +489,151 @@
             BW.Audio.playMusic('mus_boss', 0.3);
 
             if (full && !g.bossTitle)
-                g.bossTitle = { name: 'The Bellbound Warden', sub: 'Keeper of the Last Toll', t: 0, life: 2.6 };
+                g.bossTitle = { name: b.bossName, sub: b.bossSub, t: 0, life: 2.6 };
 
             g.camFocus = null;
             yield 0.85;
         }
 
         g.camFocus = null;
+        g.letterboxTarget = 0;
+        g.seq.hideHud = false;
+        p.state = 'normal';
+        b.begin();
+        g.bossBar = { a: 0, out: false };
+    }
+
+    // The Long Mourner's opening. Silence falls, the huddled figure is shown with its cold light waking, a few lines of
+    // text, then it unfolds and roars. It plays in full the first time and short on retries; any button skips it.
+    function* mournerIntro(g, b, full) {
+        const p = g.player;
+
+        g.seq.hideHud = true;
+        g.letterboxTarget = 1;
+        p.state = 'cutscene';
+        p.vx = 0;
+        g.arenaLock(true);
+        g.arenaCam = true;
+        BW.Audio.playMusic(null, 1.6);
+
+        let skip = false,
+            el = 0;
+
+        // `sec` seconds, one tick at a time (a button press can cut it short); `each` runs every tick with 0..1 progress
+        function* wait(sec, each) {
+            const n = Math.max(1, Math.round(sec * 60));
+
+            for (let i = 0; i < n && !skip; i++) {
+                el += 1 / 60;
+
+                if (each) each(i / n);
+
+                yield 1 / 60;
+
+                if (el > 0.5 && skipPressed()) skip = true;
+            }
+        }
+
+        // a line of text in the lower third: fades in, holds, fades out
+        function* say(text, hold) {
+            if (skip) return;
+
+            const s = (g.seqText = { text, a: 0, y: 0.8, size: 31, color: '#cfe6ff' });
+
+            yield* wait(0.8, (u) => (s.a = u));
+            yield* wait(hold);
+            yield* wait(0.6, (u) => (s.a = 1 - u));
+            g.seqText = null;
+        }
+
+        // cold motes drift in toward the figure while it waits
+        const gather = () => {
+            if (Math.random() > 0.5) return;
+
+            const a = Math.random() * Math.PI * 2,
+                r = BW.rand(160, 340);
+
+            g.fx.spawn({
+                x: b.cx + Math.cos(a) * r,
+                y: b.y + b.h * 0.7 + Math.sin(a) * r * 0.5,
+                vx: -Math.cos(a) * 70,
+                vy: -Math.sin(a) * 35 - 10,
+                life: 1.6,
+                size: BW.rand(1.5, 3),
+                color: BW.pick(['#9fd8ff', '#e6f6ff']),
+                kind: 'glow',
+                add: true,
+                drag: 0.3,
+            });
+        };
+
+        if (full) {
+            g.camFocus = { x: b.cx, y: b.y + 110 };
+            yield* wait(1.4);
+            BW.Audio.play('bellfar', { pitch: 49, vol: 0.9, minGap: 0 });
+            g.fx.shake(2, 1.8);
+            yield* say('The gallery fell silent long before you came.', 2.2);
+            yield* wait(0.4, (u) => (b.introGlow = u * 0.35));
+            yield* say('Something stayed behind to keep it so.', 2.0);
+
+            yield* wait(0.3, (u) => {
+                b.introGlow = 0.35 + u * 0.25;
+                gather();
+            });
+
+            BW.Audio.play('bellfar', { pitch: 41.2, vol: 1, minGap: 0 });
+            g.fx.ring(b.cx, b.y + b.h * 0.7, 20, 260, 1.2, '#9fd8ff', 3);
+            yield* say('It has no face to speak with, and no voice to mourn with.', 2.4);
+            g.fx.ring(b.cx, b.y + b.h * 0.7, 20, 340, 1.2, '#9fd8ff', 3);
+
+            yield* wait(0.5, (u) => {
+                b.introGlow = 0.6 + u * 0.4;
+                gather();
+            });
+
+            yield* say('Only a vow: that nothing in these halls shall ever ring again.', 2.8);
+
+            yield* wait(1.0, (u) => {
+                b.introGlow = 1;
+                gather();
+                gather();
+
+                if (u > 0.5 && Math.random() < 0.2) g.fx.shake(5, 0.2);
+            });
+        }
+
+        g.seqText = null;
+
+        if (b.state === 'bound') {
+            b.rise();
+            BW.Audio.play('boss_roar', { rate: 0.62, vol: 1 });
+            BW.Audio.play('bell', { pitch: 49, vol: 1, minGap: 0 });
+            g.fx.shake(14, 1.0);
+            g.fx.flash('#cfeaff', 0.35);
+
+            for (let i = 0; i < 3; i++)
+                g.fx.ring(b.cx, b.y + b.h * 0.6, 20, 420 + i * 170, 0.8 + i * 0.2, '#9fd8ff', 5 - i);
+
+            g.fx.burst(b.cx, b.y + b.h * 0.6, 34, {
+                color: ['#9fd8ff', '#e6f6ff', '#6fb7ff'],
+                kind: 'glow',
+                speed: 300,
+                life: 1,
+                add: true,
+                size: 8,
+            });
+        }
+
+        BW.Audio.playMusic('mus_boss', 0.3);
+        g.bossTitle = { name: b.bossName, sub: b.bossSub, t: 0, life: full ? 4.2 : 2.8 };
+        mournerIntroSeen = true;
+        skip = false;
+
+        if (full) yield* wait(3.0, (u) => (b.introGlow = 1 - u * 0.2));
+        else yield* wait(1.0);
+
+        g.camFocus = null;
+        b.introGlow = 0;
         g.letterboxTarget = 0;
         g.seq.hideHud = false;
         p.state = 'normal';
@@ -1226,7 +1371,7 @@
             ctx.fillStyle = '#efe4cc';
             ctx.shadowColor = 'rgba(0,0,0,0.85)';
             ctx.shadowBlur = 10;
-            ctx.fillText('THE BELLBOUND WARDEN', BW.VW / 2, y - 14);
+            ctx.fillText(b.bossName.toUpperCase(), BW.VW / 2, y - 14 - (b.twoBars ? 14 : 0));
             ctx.shadowBlur = 0;
             ctx.fillStyle = 'rgba(6,7,10,0.78)';
             BW.roundRect(ctx, x - 5, y - 5, w + 10, h + 10 + 24, 6);
@@ -1235,8 +1380,34 @@
             ctx.lineWidth = 1.5;
             ctx.stroke();
 
-            const k = Math.max(0, b.hp) / b.maxHp,
-                kc = Math.max(0, b.chip) / b.maxHp;
+            let k = b.barFrac(b.hp);
+
+            // when the first of two bars runs out the second fills the bar again, slowly, instead of snapping
+            if (b.twoBars) {
+                b.kShown = b.kShown == null || k < b.kShown ? k : b.kShown + (k - b.kShown) * 0.05;
+                k = b.kShown;
+            }
+
+            const kc = Math.max(k, b.barFrac(b.chip));
+
+            // a boss with two health bars shows the one waiting behind the first, a thin bar above it
+            if (b.twoBars) {
+                const rk = b.reserve();
+
+                ctx.fillStyle = 'rgba(6,7,10,0.78)';
+                BW.roundRect(ctx, x - 5, y - 19, w + 10, 11, 4);
+                ctx.fill();
+
+                const rg = ctx.createLinearGradient(x, 0, x + w, 0);
+
+                rg.addColorStop(0, '#2c4a70');
+                rg.addColorStop(1, '#8fc4f0');
+                ctx.fillStyle = rg;
+                ctx.fillRect(x, y - 16, w * rk, 5);
+                ctx.strokeStyle = 'rgba(190,220,250,0.5)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(x + 0.5, y - 15.5, w - 1, 4);
+            }
 
             ctx.fillStyle = 'rgba(255,240,210,0.65)';
             ctx.fillRect(x, y, w * kc, h);
@@ -1251,9 +1422,12 @@
             ctx.fillRect(x, y, w * k, 3);
             ctx.fillStyle = b.phase === 2 ? '#ffb36a' : '#f0e2c4';
             ctx.save();
-            ctx.translate(x + w * (BW.WARDEN_TUNE.phaseAt / b.maxHp), y + h / 2);
-            ctx.rotate(Math.PI / 4);
-            ctx.fillRect(-5, -5, 10, 10);
+            if (!b.twoBars) {
+                ctx.translate(x + w * (b.phaseAt / b.maxHp), y + h / 2);
+                ctx.rotate(Math.PI / 4);
+                ctx.fillRect(-5, -5, 10, 10);
+            }
+
             ctx.restore();
 
             for (const s of [-1, 1]) {

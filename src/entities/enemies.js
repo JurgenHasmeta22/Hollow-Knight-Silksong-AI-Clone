@@ -1001,12 +1001,14 @@
     };
 
     BW.enemyName = function (e) {
-        return (e && (e.boss ? BW.ENEMY_NAMES.warden : BW.ENEMY_NAMES[e.kind])) || 'Something in the dark';
+        return (
+            (e && (e.boss ? e.bossName || BW.ENEMY_NAMES.warden : BW.ENEMY_NAMES[e.kind])) || 'Something in the dark'
+        );
     };
 
     // Stable id for a placed enemy. The Warden is a story fight and is not remembered this way.
     BW.enemyPersistKey = function (roomId, e) {
-        if (!roomId || !e || e.type === 'warden') return null;
+        if (!roomId || !e || (BW.BOSS_TYPES && BW.BOSS_TYPES[e.type])) return null;
 
         return (
             roomId +

@@ -1107,7 +1107,7 @@
                         if (BW.overlap(hb, b)) {
                             p.hurt((h.dmg || 1) * BW.Difficulty.get(this.state).bossDmg, h.hitX(p), {
                                 noParry: true,
-                                cause: BW.ENEMY_NAMES.warden,
+                                cause: (this.boss && this.boss.bossName) || BW.ENEMY_NAMES.warden,
                             });
 
                             break outer;
@@ -1576,11 +1576,11 @@
 
             if (!room) return;
 
-            this.enemies = this.enemies.filter((e) => e.kind === 'warden');
+            this.enemies = this.enemies.filter((e) => BW.BOSS_TYPES[e.kind]);
 
             for (const e of room.def.ents) {
                 if ((e.when && !flags[e.when]) || (e.unless && flags[e.unless])) continue;
-                if (!BW.ENEMY_TYPES[e.type] || e.type === 'warden') continue;
+                if (!BW.ENEMY_TYPES[e.type] || BW.BOSS_TYPES[e.type]) continue;
 
                 this.enemies.push(new BW.ENEMY_TYPES[e.type](this, e));
             }
@@ -2357,11 +2357,11 @@
             ctx.globalAlpha = s.a;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.font = `italic 500 34px ${BW.FONT_B}`;
-            ctx.fillStyle = '#efe4cc';
+            ctx.font = `italic 500 ${s.size || 34}px ${BW.FONT_B}`;
+            ctx.fillStyle = s.color || '#efe4cc';
             ctx.shadowColor = 'rgba(0,0,0,0.9)';
             ctx.shadowBlur = 16;
-            BW.wrapText(ctx, s.text, BW.VW / 2, BW.VH / 2 - 20, 840, 44);
+            BW.wrapText(ctx, s.text, BW.VW / 2, BW.VH * (s.y != null ? s.y : 0.5) - 20, 840, 44);
             ctx.restore();
         }
 
