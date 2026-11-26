@@ -185,8 +185,8 @@
             hint: 'Tied to a hook just inside the Gallery.',
             text: [
                 'Black gauze, twelve ells, hemmed with silver thread. For the Gallery, by order of the Keepers.',
-                'They did not say what the veils were for. They said only: “hang them so that nothing carries.”',
-                'I have hung eight hundred. I have not once heard the Gallery answer.',
+                'They said: hang them so that nothing carries. I asked what could be carried. They said: the names of the dead, and their faces.',
+                'I have hung eight hundred. I have not once felt the Gallery lean toward me.',
             ],
             from: 'the veil-maker',
         },
@@ -198,9 +198,9 @@
             title: 'Cloth Ledger',
             hint: 'Left on the floor of the Hall of Hanging Veils.',
             text: [
-                'Bells muffled this month: nineteen. Clappers cut: nineteen. Clappers kept, in case: none.',
-                'The cutters ask why. The Keepers say the dead have asked for quiet.',
-                'I asked the dead. They did not say anything, which I took for agreement.',
+                'Bells muffled this month: nineteen. Clappers cut: nineteen. Tongues freed: none.',
+                'The cutters ask what a bell does without its tongue. The Keepers say it keeps the dead from being rung.',
+                'I asked the dead. They did not answer, which I chose to take for agreement.',
             ],
             from: 'a bell-muffler’s ledger',
         },
@@ -212,9 +212,9 @@
             title: 'Mask-carver’s Confession',
             hint: 'At the top of the stair into the Mask Crypt.',
             text: [
-                'I carve the masks without faces because I was asked to. A face is something the dead can be recognised by, and recognition is a kind of calling.',
+                'I carve masks without faces because the Keepers asked it. A face is how a bell finds a name, and a name is how a bell rings the dead.',
                 'Eight hundred masks, and not one has had a single line cut into it.',
-                'Some nights I think the masks are not for the dead. Some nights I think the dead are carving us.',
+                'Some nights I think they are not for the dead at all. I think they are for whoever the dead send to collect what was taken.',
             ],
             from: 'the mask-carver',
         },
@@ -227,7 +227,7 @@
             hint: 'On the floor at the foot of the Muffled Belfry.',
             text: [
                 'Three bells in the shaft, three bindings. One slipped, once, in the dark.',
-                'It did not ring. It only breathed, a long iron breath, and every veil in the shaft turned toward it.',
+                'It did not ring. It breathed: a long iron breath, and every veil in the shaft turned toward it as if it had been called by name.',
                 'We tied it again before anything arrived. Something always arrives.',
             ],
             from: 'a scrap of binding cloth',
@@ -240,9 +240,9 @@
             title: 'The Candle-keeper’s Rule',
             hint: 'Between the candles of the Candlelit Aisle.',
             text: [
-                'A candle for every name on the wall. Light them at dusk, never snuff them, never speak while you light.',
-                'The heavy ones guard the flame at the end of the aisle. They are the ones who carried the dead here, and they never put the weight down.',
-                'They are not cruel. They are tired, and they have forgotten how to be anything but heavy.',
+                'A candle for every name on the wall. Light it at dusk, never snuff it, never say the name aloud.',
+                'The heavy ones guard the flame at the end of the aisle. They carried the dead here from the Fallen Light and have never put the weight down.',
+                'They are not cruel. They are only the last ones still obeying.',
             ],
             from: 'the candle-keeper',
         },
@@ -255,8 +255,8 @@
             hint: 'Cut into the stone beside the bier.',
             text: [
                 'Before the Gallery there was one mourner, who sat with a single body for a hundred nights and would not let it be carried out.',
-                'When the Keepers came she asked them for quiet. Quiet for the dead, quiet for her. They hung the first veil to give it to her.',
-                'It was kind. It was always kind. That is the whole of the tragedy.',
+                'The Keepers did not stop her. They hung the first veil, and called it a kindness.',
+                'It was always a kindness. That is how it begins, and that is how it is allowed to go on.',
             ],
             from: 'a carving on the bier',
         },
@@ -270,8 +270,8 @@
             hint: 'Something is left behind by the Long Mourner.',
             text: [
                 'I kept them quiet. I kept them quiet. I kept them quiet.',
-                'The dead never asked for it. I asked it for myself, and gave it their name.',
-                'Ring them, Weaver. Softly, one by one. Let the Gallery learn that it may have a voice.',
+                'They never asked for it. I asked it for myself, and gave it their names.',
+                'You wear the blank, so you are neither one of them nor one of us. Ring them, Faceless. Once each, and softly. Let them be called by their own names, and then let them go.',
             ],
             from: 'the Long Mourner',
         },
@@ -284,12 +284,11 @@
             hint: 'Scratched into the floor of the Last Door Hall.',
             text: [
                 'The Silent Key was set down here by the one who locked the Last Door, and she meant to come back for it.',
-                'The door was never the thing to fear. It was only the last room of the house.',
-                'Some doors are not locked to keep things in. They are locked to keep a house from remembering.',
+                'The door was never the thing to fear. It is only the last room of the house: the room where the faces are kept.',
+                'Some doors are locked to keep things in. This one was locked to keep a house from remembering.',
             ],
             from: 'scratched into the altar’s base',
         },
-        // ---- the wings
         {
             id: 'choirmaster',
             room: 'N3',
@@ -299,7 +298,7 @@
             hint: 'Pinned to a pillar in the Unrung Choir.',
             text: [
                 'A hundred voices, a hundred names, and one line of music for all of them: a rest, held for as long as the Gallery stands.',
-                'I have conducted it every night. They have never once come in early.',
+                'They were singers once. Now they are held notes, and I conduct them every night. They have never once come in early.',
             ],
             from: 'the choirmaster’s score',
         },
@@ -311,9 +310,8 @@
             title: 'The Bellwright’s Tuning',
             hint: 'Scratched on the floor of the Bellwrights’ Walk.',
             text: [
-                'Deepest, then lower-middle, then higher-middle, then the bright one. That was the scale I was given to cast.',
-                'They told me to wrap the clappers after. I asked whether I might hear the scale once, whole, before it was wrapped.',
-                'They said it was the one thing nobody was permitted to hear.',
+                'Deepest, then lower-middle, then higher-middle, then the bright one: that was the scale I was given to cast.',
+                'I asked to hear it once, whole, before the clappers were wrapped. They said it is the one thing nobody may hear, because it is the sound the faces make when they are all called at once.',
             ],
             from: 'the bellwright’s tuning-notes',
         },
@@ -325,8 +323,8 @@
             title: 'The Last Cutter',
             hint: 'Left on the bench in the Cutter’s Loft.',
             text: [
-                'I cut every veil in the Gallery, and every hatch cloth, and every cloth that bound a door. My shears are on the altar if anyone is brave enough to need them.',
-                'Under each bit of cloth I sewed there is something somebody wanted kept. I only hope they were right.',
+                'I cut every veil in the Gallery, and every hatch cloth, and every cloth that bound a door. My shears are on the altar for whoever is brave enough to need them.',
+                'Under each scrap I sewed there is a face somebody wanted kept from the bells. I hope they were right to hide them.',
             ],
             from: 'the last cutter',
         },
@@ -339,7 +337,7 @@
             hint: 'Chalked on the first landing of the Ossuary Stair.',
             text: [
                 'Thirty-three steps down, and thirty-three back up. I counted them every day for forty years and they never changed.',
-                'It was the last thing in the Gallery that kept its word.',
+                'Many came down. None came up. I stopped counting those. It was the last thing in the Gallery that kept its word.',
             ],
             from: 'chalk on the wall',
         },
@@ -351,8 +349,8 @@
             title: 'The Folder’s List',
             hint: 'Tied to a stack of cloth in the Hall of Folded Cloth.',
             text: [
-                'Six thousand veils folded and sorted by height, and the ones that nobody could account for, I put on the far side of the pit, where the thorns are.',
-                'A shuttle takes them across. It has not been asked to carry anything else in a long while.',
+                'Six thousand veils folded and sorted by height. The ones that were still warm I carried to the far side of the pit, where the thorns are.',
+                'A shuttle takes them across. It has never been asked to carry anything back.',
             ],
             from: 'a folder’s list',
         },
@@ -364,8 +362,8 @@
             title: 'The Bearers’ Lay',
             hint: 'Stitched into a banner in the Pallbearers’ Rest.',
             text: [
-                'We carried them down, and down, and down. We were promised that someone would come and take them from us.',
-                'Three voices, struck in any order, will tell the veil to part. We never found anyone who knew all three.',
+                'We carried them down, and down, and down, and we were promised that someone would come to take them from us.',
+                'Three voices, struck in any order, will tell the veil to part. We never found anyone who knew all three, and in time we stopped listening for the first.',
             ],
             from: 'a pallbearer’s lay',
         },
@@ -377,7 +375,7 @@
             title: 'The Reliquarist’s Inventory',
             hint: 'Under glass in the Reliquary of Bells.',
             text: [
-                'Item: one hundred and four bells, cast between the first mourning and the last. Item: one hundred and four clappers, not one of them cut.',
+                'Item: one hundred and four bells, cast between the first mourning and the last. Item: one hundred and four clappers, not one of them cut. Item: one hundred and four faces, pressed into the bronze, none returned.',
                 'Item: a thread of life, left on the dais for the one who asks properly.',
             ],
             from: 'the reliquarist’s inventory',
@@ -391,7 +389,7 @@
             hint: 'Under a candle in the Veil-maker’s Cell.',
             text: [
                 'I asked the Keepers what the veils were for, and they said: so that nothing carries. I asked what could be carried. They said: everything that matters.',
-                'I have thought about it every night since. I think they were not talking about sound.',
+                'I have thought about it every night in this cell. I do not think they were talking about sound. I think they meant the faces.',
             ],
             from: 'the veil-maker’s letter',
         },
@@ -404,7 +402,7 @@
             hint: 'On a shelf in the Cloth Vault.',
             text: [
                 'Spares in stock: all of them. Spares ever issued: none. Spares I am permitted to unwrap for a visitor: none, unless the visitor asks for the one in the corner.',
-                'The one in the corner is a spool of silk. Nobody asked for it, and nobody ever will.',
+                'The one in the corner is a spool of silk wound from the hair of the House of Vael. I did not wind it. I only stored it, and nobody ever asked.',
             ],
             from: 'a clerk’s ledger',
         },
@@ -417,8 +415,8 @@
             hint: 'Scratched into the cellar wall under the bier.',
             text: [
                 'The First Mourner did not climb out of the bier. She went down.',
-                'She sat in this cellar for a very long time, with a lantern, and listened to the Gallery being kept quiet over her head.',
-                'I think she meant to say something, once. I think the quiet got there first.',
+                'She sat in this cellar for a very long time, with a lantern, listening to the Gallery being kept quiet over her head.',
+                'I think she meant to say a name, once. I think the quiet got there first.',
             ],
             from: 'scratched into the cellar wall',
         },
@@ -433,11 +431,11 @@
     BW.Lore.INTERLUDES.hushed = {
         id: 'hushed',
         kicker: 'The Hushed Gallery',
-        title: 'Where Nothing May Ring',
+        title: 'Where the Dead May Not Be Called',
         art: 'bg_gallery_realm',
         lines: [
-            'The mourners hung their veils so that nothing in these halls would ever carry again.',
-            'Every bell has had its clapper cut out and wrapped in black cloth, and everything that lives here is listening.',
+            'The Keepers hung their veils so that no bell could ever find the dead and ring them.',
+            'Every clapper here is cut out and wrapped in black cloth, and everything that lives here is listening for its own name.',
         ],
     };
 })(window.BW);

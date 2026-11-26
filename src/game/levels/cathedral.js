@@ -997,17 +997,13 @@
 
     // ================================================================ ending: epilogue, credits, choice
     const EPILOGUE = [
-        'The Great Bell spoke, and the Belfry answered.',
-        'Down through the looms and the roots, every silent bell rang out once more.',
-        'The frayed threads of the Hollow drew tight, and in the long dark, lanterns began to wake.',
-        'The last Bellweaver had mended what was left undone.',
+        'The Faceless one rang the Great Bell, once, and the Belfry answered.',
+        'Every bell in the Hollow tolled for the face pressed into its mouth, and for one breath, every face had a voice.',
+        'Then the clappers fell still, the cords went slack, and the dead were no longer called.',
+        'The city is blind again. Truly, mercifully blind. And above the bronze, a brother’s grave is quiet.',
     ];
 
     class Ending {
-        // the Ronin's journey ends on its own words (src/progression/lore_ronin.js)
-        epilogue() {
-            return (BW.Lore.epilogue && BW.Lore.epilogue(this.game.state)) || EPILOGUE;
-        }
         constructor(game, replay, state, fromTitle) {
             this.game = game;
             this.t = 0;
@@ -1129,7 +1125,7 @@
                     this.line++;
                     this.pt = 0;
 
-                    if (this.line >= this.epilogue().length) {
+                    if (this.line >= EPILOGUE.length) {
                         this.phase = 'credits';
                         this.scroll = 0;
                     }
@@ -1207,7 +1203,7 @@
                 ctx.globalAlpha = Math.max(0, a);
                 ctx.font = `italic 500 34px ${BW.FONT_B}`;
                 ctx.fillStyle = '#f6ecd6';
-                BW.wrapText(ctx, this.epilogue()[this.line] || '', W / 2, H - 150, 880, 44);
+                BW.wrapText(ctx, EPILOGUE[this.line] || '', W / 2, H - 150, 880, 44);
             } else if (this.phase === 'credits') {
                 let y = H + 40 - this.scroll;
 

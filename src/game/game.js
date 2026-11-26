@@ -15,7 +15,7 @@
             this.state = null;
             this.room = null;
             this.terrain = null;
-            this.player = new BW.Player(this);
+            this.player = new BW.Ronin(this);
             this.enemies = [];
             this.objects = [];
             this.coins = [];
@@ -317,27 +317,13 @@
         }
 
         // ================================================================ game start / save
-        // which hero is on the field: the Bellweaver, or the Faceless Ronin (the same game, a different body)
-        setCharacter(id) {
-            const want = id === 'ronin' && BW.Ronin ? BW.Ronin : BW.Player;
-
-            if (this.player.constructor !== want) this.player = new want(this);
-
-            // the hero decides the story, the title and the soundtrack (The Uncalled)
-            if (BW.Lore && BW.Lore.set) BW.Lore.set(id === 'ronin' ? 'ronin' : 'weaver');
-
-            if (BW.Audio.musicRaw === 'mus_title') BW.Audio.retheme(2);
-        }
-
-        newGame(difficulty, character) {
+        newGame(difficulty) {
             BW.Save.erase();
 
             const d = BW.Save.defaults();
 
             d.difficulty = BW.Difficulty.valid(difficulty) ? difficulty : BW.Difficulty.DEFAULT;
-            d.character = 'ronin'; // the Faceless Ronin is the only hero
             this.state = Object.assign(d, { hp: d.maxHp, silk: 0 });
-            this.setCharacter(d.character);
             this.stats = {};
             BW.Save.write(this.persist());
             this.mode = 'play';
@@ -362,7 +348,6 @@
 
             this.clearOverlays();
             this.state = Object.assign(d, { hp: d.maxHp, silk: 0 });
-            this.setCharacter(d.character);
             this.stats = {};
             this.mode = 'play';
             this.menu.closeAll();
@@ -1418,47 +1403,6 @@
             return res;
         }
 
-        resolveLanceHits(l) {
-            const box = l.box();
-
-            for (const e of this.enemies) {
-                if (e.dead || l.hits.has(e)) continue;
-                if (!BW.overlap(box, e.hurtbox())) continue;
-
-                l.hits.add(e);
-
-                const r = e.damage(3 * BW.XP.power(this.state), 'lance', { cx: l.x - l.dir * 40 });
-
-                if (r) {
-                    this.hitstop(0.05);
-
-                    this.fx.burst(e.cx, e.cy, 14, {
-                        color: ['#fff6dc', '#ffd98a'],
-                        kind: 'spark',
-                        speed: 380,
-                        life: 0.3,
-                    });
-
-                    BW.Audio.play('hit', { rate: 1.2 });
-                }
-            }
-
-            for (const o of this.objects) {
-                if (!o.strikable || o.dead || l.hits.has(o)) continue;
-
-                if (BW.overlap(box, o.hurtbox())) {
-                    l.hits.add(o);
-                    o.hit();
-                }
-            }
-
-            for (const s of this.shots) if (!s.dead && Math.abs(s.x - l.x) < 40 && Math.abs(s.y - l.y) < 24) s.pop();
-        }
-
-        spawnLance(x, y, dir) {
-            this.lances.push(new BW.Lance(this, x, y, dir));
-            this.fx.ring(x, y, 4, 40, 0.25, '#ffe7b5', 2);
-        }
         spawnEnemyShot(x, y, vx, vy) {
             this.shots.push(new BW.EnemyShot(this, x, y, vx, vy));
         }
@@ -1846,149 +1790,77 @@
                 f.odo_met = true;
 
                 pages.push(
-                    BW.Lore.odo(
-                        st,
-                        'met_a',
-                        'Oh! A Bellweaver? I thought the guild had gone quiet for good. I’m Odo. I keep these lamps lit, for whoever still walks the halls.',
-                    ),
+                    'Oh. A face I cannot hear. You are the blank one, aren’t you? Don’t mind me: Odo sees nothing at all, and has made his peace with it. I keep these lamps lit for whoever still walks the dark.',
                 );
 
                 pages.push(
-                    BW.Lore.odo(
-                        st,
-                        'met_b',
-                        'The Belfry has been sealed since the bells stopped. Two old toll-looms bind its seal. Rethread them both and the way up should open.',
-                    ),
+                    'The Belfry has been sealed since the Last Toll. Two old toll-looms hold its seal. Wake them both and the way up should open, though what they spin when they wake is not mine to say.',
                 );
 
                 pages.push(
-                    BW.Lore.odo(
-                        st,
-                        'met_c',
-                        'One loom hangs in the deep roots below the Hollow. The other lies past the Sundered Span… and nobody has crossed that in a long while.',
-                    ),
+                    'One loom hangs in the deep roots below the Hollow. The other lies past the Sundered Span… and nobody has crossed that since the night they cut it.',
                 );
             } else if (!st.abilities.parry) {
                 pages.push(
-                    BW.Lore.odo(
-                        st,
-                        'parry',
-                        'Before you go further, touch the shrine at the far end of this hall. The weavers called it the Answering Toll: it teaches you to turn a blow aside.',
-                    ),
+                    'Before you go further, touch the shrine at the far end of this hall. They called it the Answering Toll: it teaches you to turn a blow aside. Not everything that bears down on you deserves to be met head-on.',
                 );
             } else if (!st.abilities.dash) {
                 pages.push(
-                    BW.Lore.odo(
-                        st,
-                        'dash',
-                        'The weavers had a shrine past the Loom Gallery, where they learned their swiftest stitch. Down through the gallery floor, if memory serves.',
-                    ),
+                    'There is a shrine past the Loom Gallery where the Concord’s swords learned their swiftest stitch. Down through the gallery floor, if memory serves. They taught it to be unfindable. You are halfway there already.',
                 );
             } else if (!f.bell2) {
                 pages.push(
-                    BW.Lore.odo(
-                        st,
-                        'bell2',
-                        'That stitch of yours! With it you could cross the Sundered Span, east of the Lantern Grotto. The second loom waits beyond.',
-                    ),
+                    'That stitch of yours! With it you could cross the Sundered Span, east of the Lantern Grotto. The second loom waits beyond. Mind the stones. They listen.',
                 );
             } else if (!f.bell1) {
                 pages.push(
-                    BW.Lore.odo(
-                        st,
-                        'bell1',
-                        'The first loom is still slack. Follow the roots down from the Lantern Grotto, then west through the thorns.',
-                    ),
+                    'The first loom is still slack. Follow the roots down from the Lantern Grotto, then west through the thorns. They have a taste for anything that still breathes.',
                 );
             } else if (!f.reached_cathedral) {
                 pages.push(
-                    BW.Lore.odo(
-                        st,
-                        'looms',
-                        'Both looms sing again — I felt it in my shell! The seal above the Gatehouse should be open. Go on up.',
-                    ),
+                    'Both looms are awake. I felt it in my teeth. The seal above the Gatehouse should be open. Go up, and may they never find your face.',
                 );
             } else if (f.great_bell) {
                 if (f.chapter2_clear)
                     pages.push(
-                        BW.Lore.odo(
-                            st,
-                            'clear',
-                            'You went through the Last Door? Every lamp I own turned toward the east at once. I think the quiet you left behind is the good kind.',
-                        ),
+                        'You went through the Last Door? Every lamp I own turned toward the east at once. I think the quiet you left behind is the good kind. The kind where the dead have finished being called.',
                     );
                 else if (f.silent_key)
                     pages.push(
-                        BW.Lore.odo(
-                            st,
-                            'key',
-                            'A key with no voice… The Last Door is at the end of that hall, they say. I hope you’ll tell me what the light is like.',
-                        ),
+                        'A key with no voice… The Last Door is at the end of that hall, they say. Whatever is kept behind it, you are the first who can open it without being called by it.',
                     );
                 else if (f.mourner_defeated)
                     pages.push(
-                        BW.Lore.odo(
-                            st,
-                            'mourner_done',
-                            'Did you feel that? The whole Gallery just let out a breath it had been holding for a thousand dusks. Look for an altar.',
-                        ),
+                        'Did you feel that? The whole Gallery let out a breath it had been holding for a thousand dusks. Look for an altar.',
                     );
                 else if (f.mourner_met)
                     pages.push(
-                        BW.Lore.odo(
-                            st,
-                            'mourner_met',
-                            'Still on your feet? Good. The Long Mourner is only a mourner. Rest at the lantern outside its door; you will want it.',
-                        ),
+                        'Still on your feet? Good. The Long Mourner is only a mourner. She will weep, and what she weeps for will try to hold you. Rest at the lantern outside her door.',
                     );
                 else if (st.visited.H1)
                     pages.push(
-                        BW.Lore.odo(
-                            st,
-                            'hushed',
-                            'The Hushed Gallery… my grandmother’s grandmother hung those veils. Ring the bells in there if you must, but expect company. The silent ones hear everything.',
-                        ),
+                        'The Hushed Gallery… my grandmother’s grandmother hung those veils. Ring the bells in there if you must, but expect company. The silent ones hear everything, and nothing in there has ever been allowed to say a name.',
                     );
                 else {
                     pages.push(
-                        BW.Lore.odo(
-                            st,
-                            'gb_a',
-                            'That sound… the Great Bell! I never thought I’d hear it again. Every lamp in the Hollow is burning brighter. Thank you, Bellweaver.',
-                        ),
+                        'That sound… the Great Bell. I never thought I would hear it again. Every lamp in the Hollow is burning brighter, and every bell is telling a name. Thank you, whoever you are.',
                     );
 
                     pages.push(
-                        BW.Lore.odo(
-                            st,
-                            'gb_b',
-                            'And there is something else. The black veils at the end of the Ashen Ramparts, east of the Cord Lift: I saw them move from the lift. Veils do not move, Bellweaver. They are listening.',
-                        ),
+                        'And there is something else. The black veils at the end of the Ashen Ramparts, east of the Cord Lift: I saw them move from the lift. Veils do not move. They are listening for you.',
                     );
                 }
             } else if (f.warden_defeated) {
                 pages.push(
-                    BW.Lore.odo(
-                        st,
-                        'warden_done',
-                        'The air feels lighter. Whatever guarded the cathedral is gone, isn’t it? Then the Great Bell is waiting for you.',
-                    ),
+                    'The air feels lighter. Whatever guarded the cathedral is gone, isn’t it? Then the Great Bell is waiting for you, and you know what it is made of.',
                 );
             } else if (f.cathedral_open) {
                 pages.push(
-                    BW.Lore.odo(
-                        st,
-                        'cathedral_open',
-                        'I heard the great doors groan open, all the way down here. Something keeps the Great Bell silent. Rest at the lantern before you face it.',
-                    ),
+                    'I heard the great doors groan open, all the way down here. Something keeps the Great Bell silent, and it is not a monster. Rest at the lantern before you meet it. It will know you by your sword.',
                 );
             } else {
                 pages.push(
-                    BW.Lore.odo(
-                        st,
-                        'dreams',
-                        'You’ve seen the great doors, then. Strange… lately I hear a bell in my dreams. Just one. Very slow.',
-                    ),
+                    'You have seen the great doors, then. Strange… lately I hear a bell in my dreams. Just one. Very slow. It sounds like someone saying a name they are not allowed to finish.',
                 );
             }
 

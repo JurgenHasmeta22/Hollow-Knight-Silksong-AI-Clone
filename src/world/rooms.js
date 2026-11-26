@@ -147,7 +147,7 @@
         r.ent('crawler', 41, 26);
         r.ent('cache', 5, 12, { id: 'gc_m2', n: 22 });
         r.ent('glint', 55, 17, { id: 'g_m2a', n: 4 });
-        r.ent('hint', 11, 26, { act: 'attack', text: 'Needle strike', range: 6 });
+        r.ent('hint', 11, 26, { act: 'attack', text: 'Strike', range: 6 });
         r.ent('hint', 19, 25, { act: 'none', text: 'Thorns wound — leap over them', range: 4 });
         r.ent('hint', 33, 26, { act: 'parry', text: 'Parry: press as a blow lands', range: 5, needs: 'parry' });
         r.light(5, 11, 4, '#7ff2d0', { a: 0.4 });

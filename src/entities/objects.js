@@ -1253,77 +1253,6 @@
         }
     }
 
-    // ------------------------------------------------------------------ Silk Lance (player projectile)
-    class Lance {
-        constructor(game, x, y, dir) {
-            this.game = game;
-            this.x = x;
-            this.y = y;
-            this.dir = dir;
-            this.vx = dir * 1150;
-            this.t = 0;
-            this.dead = false;
-            this.hits = new Set();
-            this.x0 = x;
-        }
-        box() {
-            return { x: this.dir > 0 ? this.x - 50 : this.x - 10, y: this.y - 12, w: 60, h: 24 };
-        }
-        update(dt) {
-            this.t += dt;
-            this.x += this.vx * dt;
-
-            const g = this.game;
-
-            if (g.room.solidPx(this.x + this.dir * 10, this.y) || Math.abs(this.x - this.x0) > 760) {
-                this.dead = true;
-                g.fx.burst(this.x, this.y, 12, { color: ['#fff6dc', '#ffd98a'], kind: 'spark', speed: 300, life: 0.3 });
-
-                return;
-            }
-
-            g.resolveLanceHits(this);
-
-            if (Math.random() < 0.8)
-                g.fx.spawn({
-                    x: this.x - this.dir * 20,
-                    y: this.y + BW.rand(-4, 4),
-                    vx: -this.dir * 100,
-                    vy: BW.rand(-20, 20),
-                    life: 0.3,
-                    size: 1.5,
-                    color: '#fff3d0',
-                    kind: 'thread',
-                    add: true,
-                });
-        }
-        draw(ctx) {
-            ctx.save();
-            ctx.globalCompositeOperation = 'lighter';
-
-            const len = 90;
-            const g2 = ctx.createLinearGradient(this.x - this.dir * len, this.y, this.x, this.y);
-
-            g2.addColorStop(0, 'rgba(255,220,150,0)');
-            g2.addColorStop(1, 'rgba(255,248,230,0.95)');
-            ctx.strokeStyle = g2;
-            ctx.lineWidth = 6;
-            ctx.lineCap = 'round';
-            ctx.beginPath();
-            ctx.moveTo(this.x - this.dir * len, this.y);
-            ctx.lineTo(this.x, this.y);
-            ctx.stroke();
-            ctx.lineWidth = 2;
-            ctx.strokeStyle = '#ffffff';
-            ctx.beginPath();
-            ctx.moveTo(this.x - this.dir * 40, this.y);
-            ctx.lineTo(this.x + this.dir * 8, this.y);
-            ctx.stroke();
-            ctx.restore();
-            this.game.addLight(this.x, this.y, 80, '#ffe7b5', 0.5);
-        }
-    }
-
     // ------------------------------------------------------------------ drawing helpers
     function drawGlintShard(ctx, x, y, s, t) {
         ctx.save();
@@ -1465,7 +1394,6 @@
     BW.ObjBase = Obj;
     BW.GlintCoin = GlintCoin;
     BW.EnemyShot = EnemyShot;
-    BW.Lance = Lance;
     BW.drawGlintShard = drawGlintShard;
     BW.bellIcon = bellIcon;
     BW.drawCathedralDoor = drawCathedralDoor;

@@ -67,7 +67,6 @@
         if (id === 'ronin_gallery' || id === 'ronin_boss') {
             const r = build(id === 'ronin_boss' ? 'gallery_boss' : 'gallery');
 
-            r.character = 'ronin';
             r.shade = 100;
 
             return r;

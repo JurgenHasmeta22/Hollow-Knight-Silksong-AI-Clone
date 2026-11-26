@@ -23,7 +23,7 @@
         {
             id: 'strike',
             cat: 'Combat',
-            title: 'Needle Strike',
+            title: 'Blade Strike',
             keys: [
                 ['Strike', 'attack'],
                 ['Aim up', 'up'],

@@ -1,7 +1,7 @@
 # THE UNCALLED: the Faceless Ronin's story
 
 The Ronin's journey is the same game (same city, rooms, creatures, bosses and moves) told as a much darker tale. Only
-words and music change. The Bellweaver's story is untouched and is restored whenever that hero is on the field.
+words and music change. The Bellweaver hero and his story have been removed: this is the game's only story.
 The original pitch it grows from is `the_resonance_veil_game_pitch_lore.md` (a blank mask, an order that harvests minds).
 
 ## The tale
@@ -36,20 +36,18 @@ the bells could never call the dead) and climbs the city to the Great Bell.
 
 | What | File |
 | --- | --- |
-| Chapters, interludes, all 34 lore notes, Odo's 18 lines, epilogue, title | `src/progression/lore_ronin.js` |
-| Swapping the story by hero | `BW.Lore.set('ronin' \| 'weaver')`, called from `Game.setCharacter` and the character screen |
-| Odo's talk | `BW.Lore.odo(state, key, original)` in `Game.talkToOdo` |
-| Epilogue | `Ending.epilogue()` in `src/game/levels/cathedral.js` |
-| Title screen name and tagline | `BW.TITLE`, drawn by `drawTitleMenu` in `src/ui/menus.js` |
+| Chapter slides, interludes, the 16 world notes | `src/progression/lore.js` |
+| The 18 Hushed Gallery notes and its interlude | `src/progression/hushed.js` |
+| Odo's talk | `Game.talkToOdo` in `src/game/game.js` |
+| Epilogue | `EPILOGUE` in `src/game/levels/cathedral.js` |
+| Title screen name and tagline | `drawTitleMenu` in `src/ui/menus.js` |
 | Checks | `node tools/smoke_lore.js` |
-
-Choosing a wanderer on the character screen previews that hero's title and opening music.
 
 ## The music
 
 The calm tracks stay: **Mosslit Hollow and the Spindleworks keep their chill music** for the quiet stretches of the Ronin's
 journey, and the Hushed Gallery and the bosses keep theirs. Three darker loops replace the opening, the Belfry and the
-ending (`Audio.theme` in `src/audio/audio.js`):
+ending (`DARK` in `src/audio/audio.js`):
 
 | Replaces | Dark loop | What it is |
 | --- | --- | --- |

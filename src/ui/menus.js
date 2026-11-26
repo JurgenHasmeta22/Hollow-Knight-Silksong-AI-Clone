@@ -1008,11 +1008,11 @@
             ctx.shadowBlur = 24;
             ctx.font = `600 104px ${BW.FONT_T}`;
             ctx.fillStyle = '#f7ecd6';
-            spaced(ctx, BW.TITLE.name, BW.VW / 2, 190, 10);
+            spaced(ctx, 'THE UNCALLED', BW.VW / 2, 190, 10);
             ctx.shadowBlur = 0;
             ctx.font = `italic 500 30px ${BW.FONT_B}`;
             ctx.fillStyle = '#e1d2b2';
-            ctx.fillText(BW.TITLE.tag, BW.VW / 2, 262);
+            ctx.fillText('a face the bells cannot call', BW.VW / 2, 262);
             ornament(ctx, BW.VW / 2, 300, 210);
 
             if (this.titleCleared()) {

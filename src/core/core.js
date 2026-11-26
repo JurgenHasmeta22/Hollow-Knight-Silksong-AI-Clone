@@ -1,5 +1,5 @@
 'use strict';
-// Bellweaver — core namespace, constants and small helpers shared by every module.
+// The Uncalled — core namespace, constants and small helpers shared by every module.
 window.BW = window.BW || {};
 
 (function (BW) {

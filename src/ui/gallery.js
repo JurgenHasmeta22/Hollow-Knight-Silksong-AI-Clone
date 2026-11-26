@@ -96,13 +96,13 @@
             ),
             {
                 id: 'title',
-                name: 'The Last Bellweaver',
-                sub: 'The needle, the thread and the silent city',
+                name: 'The Faceless',
+                sub: 'The one the bells cannot call',
                 far: 'title_art',
                 mid: null,
                 music: 'mus_title',
                 open: true,
-                text: 'You are the last who remembers how to rethread a toll-loom. Take up the needle. Kindle the lanterns. Wake the bells.',
+                text: 'One of the dead woke. It had no face, and so the bells could not find it. Take up the blades. Walk the city to the Great Bell.',
             },
             {
                 id: 'dawn',
@@ -167,14 +167,14 @@
 
         list.push({
             id: 'hero',
-            name: 'The Last Bellweaver',
-            sub: 'The one who remembers the knot',
+            name: 'The Faceless Ronin',
+            sub: 'The youngest of House Vael',
             where: 'Wherever the bells once reached',
-            sprite: 'hero_idle',
+            sprite: 'ronin_idle_a',
             open: true,
             text: [
-                'A weaver of the old guild, the last who remembers how to rethread a toll-loom.',
-                'Needle for a blade, silk for a lifeline: every blow gathers thread, and every thread is a chance to mend.',
+                'The House of Vael's sword, left among the dead with his face cut away, so the bells cannot find him.',
+                'Two blades and a shade that burns: every blow gathers thread, and every thread is a chance to mend.',
             ],
         });
 
@@ -283,7 +283,7 @@
         return [
             {
                 id: 'prologue',
-                name: 'The City of Bells',
+                name: 'The City That Sees by Sound',
                 sub: 'Prologue',
                 art: 'bg_belfry_far',
                 music: 'mus_title',

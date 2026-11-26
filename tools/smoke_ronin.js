@@ -73,7 +73,6 @@ for (const f of [
     'src/world/rooms.js',
     'src/progression/difficulty.js',
     'src/progression/xp.js',
-    'src/entities/player.js',
     'src/entities/ronin.js',
     'src/game/game.js',
 ]) {
@@ -335,18 +334,8 @@ console.log('controls and save');
         /KeyU: \['skill'\]/.test(input) && /KeyO: \['transform'\]/.test(input),
         'U is the skill key and O the transform key',
     );
-    check(
-        BW.CHARACTERS.weaver && BW.CHARACTERS.ronin && BW.CHARACTERS.ronin.sprite === 'ronin_idle_a',
-        'both heroes are listed for the character screen',
-    );
+    check(BW.CHARACTERS.ronin && BW.CHARACTERS.ronin.sprite === 'ronin_idle_a', 'the Ronin is the one hero listed');
     check(!!manifest.sprites[BW.CHARACTERS.ronin.sprite], 'the Ronin preview pose exists');
-
-    const gm = { player: { constructor: BW.Player }, state: null };
-
-    G.setCharacter.call(gm, 'ronin');
-    check(gm.player instanceof BW.Ronin, 'setCharacter swaps in the Ronin');
-    G.setCharacter.call(gm, 'weaver');
-    check(!(gm.player instanceof BW.Ronin) && gm.player instanceof BW.Player, 'and back to the Bellweaver');
 }
 
 // ---------------------------------------------------------------- 3. moving
@@ -874,7 +863,7 @@ console.log('drawing');
         bad('drawing threw: ' + err.stack.split('\n').slice(0, 4).join(' / '));
     }
 
-    // a missing atlas falls back to the Weaver's stand-in and does not throw
+    // a missing atlas draws nothing, and does not throw
     const saved = BW.Assets.sprite;
 
     BW.Assets.sprite = () => null;

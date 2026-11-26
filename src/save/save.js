@@ -39,7 +39,6 @@
                 lanternRoom: null,
                 maxHp: 5,
                 difficulty: 'action', // story | action | nightmare
-                character: 'ronin', // the hero of this journey (the Faceless Ronin)
                 shade: 0, // the Ronin's gauge (0..100), full to transform
                 silkMax: 9,
                 glints: 0,
@@ -84,7 +83,6 @@
             d.glints = Math.max(0, d.glints | 0);
             d.xp = Math.max(0, d.xp | 0);
             d.shade = BW.clamp(+d.shade || 0, 0, 100);
-            d.character = 'ronin'; // the Faceless Ronin is the only hero
 
             if (!BW.Difficulty.valid(d.difficulty)) d.difficulty = BW.Difficulty.DEFAULT;
 
@@ -283,7 +281,7 @@
 
             const m = this.migrate(obj);
 
-            if (!m) return { ok: false, msg: 'That is not a Bellweaver save.' };
+            if (!m) return { ok: false, msg: 'That is not a save of this game.' };
 
             const s = storage();
             const str = JSON.stringify(Object.assign({}, obj, m));
