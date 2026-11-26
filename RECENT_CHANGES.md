@@ -1,6 +1,6 @@
 # Bellweaver: what the last five commits added
 
-A feature-by-feature account of the five most recent commits, oldest first. Everything lives in `Hollow Knight Silksong AI/` and is vanilla JavaScript on a global `BW` namespace with no build step. File names point to where the work is.
+A feature-by-feature account of the five most recent commits, oldest first. Everything lives in the repository root and is vanilla JavaScript on a global `BW` namespace with no build step. File names point to where the work is.
 
 | # | Commit | Summary |
 |---|---|---|

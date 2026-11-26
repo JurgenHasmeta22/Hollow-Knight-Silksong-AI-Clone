@@ -1,6 +1,6 @@
 # Bellweaver — "Chapter II" content expansion plan
 
-Game root: `Hollow Knight Silksong AI/` (vanilla JS + Canvas, no build step, global `BW` namespace).
+Game root: the repository root (vanilla JS + Canvas, no build step, global `BW` namespace).
 
 ## 1. Goal
 
