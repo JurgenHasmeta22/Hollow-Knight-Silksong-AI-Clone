@@ -16,6 +16,8 @@
         attack: ['W'],
         dash: ['E', 'RT'],
         lance: ['N'],
+        skill: ['R3'],
+        transform: ['L3'],
         heal: ['LT'],
         parry: ['LB'],
         interact: ['DU'],
@@ -26,7 +28,7 @@
     };
 
     const FACE = { S: 1, E: 1, W: 1, N: 1 };
-    const SHOULDER = { LB: 1, RB: 1, LT: 1, RT: 1 };
+    const SHOULDER = { LB: 1, RB: 1, LT: 1, RT: 1, L3: 1, R3: 1 };
     const DPAD = { DU: 1, DD: 1, DL: 1, DR: 1 };
     const TOKENS = Object.assign({ LS: 1, SELECT: 1, START: 1 }, FACE, SHOULDER, DPAD);
     const PS = { S: '#7fa8ff', E: '#ff6f7c', W: '#f093d2', N: '#52d4a8' };
@@ -35,7 +37,7 @@
         xbox: {
             name: 'Xbox',
             face: { S: ['A', '#5cc05a'], E: ['B', '#e0483f'], W: ['X', '#4a86e8'], N: ['Y', '#eab92c'] },
-            sh: { LB: 'LB', RB: 'RB', LT: 'LT', RT: 'RT' },
+            sh: { LB: 'LB', RB: 'RB', LT: 'LT', RT: 'RT', L3: 'L3', R3: 'R3' },
             select: 'View',
             start: 'Menu',
             words: { S: 'A', E: 'B', W: 'X', N: 'Y' },
@@ -43,7 +45,7 @@
         playstation: {
             name: 'PlayStation',
             face: { S: ['x', PS.S], E: ['o', PS.E], W: ['sq', PS.W], N: ['tri', PS.N] },
-            sh: { LB: 'L1', RB: 'R1', LT: 'L2', RT: 'R2' },
+            sh: { LB: 'L1', RB: 'R1', LT: 'L2', RT: 'R2', L3: 'L3', R3: 'R3' },
             start: 'Options',
             // the same button is "Share" on a DualShock 4 and "Create" on a DualSense
             get select() {
@@ -55,7 +57,7 @@
             name: 'Switch',
             light: true,
             face: { S: ['B', '#23252c'], E: ['A', '#23252c'], W: ['Y', '#23252c'], N: ['X', '#23252c'] },
-            sh: { LB: 'L', RB: 'R', LT: 'ZL', RT: 'ZR' },
+            sh: { LB: 'L', RB: 'R', LT: 'ZL', RT: 'ZR', L3: 'L3', R3: 'R3' },
             select: '\u2212',
             start: '+',
             words: { S: 'B', E: 'A', W: 'Y', N: 'X' },
@@ -64,7 +66,7 @@
             name: 'Generic',
             light: true,
             face: { S: ['1', '#23252c'], E: ['2', '#23252c'], W: ['3', '#23252c'], N: ['4', '#23252c'] },
-            sh: { LB: 'L1', RB: 'R1', LT: 'L2', RT: 'R2' },
+            sh: { LB: 'L1', RB: 'R1', LT: 'L2', RT: 'R2', L3: 'L3', R3: 'R3' },
             select: 'Back',
             start: 'Start',
             words: { S: 'Button 1', E: 'Button 2', W: 'Button 3', N: 'Button 4' },

@@ -37,11 +37,13 @@ Click the game once (or press any key) so the browser allows sound. A 16:9 windo
 | Move | A / D or ← / → | Left stick / D-pad |
 | Aim strike up / down | W / S or ↑ / ↓ | Stick up / down |
 | Jump (hold for height) | Space | A |
-| Needle strike | J | X |
+| Needle strike (the Ronin: hold to charge the Void Slash) | J | X |
 | Down strike in air (bounces off enemies and thorns) | S + J | Down + X |
 | Silk Dash (once learned) | K or Shift | B or RT |
 | Shadow Step (once learned; the same button, pressed just as a blow lands) | K or Shift | B or RT |
-| Silk Lance (costs 3 silk) | L | Y |
+| Silk Lance (costs 3 silk; the Ronin's Energy Barrage) | L | Y |
+| Skill: the Ronin's Whirlwind Dash (transformed: Up grabs, Down erupts or ground-pounds) | U | Right stick click (R3) |
+| Transform when the Shade is full; the ultimate while transformed (Ronin only) | O | Left stick click (L3) |
 | Parry (once learned; time it as a blow lands) | I | LB / L1 (RB also works) |
 | Mend: hold to heal 1 (costs 3 silk) | Hold Q | Hold LT / L2 |
 | Interact / talk / rest / open doors | E or ↑ | Up |
@@ -216,11 +218,22 @@ The game opens with a short run of intro chapters, plus an interlude card the fi
 
 ---
 
+## Choosing your hero
+
+**New Game** asks for a difficulty and then a hero. Both play the same story and the same world; the choice is saved with the game.
+
+- **The Bellweaver:** the original. Quick and precise: needle, Silk Dash, Silk Lance, parry and Shadow Step.
+- **The Faceless Ronin:** a straw-hatted swordsman with a heavier, much bigger moveset (art from two pose sheets, `tools/art/`).
+  - **Normal form:** a three-hit dual-blade combo (the third hit lunges and shakes the floor), an air slash, up and bouncing down strikes, the **Void Slash** (hold the strike button, release when the aura closes; 4 silk), the **Energy Barrage** (L; throws a black crescent, 3 silk), the **Whirlwind Dash** (U; 2 silk), a **dash-slash** (strike in the middle of a dash), plus Silk Dash, parry, Shadow Step and mending, which are shared with the Weaver.
+  - **Shade:** a gauge under the experience bar. Every blow fills it a little, a parry or a Shadow Step fills it a lot. When it is full, **O** (or L3) starts the transformation: focus, flare, float, absorb, unleash.
+  - **Transformed** (about 24 seconds, extended by every hit and every parry): faster and about 40% harder-hitting, a four-hit combo, a double jump (**Flame Ascent**), the **Phantom Clone Dash** (the dash button: an untouchable dash that leaves clones), the **Clashing Shadow Slash** (strike in a dash), a five-way Barrage, the **Phantom Grab** (U + Up: drags the nearest foe in front of you), **Ground Eruption** (U + Down on the ground), the **Ground Pound** (U + Down in the air), the **Illusion Burst** (answers a Shadow Step and staggers everything near) and the **Giant Spectral Summon** (O again: a spectral giant drops a burning star on a target; it spends the form). Being hurt costs form time.
+  - Test saves for it: **Save Data → Test Saves → Faceless Ronin** (Shade already full).
+
 ## Chapter II: The Hushed Gallery
 
-Once the Great Bell has rung, its toll parts the black veils at the end of the Ashen Ramparts (the **Rampart Gatehall**, east of the Cord Lift) and a new region opens: **The Hushed Gallery**, a funeral gallery of black stone where every bell has had its clapper cut out and wrapped in cloth. It has no music and no ambience: only your footsteps and the bells you wake. Design notes, tuning tables and the test tools are in [docs/HUSHED_GALLERY.md](docs/HUSHED_GALLERY.md).
+Once the Great Bell has rung, its toll parts the black veils at the end of the Ashen Ramparts (the **Rampart Gatehall**, east of the Cord Lift) and a new region opens: **The Hushed Gallery**, a funeral gallery of black stone where every bell has had its clapper cut out and wrapped in cloth. It is built around quiet: three slow pieces of music drift through it (and fall silent in the Bier Chamber, the quiet before the boss), and the Long Mourner fights to its own two pieces. Design notes, tuning tables and the test tools are in [docs/HUSHED_GALLERY.md](docs/HUSHED_GALLERY.md).
 
-- **Eight rooms** (plus the Gatehall): a threshold, a hall of veils with a pit to cross, a descent into the Mask Crypt, a tall climb through the Muffled Belfry, a candlelit gauntlet, the Bier Chamber, the Hush Arena and the Last Door Hall. Five lanterns, a secret **Lifethread**, a secret **Silk Spool**, glint stashes and eight lore notes.
+- **Eighteen rooms** (plus the Gatehall): the eight of the main road, a Cloister above it (ordered bells, the Mourners' Shears, drops back down), an Underveil below it (a hatch of mourning cloth only the Shears can cut, a shuttle over thorns, three bells that sing together), and three small Cells behind more cloth hatches. The main road is: a threshold, a hall of veils with a pit to cross, a descent into the Mask Crypt, a tall climb through the Muffled Belfry, a candlelit gauntlet, the Bier Chamber, the Hush Arena and the Last Door Hall. Five lanterns, a secret **Lifethread**, a secret **Silk Spool**, glint stashes and eight lore notes.
 - **Silent bells:** strike one with the needle to unwrap its clapper. It tolls, and every Hushed in the room hears it and comes: Hushlings rush you, Drifters hunt from afar, Reachers drop from the ceiling. Unwrapping a bell is how the veils across the way on are parted, so each one is a small risk you choose to take.
 - **Five new creatures**, each with a readable tell and a punish window (the Archive records them):
   - **Hushling:** creeps, coils, pounces, lands dazed.
@@ -239,6 +252,7 @@ Once the Great Bell has rung, its toll parts the black veils at the end of the A
 - **Game design, code, levels and writing:** created for this project with Claude Code. No engine or framework (plain HTML5 Canvas and JavaScript).
 - **Art:** generated with **Higgsfield** (GPT Image 2.5) from original prompts. This includes the character and boss pose sheets, enemies, props, textures, backgrounds, the Great Bell, title art and the ending painting. Everything was then cropped, keyed, anchored and packed for the game.
 - **Music:** generated with **Higgsfield** (Sonilo Music), including the two boss phases and the ending theme. **Ambience and sound effects:** **Higgsfield** (Seed Audio). A few interface clicks are synthesized in code.
+- **Faceless Ronin art:** two AI-generated pose sheets (the source files were named by Google Gemini), cut out, keyed and packed by `tools/import_ronin_art.py`. **The Hushed Gallery's three pieces, the Long Mourner's two fight pieces and the extra sound effects** (blades, growls and voices in `tools/audio/`) were generated and added by the project author; their tool is not recorded here.
 - **Fonts:** Cinzel and Cormorant Garamond, under the SIL Open Font License.
 
 The game never contacts Higgsfield or any other service while you play. Every asset is included in `assets/`.
@@ -259,7 +273,8 @@ src/                game code (classic scripts, no build step; load order is set
     input.js        keyboard + gamepad
     glyphs.js       keyboard keycaps and Xbox / PlayStation / Switch / generic button icons
   audio/
-    audio.js        music / ambience streaming, SFX, synth fallbacks
+    audio.js        music / ambience streaming, SFX, synth fallbacks, positional sounds, and the SFX bank (longer
+                    recordings cut into takes at start-up)
   save/
     save.js         versioned save format, export / import, migration
     testsaves.js    ready-made test saves (Save Data → Test Saves)
@@ -273,9 +288,12 @@ src/                game code (classic scripts, no build step; load order is set
     world.js        room DSL, tile collision
     rooms.js        the world: areas and all rooms (incl. the cathedral)
     fortress.js     the Ashen Ramparts, ending in the Rampart Gatehall (the way on to the Hushed Gallery)
-    hushed.js       Chapter II: the Hushed Gallery area and its eight rooms
+    hushed.js       Chapter II: the Hushed Gallery area and its eight main-road rooms
+    hushed_wings.js the Gallery's ten extra rooms (Cloister, Underveil, Cells) and its score
   entities/
     player.js       the Bellweaver
+    ronin.js        the Faceless Ronin: a Player subclass with a combo, charge, a dozen skills, the Shade gauge and
+                    a transformation, plus its crescent / spike / summon effects
     enemies.js      enemy behaviours
     objects.js      lanterns, pickups, NPC, shrine, toll-looms, lifts, doors, the Great Bell
     boss.js         the Bellbound Warden and its attack hazards
@@ -301,8 +319,11 @@ src/                game code (classic scripts, no build step; load order is set
     levels/cathedral.js  doors, boss entrance, arena, victory, Great Bell, ending and credits
     levels/hushed.js     silent-bell tolls, the Long Mourner's victory, the Silent Key, the Last Door, the Chapter II card
 tools/              importers for the art drops, and two checks that need no browser:
-                    validate_world.js (room overlaps, misaligned exits, reachability) and
-                    smoke_hushed.js (runs the Chapter II creatures, objects and sequences headlessly)
+                    validate_world.js (room overlaps, misaligned exits, reachability),
+                    smoke_hushed.js (runs the Chapter II creatures, objects and sequences headlessly) and
+                    smoke_ronin.js (drives the Ronin's skills, form, art and controls headlessly);
+                    import_ronin_art.py cuts the two Ronin pose sheets in tools/art/ into the atlas, and
+                    build_sfx_bank.py embeds the recordings in tools/audio/ as assets/audio/sfx_bank.js
 assets/
   manifest.js       generated sprite / image manifest
   img/ audio/ fonts/

@@ -396,7 +396,7 @@
                 else if (this.recoilT > 0) {
                     /* keep recoil */
                 } else {
-                    const target = dir * P.runSpeed;
+                    const target = dir * P.runSpeed * (this.speedMul || 1);
                     const acc = this.onGround ? (dir ? P.groundAccel : P.groundDecel) : dir ? P.airAccel : P.airDecel;
 
                     this.vx = BW.approach(this.vx, target, acc * dt);
@@ -1064,7 +1064,7 @@
         }
     }
 
-    BW.HERO_SCALE = 1;
+    BW.HERO_SCALE = 1.2; // the hero is drawn a fifth larger than its hitbox, so combos read clearly
 
     // Simple vector stand-in used only if hero art failed to load.
     function drawPlaceholderHero(ctx, x, y, f, sx, sy, flash, anim, t) {

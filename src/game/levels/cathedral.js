@@ -639,7 +639,7 @@
             });
         }
 
-        BW.Audio.playMusic('mus_boss', 0.3);
+        BW.Audio.playMusic(b.musicP1 || 'mus_boss', 0.3);
         g.bossTitle = { name: b.bossName, sub: b.bossSub, t: 0, life: full ? 4.2 : 2.8 };
         mournerIntroSeen = true;
         skip = false;

@@ -79,6 +79,34 @@
         },
     };
 
+    // ================================================================ sounds
+    // What each creature says when it enters a state: [bank or sample, play options]. The `muffled` and `voice`
+    // banks are the long low recordings (src/audio/audio.js decodes them into takes); `bladedual` is the thin whoosh
+    // of a limb cutting the air, `slashbody` a blow landing on cloth and bone, `blood` a wet collapse.
+    const CUES = {
+        hushling: {
+            tell: [['muffled', { vol: 0.5, rate: 1.55 }]],
+            lunge: [['bladedual', { vol: 0.3, rate: 1.7 }]],
+        },
+        drifter: {
+            tell: [['muffled', { vol: 0.5, rate: 0.8 }]],
+            dive: [['bladedual', { vol: 0.5, rate: 0.9 }]],
+        },
+        stilt: {
+            tell: [['muffled', { vol: 0.8, rate: 0.55 }]],
+            reach: [['bladedual', { vol: 0.6, rate: 0.65 }]],
+        },
+        reacher: {
+            curl: [['muffled', { vol: 0.6, rate: 0.9 }]],
+            drop: [['bladedual', { vol: 0.5, rate: 0.7 }]],
+            land: [['slashbody', { vol: 0.55, rate: 0.7 }]],
+        },
+        brute: {
+            windup: [['muffled', { vol: 0.9, rate: 0.45 }]],
+            slam: [['slashbody', { vol: 0.8, rate: 0.5 }]],
+        },
+    };
+
     // ================================================================ shared base
     class Hushed extends BW.Enemy {
         constructor(game, def, o) {
@@ -87,9 +115,33 @@
             this.lightA = 0.16;
             this.rim = 0.4; // a cold rim light keeps pitch-black bodies readable against black stone
             this.deathColors = COLD;
+            this.sfxRate = { hushling: 1.5, drifter: 1.1, stilt: 0.7, reacher: 0.85, brute: 0.55 }[def.type] || 1;
             this.deathGlow = ['#9fd8ff', '#e6f6ff'];
             this.deathRing = '#9fd8ff';
             this.alertT = 0;
+        }
+        // a sound that comes from this creature: quieter and panned by where it is
+        sfx(name, o) {
+            BW.Audio.playAt(name, this.cx, this.cy, o);
+        }
+        setState(s) {
+            super.setState(s);
+
+            const cue = CUES[this.kind] && CUES[this.kind][s];
+
+            if (cue) for (const [name, o] of cue) this.sfx(name, o);
+        }
+        damage(n, dir, src) {
+            const r = super.damage(n, dir, src);
+
+            if (r === 'hit') this.sfx('slashbody', { vol: 0.5, rate: this.sfxRate, vary: 0.12, minGap: 0.08 });
+
+            if (r === 'kill') {
+                this.sfx('blood', { vol: 0.75, vary: 0.1, minGap: 0 });
+                this.sfx('muffled', { vol: 0.55, rate: this.sfxRate * 0.7, minGap: 0 });
+            }
+
+            return r;
         }
         // A silent bell was struck somewhere in the room: for a while this creature knows exactly where you are.
         onToll() {

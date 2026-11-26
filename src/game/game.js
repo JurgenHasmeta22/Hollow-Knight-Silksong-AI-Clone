@@ -317,13 +317,22 @@
         }
 
         // ================================================================ game start / save
-        newGame(difficulty) {
+        // which hero is on the field: the Bellweaver, or the Faceless Ronin (the same game, a different body)
+        setCharacter(id) {
+            const want = id === 'ronin' && BW.Ronin ? BW.Ronin : BW.Player;
+
+            if (this.player.constructor !== want) this.player = new want(this);
+        }
+
+        newGame(difficulty, character) {
             BW.Save.erase();
 
             const d = BW.Save.defaults();
 
             d.difficulty = BW.Difficulty.valid(difficulty) ? difficulty : BW.Difficulty.DEFAULT;
+            d.character = character === 'ronin' ? 'ronin' : 'weaver';
             this.state = Object.assign(d, { hp: d.maxHp, silk: 0 });
+            this.setCharacter(d.character);
             this.stats = {};
             BW.Save.write(this.persist());
             this.mode = 'play';
@@ -348,11 +357,12 @@
 
             this.clearOverlays();
             this.state = Object.assign(d, { hp: d.maxHp, silk: 0 });
+            this.setCharacter(d.character);
             this.stats = {};
             this.mode = 'play';
             this.menu.closeAll();
             this.respawnAtLantern(true);
-            BW.Audio.playMusic(this.room.area.music, 2.5);
+            BW.Audio.playMusic(this.room.def.music !== undefined ? this.room.def.music : this.room.area.music, 2.5);
         }
 
         // everything that belongs to a running session and must not leak into a loaded or restarted one
@@ -676,8 +686,10 @@
             // area change: music + title card
             const area = room.area;
 
+            // a room may name its own piece (room.music), and one that is already playing carries on across rooms
+            BW.Audio.playMusic(room.def.music !== undefined ? room.def.music : area.music, 2.5);
+
             if (this.lastArea !== area.id) {
-                BW.Audio.playMusic(area.music, 2.5);
                 BW.Audio.playAmbience(area.amb, 2.5);
 
                 if (this.lastArea && !opts.silent) {
@@ -1267,7 +1279,7 @@
 
                 hits.add(e);
 
-                const r = e.damage(BW.XP.power(st), dir, p);
+                const r = e.damage(BW.XP.power(st) * (p.hitMul || 1), dir, p);
 
                 if (r === 'blocked') {
                     res.blocked = true;
@@ -1278,8 +1290,14 @@
                 if (!r) continue;
 
                 res.hitEnemy = true;
-                st.silk = Math.min(st.silkMax, st.silk + 1);
-                this.hud.pulse('silk');
+
+                if (!p.noSilk) {
+                    st.silk = Math.min(st.silkMax, st.silk + 1);
+                    this.hud.pulse('silk');
+                }
+
+                if (p.onHitEnemy) p.onHitEnemy(e, r, dir);
+
                 this.hitstop(r === 'kill' ? 0.08 : 0.05);
                 this.fx.shake(r === 'kill' ? 5 : 3, 0.12);
 

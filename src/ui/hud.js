@@ -14,8 +14,8 @@
             this.toasts = [];
             this.title = null;
             this.announce = null;
-            this.pulses = { hp: 0, silk: 0 };
-            this.denies = { hp: 0, silk: 0 };
+            this.pulses = { hp: 0, silk: 0, shade: 0 };
+            this.denies = { hp: 0, silk: 0, shade: 0 };
             this.hurtPulse = 0;
             this.shownHp = 5;
             this.crack = [];
@@ -343,6 +343,9 @@
                 ctx.fillStyle = g;
                 ctx.fillRect(0, 0, BW.VW, BW.VH);
             }
+
+            // the Ronin's Shade gauge
+            if (this.game.player && this.game.player.drawGauge) this.game.player.drawGauge(ctx, hx, 148, alpha);
 
             // red alert: a boss is winding up a blow that cannot be parried, so the screen's edges flood red
             let alert = 0;

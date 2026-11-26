@@ -11,6 +11,7 @@
         vol: { master: 0.85, music: 0.6, sfx: 0.85, ambience: 0.75, ui: 1 },
         muted: false, // set while the window is in the background and "mute in background" is on
         buffers: {},
+        banks: {}, // name -> [AudioBuffer]: takes cut from a longer recording (see sfx_bank.js); play() picks one at random
         tracks: {}, // name -> LoopPlayer
         musicName: null,
         ambName: null,
@@ -56,6 +57,7 @@
             for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
 
             this.decodePack();
+            this.decodeBank();
             this.ready = true;
         },
 
@@ -91,6 +93,155 @@
             };
 
             next();
+        },
+
+        // The embedded recordings in BW_SFX_BANK each hold several takes: decode one, cut it into its takes and file them
+        // under the bank name (a trailing digit is dropped, so voice1 and voice2 share the bank `voice`).
+        decodeBank() {
+            const data = window.BW_SFX_BANK || {};
+            const names = Object.keys(data);
+
+            const next = () => {
+                const name = names.shift();
+
+                if (!name) return;
+
+                try {
+                    const bin = atob(data[name].split(',')[1]);
+                    const bytes = new Uint8Array(bin.length);
+
+                    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+
+                    this.ctx.decodeAudioData(
+                        bytes.buffer,
+                        (buf) => this.addTakes(name.replace(/\d+$/, ''), buf),
+                        () => BW.note('sfx bank decode failed ' + name),
+                    );
+                } catch (e) {
+                    BW.note('sfx bank error ' + name);
+                }
+
+                setTimeout(next, 0);
+            };
+
+            next();
+        },
+
+        addTakes(bank, buf) {
+            const takes = this.findSegments(buf.getChannelData(0), buf.sampleRate, SEGMENT[bank]);
+            const list = this.banks[bank] || (this.banks[bank] = []);
+
+            for (const [a, b] of takes) {
+                const len = b - a;
+                const out = this.ctx.createBuffer(buf.numberOfChannels, len, buf.sampleRate);
+                const fade = Math.min(len >> 1, Math.floor(buf.sampleRate * 0.012));
+                let peak = 0.0001;
+
+                for (let c = 0; c < buf.numberOfChannels; c++) {
+                    const src = buf.getChannelData(c);
+
+                    for (let i = a; i < b; i++) peak = Math.max(peak, Math.abs(src[i]));
+                }
+
+                for (let c = 0; c < buf.numberOfChannels; c++) {
+                    const src = buf.getChannelData(c),
+                        dst = out.getChannelData(c);
+
+                    for (let i = 0; i < len; i++) {
+                        const k = Math.min(1, i / fade, (len - 1 - i) / (fade * 4));
+
+                        dst[i] = (src[a + i] / peak) * 0.9 * k;
+                    }
+                }
+
+                list.push(out);
+            }
+        },
+
+        // Cuts one recording into its separate takes: stretches of sound separated by quiet. `data` is one channel of
+        // samples. Returns [[startSample, endSample], ...], each at most maxLen seconds long. Always returns at least one
+        // take (the whole thing, capped), so a recording that is one long wash still plays.
+        findSegments(data, sr, o = {}) {
+            const win = Math.max(1, Math.floor(sr * 0.01)),
+                n = Math.floor(data.length / win),
+                rms = new Float32Array(n);
+
+            let peak = 0;
+
+            for (let w = 0; w < n; w++) {
+                let s = 0;
+
+                for (let i = w * win; i < (w + 1) * win; i++) s += data[i] * data[i];
+
+                rms[w] = Math.sqrt(s / win);
+                peak = Math.max(peak, rms[w]);
+            }
+
+            const thr = Math.max(peak * (o.rel || 0.07), 0.003),
+                gap = Math.round((o.gap || 0.16) * 100),
+                minLen = Math.round((o.minLen || 0.07) * 100),
+                maxLen = Math.floor(sr * (o.maxLen || 2.4)),
+                tail = Math.round((o.tail || 0.12) * 100),
+                lead = Math.round(0.02 * 100);
+
+            const spans = [];
+            let s = -1,
+                last = -1;
+
+            for (let w = 0; w < n; w++) {
+                if (rms[w] > thr) {
+                    if (s < 0) s = w;
+
+                    last = w;
+                } else if (s >= 0 && w - last > gap) {
+                    if (last - s + 1 >= minLen) spans.push([s, last]);
+
+                    s = -1;
+                }
+            }
+
+            if (s >= 0 && last - s + 1 >= minLen) spans.push([s, last]);
+
+            const out = [];
+
+            spans.forEach(([a, b], i) => {
+                const nextStart = i + 1 < spans.length ? spans[i + 1][0] : n;
+                const start = Math.max(i ? spans[i - 1][1] + 1 : 0, a - lead) * win;
+                let end = Math.min(nextStart - 1, b + tail) * win;
+
+                end = Math.min(end, start + maxLen);
+
+                if (end - start > win * 4) out.push([start, end]);
+            });
+
+            if (!out.length) out.push([0, Math.min(data.length, maxLen)]);
+
+            return out;
+        },
+
+        // A positional sound: quieter and panned by where the source is relative to the hero (silent beyond `range`).
+        playAt(name, sx, sy, opts = {}) {
+            const g = window.BW_GAME,
+                p = g && g.player;
+
+            if (!p) return this.play(name, opts);
+
+            const range = opts.range || 900,
+                dx = sx - p.cx,
+                dy = (sy - p.cy) * 1.4,
+                d = Math.hypot(dx, dy);
+
+            if (d >= range) return;
+
+            const k = 1 - d / range;
+
+            this.play(
+                name,
+                Object.assign({}, opts, {
+                    vol: (opts.vol != null ? opts.vol : 1) * k * k * 1.15,
+                    pan: BW.clamp(dx / range, -0.8, 0.8),
+                }),
+            );
         },
 
         masterLevel() {
@@ -149,7 +300,8 @@
 
             const alias = ALIAS[name];
             const sample = opts.sample || (alias && alias.sample) || name;
-            const buf = this.buffers[sample];
+            const bank = this.banks[sample];
+            const buf = bank && bank.length ? bank[Math.floor(Math.random() * bank.length)] : this.buffers[sample];
 
             if (buf) {
                 const src = this.ctx.createBufferSource();
@@ -178,6 +330,18 @@
 
                 node.connect(dest);
                 src.start(now);
+
+                // one sound per call: a take that still holds a second blow is cut short with a quick fade
+                const cap = opts.maxDur || CAP[sample];
+
+                if (cap && buf.duration > cap) {
+                    const end = now + cap / rate,
+                        g0 = out.gain.value;
+
+                    out.gain.setValueAtTime(g0, Math.max(now, end - 0.06));
+                    out.gain.linearRampToValueAtTime(0, end);
+                    src.stop(end + 0.01);
+                }
 
                 return;
             }
@@ -392,6 +556,16 @@
     }
 
     // Generated samples reused for related cues; bell pitches are expressed relative to the sample.
+    // The blade, blow and impact recordings hold a run of blows (a combo of swishes). Cut at every blow, not only at long
+    // silences, so one take is one blow: the Ronin's swings, hits and finishers each land on their own.
+    const SEGMENT = {
+        bladedual: { gap: 0.035, rel: 0.12, minLen: 0.05, maxLen: 0.5, tail: 0.07 },
+        slashbody: { gap: 0.035, rel: 0.12, minLen: 0.05, maxLen: 0.45, tail: 0.07 },
+        combohit: { gap: 0.045, rel: 0.12, minLen: 0.06, maxLen: 0.8, tail: 0.1 },
+    };
+
+    // the longest a single play of a bank may last (seconds of the recording): a safety net if a take still runs on
+    const CAP = { bladedual: 0.55, slashbody: 0.5, combohit: 0.85 };
     const BASE_PITCH = { bell: 196 };
     const ALIAS = { bellfar: { sample: 'bell', vol: 0.32, lowpass: 900 } };
 

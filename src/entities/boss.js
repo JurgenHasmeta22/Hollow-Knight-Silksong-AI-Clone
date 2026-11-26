@@ -1136,7 +1136,7 @@
                         this.ev.roar = 1;
                         BW.Audio.play('boss_roar');
                         BW.Audio.play('bell', { pitch: 73.4, vol: 1, minGap: 0 });
-                        BW.Audio.playMusic('mus_boss2', 0.6);
+                        BW.Audio.playMusic(this.musicP2 || 'mus_boss2', 0.6);
                         g.fx.shake(14, 1.0);
                         g.fx.flash(this.flashColor, 0.35);
 

@@ -12,6 +12,8 @@
         'attack',
         'dash',
         'lance',
+        'skill',
+        'transform',
         'heal',
         'parry',
         'interact',
@@ -38,6 +40,8 @@
         ShiftRight: ['dash'],
         KeyC: ['dash'],
         KeyL: ['lance'],
+        KeyU: ['skill'],
+        KeyO: ['transform'],
         KeyI: ['parry'],
         KeyQ: ['heal'],
         KeyE: ['interact'],
@@ -59,6 +63,8 @@
         4: ['parry'], // LB / L1
         5: ['parry'], // RB / R1 (kept as a second parry button for muscle memory)
         6: ['heal'], // LT / L2
+        10: ['transform'], // left stick click
+        11: ['skill'], // right stick click
         7: ['dash'], // RT
         8: ['map'], // Back / View / Share (DualShock 4) / Create (DualSense)
         9: ['pause'], // Start / Menu / Options
@@ -273,6 +279,8 @@
                 attack: 'J',
                 dash: 'K / Shift',
                 lance: 'L',
+                skill: 'U',
+                transform: 'O',
                 heal: 'Q',
                 parry: 'I',
                 interact: 'E',

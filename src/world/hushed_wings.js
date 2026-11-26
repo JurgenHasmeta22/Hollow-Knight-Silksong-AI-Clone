@@ -540,4 +540,30 @@
         prop(r, 'candles', 20, 12, 80);
         r.light(24, 9, 6, '#9fd8ff', { a: 0.45 });
     });
+
+    // ================================================================ THE SCORE
+    // Three pieces for the Gallery. The Bier Chamber and the arena's vestibule stay silent: that is the quiet before the
+    // Long Mourner, and its own two pieces take over when the fight starts.
+    const SCORE = {
+        H1: 'mus_hushed1',
+        H2: 'mus_hushed1',
+        H3: 'mus_hushed1',
+        H4: 'mus_hushed1',
+        H5: 'mus_hushed2',
+        H6: null,
+        H7: null,
+        H8: 'mus_hushed2',
+        N1: 'mus_hushed2',
+        N2: 'mus_hushed2',
+        N3: 'mus_hushed2',
+        U1: 'mus_hushed3',
+        U2: 'mus_hushed3',
+        U3: 'mus_hushed3',
+        U4: 'mus_hushed3',
+        K1: 'mus_hushed3',
+        K2: 'mus_hushed3',
+        K3: 'mus_hushed3',
+    };
+
+    for (const id of Object.keys(SCORE)) BW.ROOMS[id].music = SCORE[id];
 })(window.BW);

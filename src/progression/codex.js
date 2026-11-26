@@ -394,6 +394,7 @@
     const LESSONS = {
         parry: { title: 'Tip: Parry', sub: () => `Press ${L('parry')} just before a blow lands` },
         riposte: { title: 'Perfect parry', sub: () => 'The foe is dazed. Strike now for double damage' },
+        shade: { title: 'The Shade is full', sub: () => `Press ${L('transform')} to unleash your second form` },
         dodge: { title: 'Shadow Step', sub: () => 'The foe is frozen. Strike now and chain a combo' },
     };
 

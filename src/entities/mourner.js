@@ -42,6 +42,53 @@
         embrace: { wind: 1.15, chain: 0.85, lunge: 0.32, speed: 640, rec: 1.4 },
     };
 
+    // what it says or does on entering a state: [bank or sample, options]. `voice` is the low muffled cry, `muffled` the
+    // long growl underneath it, `bladedual` the whoosh of its limbs, `slashbody` the weight of a blow landing.
+    const CUES = {
+        reach_wind: [['voice', { vol: 0.8, rate: 0.85 }]],
+        reach: [['bladedual', { vol: 1, rate: 0.7 }]],
+        needles_wind: [
+            ['voice', { vol: 0.7, rate: 0.7 }],
+            ['muffled', { vol: 0.5, rate: 0.6 }],
+        ],
+        needles: [['slashbody', { vol: 0.85, rate: 0.55 }]],
+        veil_wind: [['voice', { vol: 0.7, rate: 1 }]],
+        veil_cast: [['bladedual', { vol: 0.9, rate: 0.5 }]],
+        rush_wind: [['voice', { vol: 0.8, rate: 1.25 }]],
+        rush: [['bladedual', { vol: 0.9, rate: 0.9 }]],
+        darts_wind: [['voice', { vol: 0.6, rate: 1.3 }]],
+        darts: [['bladedual', { vol: 0.8, rate: 1.3 }]],
+        stalk_wind: [['voice', { vol: 0.65, rate: 0.6 }]],
+        dance_wind: [['voice', { vol: 0.75, rate: 1.4 }]],
+        dance: [['bladedual', { vol: 0.8, rate: 1.1 }]],
+        hush_wind: [['muffled', { vol: 1, rate: 0.4 }]],
+        hush: [['voice', { vol: 1, rate: 0.5 }]],
+        drop_climb: [['muffled', { vol: 0.7, rate: 0.8 }]],
+        drop_fall: [['voice', { vol: 0.9, rate: 1.1 }]],
+        drop_land: [['slashbody', { vol: 1, rate: 0.4 }]],
+        pounce_wind: [['voice', { vol: 0.75, rate: 1.1 }]],
+        pounce_air: [['bladedual', { vol: 0.85, rate: 0.6 }]],
+        pounce_land: [['slashbody', { vol: 0.95, rate: 0.45 }]],
+        // the Embrace sounds unlike anything else it does: a long low cry building under a growl, then a crushing close
+        embrace_wind: [
+            ['voice', { vol: 1, rate: 0.5 }],
+            ['muffled', { vol: 0.9, rate: 0.4 }],
+        ],
+        embrace: [
+            ['slashbody', { vol: 1, rate: 0.4 }],
+            ['voice', { vol: 0.8, rate: 0.45 }],
+        ],
+        stagger: [['voice', { vol: 0.8, rate: 1.5 }]],
+        transition: [
+            ['voice', { vol: 1, rate: 0.6 }],
+            ['muffled', { vol: 1, rate: 0.5 }],
+        ],
+        dying: [
+            ['voice', { vol: 1, rate: 0.45 }],
+            ['blood', { vol: 0.8 }],
+        ],
+    };
+
     // a shuffled bag per phase, so no attack repeats at once (the Warden's rule)
     const BAGS = [
         ['reach', 'needles', 'veil', 'rush', 'darts', 'stalk', 'reach', 'needles'],
@@ -171,6 +218,8 @@
             this.heatDeep = '#030e18'; // the arena darkens and washes cold, not red, in phase two
             this.heatTint = '#4a9de0';
             this.codexId = 'mourner';
+            this.musicP1 = 'mus_mourner1'; // its own fight music, one piece for each of its two health bars
+            this.musicP2 = 'mus_mourner2';
 
             // two health bars: phase one's is fought first, and phase two comes with a fresh, bigger one
             this.twoBars = true;
@@ -208,6 +257,30 @@
         }
         embraceWind() {
             return this.chain ? TUNE.embrace.chain : TUNE.embrace.wind;
+        }
+
+        // ---------------------------------------------------------------- sounds
+        setState(s) {
+            super.setState(s);
+
+            const cue = CUES[s];
+
+            if (cue)
+                for (const [name, o] of cue) BW.Audio.playAt(name, this.cx, this.cy, Object.assign({ range: 1500 }, o));
+        }
+        damage(n, dir, src) {
+            const r = super.damage(n, dir, src);
+
+            if (r === 'hit')
+                BW.Audio.playAt('slashbody', this.cx, this.cy, {
+                    vol: 0.45,
+                    rate: 0.6,
+                    vary: 0.1,
+                    range: 1500,
+                    minGap: 0.1,
+                });
+
+            return r;
         }
 
         // ---------------------------------------------------------------- boxes and weights

@@ -39,6 +39,8 @@
                 lanternRoom: null,
                 maxHp: 5,
                 difficulty: 'action', // story | action | nightmare
+                character: 'weaver', // weaver | ronin: which hero this journey was started with
+                shade: 0, // the Ronin's gauge (0..100), full to transform
                 silkMax: 9,
                 glints: 0,
                 xp: 0, // experience; the level is derived from it (xp.js)
@@ -81,6 +83,8 @@
             d.silkMax = BW.clamp(d.silkMax | 0 || 9, 3, 18);
             d.glints = Math.max(0, d.glints | 0);
             d.xp = Math.max(0, d.xp | 0);
+            d.shade = BW.clamp(+d.shade || 0, 0, 100);
+            if (d.character !== 'ronin') d.character = 'weaver';
 
             if (!BW.Difficulty.valid(d.difficulty)) d.difficulty = BW.Difficulty.DEFAULT;
 

@@ -46,11 +46,33 @@
             diff: 'action',
             desc: 'The Gallery crossed and its bells unwrapped. Resting at the lantern outside the Hush Arena. The Long Mourner is waiting.',
         },
+        {
+            id: 'ronin_gallery',
+            name: 'Faceless Ronin: the Gallery',
+            diff: 'action',
+            desc: 'The Hushed Gallery save, played as the Faceless Ronin with the Shade full: press the transform key to try the second form and all its skills.',
+        },
+        {
+            id: 'ronin_boss',
+            name: 'Faceless Ronin: the Long Mourner',
+            diff: 'action',
+            desc: 'The boss-fight save as the Faceless Ronin, Shade full. Transform and fight the Long Mourner.',
+        },
     ];
 
     const HUSHED_BEASTS = ['hushling', 'drifter', 'stilt', 'reacher', 'brute', 'mourner'];
 
     function build(id) {
+        // the Ronin saves are the Gallery saves with the other hero and a full Shade
+        if (id === 'ronin_gallery' || id === 'ronin_boss') {
+            const r = build(id === 'ronin_boss' ? 'gallery_boss' : 'gallery');
+
+            r.character = 'ronin';
+            r.shade = 100;
+
+            return r;
+        }
+
         const meta = LIST.find((e) => e.id === id) || LIST[0];
         const d = BW.Save.defaults();
 

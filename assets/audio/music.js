@@ -35,6 +35,31 @@ window.BW_MUSIC = {
   "gain": 0.9,
   "xfade": 4
  },
+ "mus_hushed1": {
+  "src": "assets/audio/mus_hushed1.mp3",
+  "gain": 0.8,
+  "xfade": 5
+ },
+ "mus_hushed2": {
+  "src": "assets/audio/mus_hushed2.mp3",
+  "gain": 0.8,
+  "xfade": 5
+ },
+ "mus_hushed3": {
+  "src": "assets/audio/mus_hushed3.mp3",
+  "gain": 0.8,
+  "xfade": 5
+ },
+ "mus_mourner1": {
+  "src": "assets/audio/mus_mourner1.mp3",
+  "gain": 0.9,
+  "xfade": 3
+ },
+ "mus_mourner2": {
+  "src": "assets/audio/mus_mourner2.mp3",
+  "gain": 0.9,
+  "xfade": 3
+ },
  "amb_mosslit": {
   "src": "assets/audio/amb_mosslit.mp3",
   "gain": 0.55,

@@ -168,10 +168,7 @@
                                 if (BW.Difficulty.LEVELS[id].lock) {
                                     this.push('warn', { id });
                                     this.sel = 1;
-                                } else {
-                                    this.closeAll();
-                                    g.newGame(id);
-                                }
+                                } else this.push('character', { difficulty: id });
                             },
                         })),
                         { label: 'Back', act: () => this.pop() },
@@ -181,12 +178,22 @@
                         {
                             label: 'Descend into Nightmare',
                             tint: '#d4283a',
-                            act: () => {
-                                this.closeAll();
-                                g.newGame(s.data.id);
-                            },
+                            act: () => this.push('character', { difficulty: s.data.id }),
                         },
                         { label: 'Turn back', act: () => this.pop() },
+                    ];
+                case 'character':
+                    return [
+                        ...['weaver', 'ronin'].map((id) => ({
+                            id,
+                            label: BW.CHARACTERS[id].name,
+                            desc: BW.CHARACTERS[id].desc,
+                            act: () => {
+                                this.closeAll();
+                                g.newGame(s.data.difficulty, id);
+                            },
+                        })),
+                        { label: 'Back', act: () => this.pop() },
                     ];
                 case 'options':
                     return [
@@ -590,6 +597,7 @@
             if (s.name === 'pause') this.drawPause(ctx);
             else if (s.name === 'controls') this.drawControls(ctx);
             else if (s.name === 'warn') this.drawWarn(ctx);
+            else if (s.name === 'character') this.drawCharacter(ctx);
             else if (s.name === 'confirm') this.drawConfirm(ctx);
             else if (s.name === 'guide') this.drawGuide(ctx);
             else if (s.name === 'slots') this.drawSlots(ctx);
@@ -617,9 +625,9 @@
                               : s.name === 'travel'
                                 ? 'TRAVEL BETWEEN LANTERNS'
                                 : '',
-                    BW.VH * 0.32,
+                    s.name === 'testsaves' ? BW.VH * 0.28 : BW.VH * 0.32,
                     BW.VW / 2,
-                    s.name === 'testsaves' ? 44 : 50, // eight test saves would run into the description below at 50
+                    s.name === 'testsaves' ? 37 : 50, // ten test saves would run into the description below at 50
                 );
 
             if (s.name === 'testsaves') this.drawBottomDesc(ctx);
@@ -633,6 +641,59 @@
             }
 
             this.drawMsg(ctx);
+        }
+
+        // the two heroes side by side: the one under the needle stands lit, the other waits in the dark
+        drawCharacter(ctx) {
+            const ids = ['weaver', 'ronin'],
+                sel = ids[this.sel] || null,
+                t = this.t;
+
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = `600 40px ${BW.FONT_T}`;
+            ctx.fillStyle = '#f2e6cc';
+            ctx.fillText('CHOOSE YOUR WANDERER', BW.VW / 2, 70);
+            ornament(ctx, BW.VW / 2, 104, 190);
+
+            ids.forEach((id, i) => {
+                const on = id === sel,
+                    x = BW.VW * (i ? 0.66 : 0.34),
+                    y = 410,
+                    C = BW.CHARACTERS[id];
+
+                ctx.save();
+
+                if (on) {
+                    ctx.globalCompositeOperation = 'lighter';
+                    ctx.globalAlpha = 0.45 + 0.1 * Math.sin(t * 3);
+                    ctx.drawImage(BW.glowSprite(id === 'ronin' ? '#8aa0ff' : '#ffe7b5'), x - 230, y - 330, 460, 420);
+                    ctx.globalCompositeOperation = 'source-over';
+                }
+
+                ctx.globalAlpha = on ? 1 : 0.32;
+
+                const pose = id === 'ronin' ? 'ronin_' + (on ? 'transformed' : 'idle_a') : 'hero_idle';
+
+                if (!BW.Assets.draw(ctx, pose, 0, x, y, { scale: id === 'ronin' ? 3.3 : 3.6 })) {
+                    ctx.fillStyle = 'rgba(200,190,170,0.5)';
+                    ctx.fillRect(x - 40, y - 200, 80, 200);
+                }
+
+                ctx.restore();
+                ctx.font = `600 26px ${BW.FONT_B}`;
+                ctx.fillStyle = on ? '#fff1d0' : 'rgba(225,214,192,0.45)';
+                ctx.fillText(C.name, x, y + 44);
+            });
+
+            ctx.font = `italic 500 22px ${BW.FONT_B}`;
+            ctx.fillStyle = '#cbbd9f';
+
+            if (sel) BW.wrapText(ctx, BW.CHARACTERS[sel].desc, BW.VW / 2, 528, BW.VW * 0.6, 28);
+
+            ctx.restore();
+            this.drawList(ctx, '', BW.VH - 120, BW.VW / 2, 44);
         }
 
         drawMsg(ctx) {
@@ -870,12 +931,13 @@
                 ['Move', ['A', 'D', '~or', '\u2190', '\u2192'], ['LS', '/', 'DL', 'DR']],
                 ['Aim attack up / down', ['W', 'S', '~or', '\u2191', '\u2193'], ['LS', '/', 'DU', 'DD']],
                 ['Jump (hold for height)', ['Space'], ['S']],
-                ['Needle strike', ['J'], ['W']],
+                ['Strike (hold to charge, Ronin)', ['J'], ['W']],
                 ['Down strike (in air), bounces', ['S', '~+', 'J'], ['DD', '+', 'W']],
-                ['Silk Dash (once learned)', ['K', '~or', 'Shift'], ['E', '/', 'RT']],
-                ['Shadow Step (once learned)', ['K', '~or', 'Shift'], ['E', '/', 'RT']],
+                ['Silk Dash / Shadow Step (once learned)', ['K', '~or', 'Shift'], ['E', '/', 'RT']],
                 ['Parry (once learned)', ['I'], ['LB']],
-                ['Silk Lance (3 silk)', ['L'], ['N']],
+                ['Silk Lance / Energy Barrage (3 silk)', ['L'], ['N']],
+                ['Whirlwind; transformed: up grabs, down erupts', ['U'], ['R3']],
+                ['Ronin: transform when the Shade is full', ['O'], ['L3']],
                 ['Mend: hold to heal 1 (3 silk)', ['~Hold', 'Q'], ['Hold', 'LT']],
                 ['Interact / talk / rest / travel', ['E', '~or', '\u2191'], ['DU']],
                 ['Drop through ledge', ['S', '~+', 'Space'], ['DD', '+', 'S']],
@@ -902,11 +964,11 @@
             ctx.stroke();
 
             rows.forEach((r, i) => {
-                const y = y0 + 42 + i * 32;
+                const y = y0 + 42 + i * 29;
 
                 if (i % 2 === 0) {
                     ctx.fillStyle = 'rgba(232,201,138,0.05)';
-                    ctx.fillRect(x0 - 12, y - 16, BW.VW - 2 * x0 + 24, 32);
+                    ctx.fillRect(x0 - 12, y - 15, BW.VW - 2 * x0 + 24, 29);
                 }
 
                 ctx.font = `500 22px ${BW.FONT_B}`;
