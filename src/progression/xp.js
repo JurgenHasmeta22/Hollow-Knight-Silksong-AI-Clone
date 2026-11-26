@@ -22,6 +22,9 @@
         cache: 10,
         glints: 6,
         warden: 350,
+        mourner: 500,
+        key: 120,
+        bell: 20,
     };
 
     const XP = {

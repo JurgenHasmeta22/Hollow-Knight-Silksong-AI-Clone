@@ -168,6 +168,10 @@
             this.crawl = false;
             this.crawlDir = 1;
             this.introStyle = 'mourner'; // which opening cinematic the fight plays (see cathedral.js)
+            this.flagKey = 'mourner'; // flags mourner_met / mourner_defeated, attempts in stats.mournerAttempts
+            this.heatDeep = '#030e18'; // the arena darkens and washes cold, not red, in phase two
+            this.heatTint = '#4a9de0';
+            this.codexId = 'mourner';
 
             // two health bars: phase one's is fought first, and phase two comes with a fresh, bigger one
             this.twoBars = true;
@@ -181,6 +185,10 @@
                 this.chip = this.hp;
                 this.phaseAt = TUNE.hp[1];
             }
+        }
+
+        defeated() {
+            return !!this.game.state.flags.mourner_defeated;
         }
 
         // ---------------------------------------------------------------- the two health bars and the tempo

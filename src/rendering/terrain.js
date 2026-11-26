@@ -397,7 +397,7 @@
 
             const a = gt.anim;
 
-            if (a >= 1 && gt.kind !== 'seal') return;
+            if (a >= 1 && gt.kind !== 'seal' && gt.kind !== 'veil') return;
 
             if (gt.kind === 'bars') {
                 const off = a * h;
@@ -446,6 +446,60 @@
 
                 ctx.fillStyle = '#3d3742';
                 ctx.fillRect(x0 - 4, y0 + 2, w + 8, 6);
+            } else if (gt.kind === 'veil') {
+                // black funeral veils tied with silver thread: they hang across the way and, when the gate opens, are
+                // drawn aside and tied back against the walls
+                const open = BW.easeInOutSine(a),
+                    n = Math.max(4, Math.round(w / 14)),
+                    sw = w / n;
+
+                ctx.save();
+
+                for (let i = 0; i < n; i++) {
+                    const u = (i + 0.5) / n,
+                        side = u < 0.5 ? -1 : 1;
+
+                    const gx = x0 + u * w + side * open * (w * 0.5 + 18) * (0.35 + 0.65 * Math.abs(u - 0.5) * 2);
+                    const sway = Math.sin(t * 0.8 + i * 1.7) * 3 * (1 - open);
+                    const len = h * (1 - 0.5 * open) + (i % 3) * 5;
+
+                    ctx.fillStyle = i % 2 ? '#090c11' : '#10151b';
+                    ctx.beginPath();
+                    ctx.moveTo(gx - sw / 2 - 1, y0 - 4);
+                    ctx.lineTo(gx + sw / 2 + 1, y0 - 4);
+                    ctx.lineTo(gx + sw / 2 + sway, y0 + len);
+                    ctx.lineTo(gx + sway, y0 + len - 7 - (i % 2) * 9);
+                    ctx.lineTo(gx - sw / 2 + sway, y0 + len - 2);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    ctx.fillStyle = `rgba(159,216,255,${0.1 + 0.2 * (1 - open)})`;
+                    ctx.fillRect(gx + sw / 2 - 1, y0, 1.4, len * 0.9);
+                }
+
+                if (open < 0.95) {
+                    ctx.strokeStyle = `rgba(230,240,255,${0.6 * (1 - open)})`;
+                    ctx.lineWidth = 1.2;
+
+                    for (const k of [0.3, 0.55, 0.8]) {
+                        ctx.beginPath();
+                        ctx.moveTo(x0 + 4, y0 + h * k);
+                        ctx.lineTo(x0 + w * 0.5, y0 + h * (k + 0.07));
+                        ctx.lineTo(x0 + w - 4, y0 + h * k);
+                        ctx.stroke();
+                    }
+                }
+
+                // the cold light that leaks through the seams
+                ctx.globalCompositeOperation = 'lighter';
+
+                const gl = ctx.createLinearGradient(0, y0, 0, y0 + h);
+
+                gl.addColorStop(0, 'rgba(159,216,255,0)');
+                gl.addColorStop(1, `rgba(159,216,255,${0.12 * (1 - open)})`);
+                ctx.fillStyle = gl;
+                ctx.fillRect(x0, y0, w, h);
+                ctx.restore();
             } else if (gt.kind === 'seal') {
                 const half = w / 2,
                     open = BW.easeInOutSine(a) * (half + 30);
@@ -808,6 +862,102 @@
                 }
             },
         },
+        // The Hushed Gallery: polished black stone, a cold rim of light, cloth fallen on the floor and veils for a ceiling
+        hushed: {
+            top(x, fx, r, rng) {
+                const y = r.y * T,
+                    x0 = r.x0 * T - 3,
+                    x1 = (r.x1 + 1) * T + 3;
+
+                x.fillStyle = '#0d1319';
+                x.fillRect(x0, y - 3, x1 - x0, 9);
+                x.fillStyle = 'rgba(159,216,255,0.55)';
+                x.fillRect(x0, y - 3, x1 - x0, 1.6);
+                x.fillStyle = 'rgba(159,216,255,0.1)';
+                x.fillRect(x0, y + 6, x1 - x0, 2);
+
+                // joints between the slabs
+                for (let px = x0 + 20; px < x1 - 6; px += 46 + rng() * 34) {
+                    x.fillStyle = 'rgba(2,4,6,0.75)';
+                    x.fillRect(px, y - 3, 2, 9);
+                }
+
+                // black cloth, fallen and trodden flat; the odd shard of a mask
+                for (let px = x0 + 12; px < x1 - 22; px += 46 + rng() * 64) {
+                    if (rng() < 0.55) {
+                        const w = 16 + rng() * 22;
+
+                        x.fillStyle = '#06090d';
+                        x.beginPath();
+                        x.moveTo(px, y - 2);
+                        x.quadraticCurveTo(px + w * 0.3, y - 7 - rng() * 4, px + w * 0.55, y - 3);
+                        x.quadraticCurveTo(px + w * 0.8, y - 6, px + w, y - 2);
+                        x.closePath();
+                        x.fill();
+                    }
+
+                    if (rng() < 0.18) {
+                        x.fillStyle = 'rgba(230,240,250,0.8)';
+                        x.beginPath();
+                        x.ellipse(px + 6, y - 3, 3.5, 2, rng() - 0.5, 0, Math.PI * 2);
+                        x.fill();
+                    }
+                }
+            },
+            bottom(x, r, rng) {
+                const y = (r.y + 1) * T,
+                    x0 = r.x0 * T,
+                    x1 = (r.x1 + 1) * T;
+
+                x.fillStyle = '#080c10';
+                x.fillRect(x0, y - 5, x1 - x0, 5);
+
+                // a ragged fringe of veil along the underside
+                for (let px = x0 + 4; px < x1 - 4; px += 9 + rng() * 14) {
+                    const len = 12 + rng() * 40,
+                        w = 5 + rng() * 6;
+
+                    x.fillStyle = rng() < 0.5 ? '#06090d' : '#0b1015';
+                    x.beginPath();
+                    x.moveTo(px, y - 2);
+                    x.lineTo(px + w, y - 2);
+                    x.lineTo(px + w * 0.7, y + len);
+                    x.lineTo(px + w * 0.3, y + len * 0.8);
+                    x.closePath();
+                    x.fill();
+
+                    if (rng() < 0.3) {
+                        x.fillStyle = 'rgba(159,216,255,0.28)';
+                        x.fillRect(px + w - 1, y, 1, len * 0.7);
+                    }
+                }
+            },
+            ledge(x, r) {
+                const y = r.y * T,
+                    x0 = r.x0 * T,
+                    x1 = (r.x1 + 1) * T;
+
+                x.fillStyle = '#121a21';
+                x.fillRect(x0, y, x1 - x0, 12);
+                x.fillStyle = 'rgba(159,216,255,0.6)';
+                x.fillRect(x0, y, x1 - x0, 2);
+                x.fillStyle = 'rgba(2,4,6,0.6)';
+                x.fillRect(x0, y + 8, x1 - x0, 4);
+                x.strokeStyle = 'rgba(2,4,8,0.9)';
+                x.lineWidth = 2;
+                x.strokeRect(x0, y, x1 - x0, 12);
+
+                // a tassel of black thread at each end
+                for (const px of [x0 + 5, x1 - 5]) {
+                    x.strokeStyle = 'rgba(8,12,16,0.95)';
+                    x.lineWidth = 2;
+                    x.beginPath();
+                    x.moveTo(px, y + 12);
+                    x.lineTo(px + 1, y + 26);
+                    x.stroke();
+                }
+            },
+        },
     };
 
     function drawThorns(x, r, rng, area) {
@@ -815,7 +965,9 @@
             x0 = r.x0 * T,
             x1 = (r.x1 + 1) * T;
 
-        const dark = (area.dress || area.id) === 'belfry' ? '#2a2630' : '#1d1416';
+        const dress = area.dress || area.id,
+            dark = dress === 'belfry' ? '#2a2630' : dress === 'hushed' ? '#0b1015' : '#1d1416',
+            tip = dress === 'hushed' ? 'rgba(159,216,255,0.6)' : 'rgba(255,200,190,0.55)';
 
         x.fillStyle = dark;
         x.fillRect(x0, y - 12, x1 - x0, 12);
@@ -831,7 +983,7 @@
             x.lineTo(px + 5, y - 6);
             x.closePath();
             x.fill();
-            x.fillStyle = 'rgba(255,200,190,0.55)';
+            x.fillStyle = tip;
             x.beginPath();
             x.moveTo(px + lean * 0.8 - 1.5, y - 6 - h * 0.8);
             x.lineTo(px + lean, y - 6 - h);
@@ -841,7 +993,7 @@
         }
 
         // vines
-        x.strokeStyle = '#3a1f24';
+        x.strokeStyle = dress === 'hushed' ? '#161d25' : '#3a1f24';
         x.lineWidth = 3;
         x.beginPath();
         x.moveTo(x0, y - 8);

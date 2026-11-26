@@ -84,6 +84,16 @@
                 'The heart of the Belfry. The Great Bell waits here, held in silence by the keeper who swore to hold it.',
                 'Open the great doors.',
             ),
+            area(
+                'hushed',
+                'The Hushed Gallery',
+                'Where nothing may ring',
+                'bg_gallery_realm',
+                'bg_gallery_mid',
+                null,
+                'A funeral gallery of black stone and heavy veils, every bell with its clapper cut out and wrapped in cloth. The mourners hung them so that nothing would ever carry again, and what keeps the silence is still listening.',
+                'Pass the veils beyond the Ashen Ramparts once the Great Bell has rung.',
+            ),
             {
                 id: 'title',
                 name: 'The Last Bellweaver',
@@ -117,6 +127,12 @@
         warden: 'bg_cathedral_far',
         odo: 'bg_mosslit_far',
         hero: 'bg_belfry_far',
+        hushling: 'bg_gallery_far',
+        drifter: 'bg_gallery_far',
+        stilt: 'bg_gallery_far',
+        reacher: 'bg_gallery_far',
+        brute: 'bg_gallery_far',
+        mourner: 'bg_gallery_far',
     };
 
     function creatures(st) {
@@ -128,6 +144,7 @@
             sub: b.epithet,
             where: b.habitat,
             sprite: b.sprite,
+            portrait: b.portrait,
             text: b.lore,
             hint: b.hint,
             open: !!c.seen[b.id],
@@ -339,6 +356,47 @@
                 slides: vow,
                 hint: 'Defeat the Bellbound Warden.',
                 text: 'What was left when the silence ended.',
+            },
+            {
+                id: 'hushed',
+                name: 'Where Nothing May Ring',
+                sub: 'The Hushed Gallery',
+                art: 'bg_gallery_realm',
+                music: null,
+                open: f('lore_hushed'),
+                slides: interlude('hushed'),
+                hint: 'Walk into the Hushed Gallery.',
+                text: 'The mourners, the veils, and the bells that were never allowed to ring.',
+            },
+            {
+                id: 'mourner',
+                name: 'The Keeper of the Final Silence',
+                sub: 'The Hush Arena',
+                art: 'bg_gallery_realm',
+                music: null,
+                open: f('mourner_met'),
+                slides: [
+                    ...chunk('The First Mourner', 'The Long Mourner', 'bg_gallery_realm', lore.BY_ID.firstmourner.text),
+                    ...(f('mourner_defeated')
+                        ? chunk('The Long Mourner', 'Last Words', 'bg_gallery_realm', lore.BY_ID.mournerlast.text)
+                        : []),
+                ],
+                hint: 'Face what waits at the far end of the Hushed Gallery.',
+                text: 'The one who sat a hundred nights, and was given quiet as an order.',
+            },
+            {
+                id: 'lastdoor',
+                name: 'The Last Door',
+                sub: 'Chapter II complete',
+                art: 'bg_gallery_realm',
+                music: null,
+                open: f('chapter2_clear'),
+                slides: chunk('Chapter II', 'The Last Door', 'bg_gallery_realm', [
+                    'The Silent Key turned, and the Last Door opened. The Gallery did not ring. It only breathed out.',
+                    'Beyond the door a cold light climbs a stair. Something there is still unspun.',
+                ]),
+                hint: 'Open the Last Door.',
+                text: 'The key, the door, and the light beyond.',
             },
             {
                 id: 'ending',
@@ -652,9 +710,24 @@
         ctx.ellipse(cx, floor + 6, 190, 18, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        const sp = BW.Assets.sprite(e.sprite);
+        const sp = BW.Assets.sprite(e.sprite),
+            portrait = e.portrait && BW.Assets.img(e.portrait);
 
-        if (sp && sp.frames.length) {
+        if (portrait) {
+            // a painted full-length portrait instead of a pose from the sprite sheet
+            const ph = 590,
+                pw = (ph * portrait.width) / portrait.height;
+
+            ctx.save();
+
+            if (!e.open) {
+                ctx.filter = 'brightness(0)';
+                ctx.globalAlpha *= 0.55;
+            }
+
+            ctx.drawImage(portrait, cx - pw / 2, floor + 26 - ph, pw, ph);
+            ctx.restore();
+        } else if (sp && sp.frames.length) {
             let mw = 0,
                 mh = 0;
 
@@ -669,7 +742,7 @@
             const ax = f0[4] != null ? f0[4] : sp.ax || 0,
                 ay = f0[5] != null ? f0[5] : sp.ay || 0;
 
-            const hover = e.id === 'flyer' ? 30 + Math.sin(t * 2) * 12 : 0;
+            const hover = e.id === 'flyer' || e.id === 'drifter' ? 30 + Math.sin(t * 2) * 12 : 0;
             const fi = sp.frames.length > 1 ? Math.floor(t * (sp.fps || 6)) : 0;
 
             ctx.save();

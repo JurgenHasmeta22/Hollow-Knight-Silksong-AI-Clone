@@ -618,6 +618,8 @@
                                 ? 'TRAVEL BETWEEN LANTERNS'
                                 : '',
                     BW.VH * 0.32,
+                    BW.VW / 2,
+                    s.name === 'testsaves' ? 44 : 50, // eight test saves would run into the description below at 50
                 );
 
             if (s.name === 'testsaves') this.drawBottomDesc(ctx);

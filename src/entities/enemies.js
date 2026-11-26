@@ -188,7 +188,7 @@
             BW.Audio.play('die', { vary: 0.1 });
 
             g.fx.burst(this.cx, this.cy, 22, {
-                color: ['#1b1720', '#2b2433', '#ff9a3c', '#ffd27a'],
+                color: this.deathColors || ['#1b1720', '#2b2433', '#ff9a3c', '#ffd27a'],
                 speed: 300,
                 life: 0.6,
                 kind: 'shard',
@@ -197,7 +197,7 @@
             });
 
             g.fx.burst(this.cx, this.cy, 10, {
-                color: ['#ffb45a', '#ffe1a0'],
+                color: this.deathGlow || ['#ffb45a', '#ffe1a0'],
                 speed: 160,
                 life: 0.5,
                 kind: 'glow',
@@ -205,7 +205,7 @@
                 add: true,
             });
 
-            g.fx.ring(this.cx, this.cy, 6, 60, 0.35, '#ffd9a0', 2);
+            g.fx.ring(this.cx, this.cy, 6, 60, 0.35, this.deathRing || '#ffd9a0', 2);
             g.spawnGlints(this.cx, this.cy, this.glints);
             g.stats.kills = (g.stats.kills || 0) + 1;
 
@@ -268,7 +268,14 @@
 
                 if (res.ceil) this.vy = Math.max(0, this.vy);
 
-                if (this.onGround && this.stun <= 0 && this.state !== 'lunge' && this.state !== 'leap')
+                // ground friction, except while it is lunging (a creature can also list states that should carry on sliding)
+                if (
+                    this.onGround &&
+                    this.stun <= 0 &&
+                    this.state !== 'lunge' &&
+                    this.state !== 'leap' &&
+                    !(this.slides && this.slides[this.state])
+                )
                     this.vx *= Math.exp(-10 * dt);
 
                 if (Phys.touchesHazard(room, this)) {
@@ -416,10 +423,17 @@
                 alpha: deadA * (extra.alpha != null ? extra.alpha : 1),
                 variant: this.variant,
                 scale: extra.scale,
-                rim: this.variant === 'pale' ? 0.18 : 0.3,
+                rim: this.rim != null ? this.rim : this.variant === 'pale' ? 0.18 : 0.3,
             });
 
-            if (!this.dead) this.game.addLight(x + this.facing * this.w * 0.3, y - this.h * 0.65, 70, '#ff9a3c', 0.32);
+            if (!this.dead)
+                this.game.addLight(
+                    x + this.facing * this.w * 0.3,
+                    y - this.h * 0.65,
+                    70,
+                    this.lightColor || '#ff9a3c',
+                    this.lightA != null ? this.lightA : 0.32,
+                );
             if (!ok) this.drawFallback(ctx, x, y, deadA);
 
             return { x, y };

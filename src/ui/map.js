@@ -14,7 +14,7 @@
     const GOLD = '#e8c98a',
         CREAM = '#f2e6cc';
 
-    const AREA_ORDER = ['mosslit', 'spindle', 'belfry', 'cathedral', 'fortress'];
+    const AREA_ORDER = ['mosslit', 'spindle', 'belfry', 'cathedral', 'fortress', 'hushed'];
 
     // ---- exits between rooms ----------------------------------------------------------------
     // Rooms share one tile grid, so a link is a run of open tiles along an edge where two rooms touch.
@@ -192,7 +192,25 @@
     M.mapObjective = function (st) {
         const f = st.flags;
 
-        if (f.ending_seen || f.warden_met || f.warden_defeated) return null;
+        // chapter II: point at the next landmark of the Hushed Gallery once its room has been seen
+        if (f.ending_seen) {
+            if (f.chapter2_clear) return null;
+
+            const at = (id, type) => {
+                const r = BW.ROOMS[id],
+                    e = r && st.visited[id] && r.ents.find((x) => x.type === type);
+
+                return e ? { x: r.x + e.x + 0.5, y: r.y + e.y + 0.5 } : null;
+            };
+
+            return f.silent_key
+                ? at('H8', 'lastdoor')
+                : f.mourner_defeated
+                  ? at('H8', 'keyaltar')
+                  : at('H7', 'mourner') || at('H7', 'lantern') || at('H1', 'lantern') || at('F4', 'lantern');
+        }
+
+        if (f.warden_met || f.warden_defeated) return null;
 
         const want =
             f.cathedral_open || f.reached_cathedral
@@ -460,6 +478,9 @@
                 else if (e.type === 'npc') pin(ctx, 'npc', x, y, true, u, t);
                 else if (e.type === 'seal') pin(ctx, 'seal', x, y, !!st.flags.belfry_open, u, t);
                 else if (e.type === 'door') pin(ctx, 'door', x, y, false, u, t);
+                else if (e.type === 'silentbell') pin(ctx, 'bell', x, y, !!st.flags['hbell_' + e.id], u, t);
+                else if (e.type === 'keyaltar') pin(ctx, 'seal', x, y, !!st.flags.silent_key, u, t);
+                else if (e.type === 'lastdoor') pin(ctx, 'door', x, y, !!st.flags.lastdoor_open, u, t);
             }
 
         // lore notes: solid once read, a faint hollow hint while unread in a room you have seen
@@ -567,7 +588,7 @@
             ctx.fillRect(x + 34, y + 11, w - 54, 4);
             ctx.fillStyle = BW.AREAS[k].mapColor;
             ctx.fillRect(x + 34, y + 11, ((w - 54) * n) / all.length, 4);
-            y += 38;
+            y += 32;
         }
 
         y += 4;
@@ -602,7 +623,7 @@
             pin(ctx, k, x + 32, y, on, 1, t, 0);
             ctx.fillStyle = 'rgba(232,225,205,0.85)';
             ctx.fillText(label, x + 54, y + 1);
-            y += 23;
+            y += 21;
         }
     };
 

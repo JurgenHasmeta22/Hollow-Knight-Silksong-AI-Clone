@@ -78,7 +78,11 @@
     const DEFAULT = 'action';
 
     // Ground enemies: height in tiles. Flyers hover in free air. Hanging spitters and the Warden are never duplicated.
-    const GROUND_H = { crawler: 1, spitter: 1, hopper: 2, sentinel: 2 };
+    const GROUND_H = { crawler: 1, spitter: 1, hopper: 2, sentinel: 2, hushling: 1, stilt: 3, brute: 2 };
+
+    // Creatures that hover in free air, and ones that hang from a ceiling and are never duplicated
+    const FLYERS = { flyer: 1, drifter: 1 };
+    const HANGERS = { reacher: 1 };
 
     // How hard each kind of blow lands, as a multiple of the difficulty's base hit (dmg). Slow, telegraphed
     // attacks you can read and parry hit harder than the cheap ones. "during" lists the states that count as the
@@ -90,6 +94,13 @@
         hopper: { body: 1, strike: 1.5, during: ['leap'] },
         spitter: { body: 0.5, strike: 1, during: [] }, // its strike is the silk glob (see glob)
         glob: 1,
+        // the Hushed Gallery
+        hushling: { body: 1, strike: 1, during: ['lunge'] },
+        drifter: { body: 0.5, strike: 1.5, during: ['dive'] },
+        stilt: { body: 1, strike: 2, during: ['reach'] },
+        reacher: { body: 1, strike: 2, during: ['drop', 'lunge'] },
+        brute: { body: 1, strike: 2, during: ['slam'] },
+        quake: 1, // the brute's ground wave
         warden: {
             body: 1,
             sweep: 1,
@@ -176,7 +187,13 @@
             const out = [];
 
             def.ents.forEach((e) => {
-                if (!BW.ENEMY_TYPES[e.type] || e.hang || (e.when && !flags[e.when]) || (e.unless && flags[e.unless]))
+                if (
+                    !BW.ENEMY_TYPES[e.type] ||
+                    e.hang ||
+                    HANGERS[e.type] ||
+                    (e.when && !flags[e.when]) ||
+                    (e.unless && flags[e.unless])
+                )
                     return;
 
                 let n = Math.floor(want) + (rng() < want - Math.floor(want) ? 1 : 0);
@@ -209,7 +226,7 @@
         // Free standing (or hovering) tiles within reach of an original placement.
         spots(room, e, taken, keepAway) {
             const R = 14,
-                flyer = e.type === 'flyer',
+                flyer = !!FLYERS[e.type],
                 hT = GROUND_H[e.type] || 1;
 
             const out = [];

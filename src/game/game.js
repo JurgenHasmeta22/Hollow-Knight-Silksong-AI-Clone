@@ -360,6 +360,7 @@
             this.endRematch();
             this.seq = null;
             this.seqCard = null;
+            this.chapterCard = null;
             this.deathCard = null;
             this.loreSlide = null;
             this.seqText = null;
@@ -507,8 +508,28 @@
             const f = this.state.flags;
             const bells = (f.bell1 ? 1 : 0) + (f.bell2 ? 1 : 0);
 
-            if (f.ending_seen)
-                return 'The Great Bell rings again and the Hollow is mended. Explore freely: every bell remembers its voice.';
+            // chapter II: after the Great Bell, the Hushed Gallery east of the Ashen Ramparts
+            if (f.ending_seen) {
+                const v = this.state.visited;
+
+                if (f.chapter2_clear)
+                    return 'The Hushed Gallery is quiet and its Last Door stands open. Beyond it, something is still unspun.';
+
+                if (f.lastdoor_open) return 'The Last Door stands open at the end of the Hushed Gallery. Step into the light.';
+
+                if (f.silent_key) return 'You hold the Silent Key. Carry it to the Last Door at the far end of the Last Door Hall.';
+
+                if (f.mourner_defeated)
+                    return 'The Long Mourner is still. Take the Silent Key from the altar in the hall east of the arena.';
+
+                if (f.mourner_met)
+                    return 'The Long Mourner waits in the Hush Arena. Rest at the lantern outside it, then face it again.';
+
+                if (v.H1)
+                    return 'Strike the silent bells to part the veils and push east through the Hushed Gallery. Whatever keeps it silent waits at the far end.';
+
+                return 'The Great Bell rings again, and its toll has parted the black veils at the end of the Ashen Ramparts, east of the Cord Lift. Something keeps the Hushed Gallery silent.';
+            }
 
             if (f.warden_defeated) return 'The Warden has fallen. Rethread the Great Bell beneath the cathedral vault.';
 
@@ -1107,7 +1128,7 @@
                         if (BW.overlap(hb, b)) {
                             p.hurt((h.dmg || 1) * BW.Difficulty.get(this.state).bossDmg, h.hitX(p), {
                                 noParry: true,
-                                cause: (this.boss && this.boss.bossName) || BW.ENEMY_NAMES.warden,
+                                cause: h.cause || (this.boss && this.boss.bossName) || BW.ENEMY_NAMES.warden,
                             });
 
                             break outer;
@@ -1306,7 +1327,7 @@
                 }
 
             for (const o of this.objects) {
-                if (o.type !== 'cache' || o.dead || hits.has(o)) continue;
+                if (!o.strikable || o.dead || hits.has(o)) continue;
 
                 if (BW.overlap(box, o.hurtbox())) {
                     hits.add(o);
@@ -1389,7 +1410,7 @@
             }
 
             for (const o of this.objects) {
-                if (o.type !== 'cache' || o.dead || l.hits.has(o)) continue;
+                if (!o.strikable || o.dead || l.hits.has(o)) continue;
 
                 if (BW.overlap(box, o.hurtbox())) {
                     l.hits.add(o);
@@ -1820,9 +1841,35 @@
                     'Both looms sing again — I felt it in my shell! The seal above the Gatehouse should be open. Go on up.',
                 );
             } else if (f.great_bell) {
-                pages.push(
-                    'That sound… the Great Bell! I never thought I’d hear it again. Every lamp in the Hollow is burning brighter. Thank you, Bellweaver.',
-                );
+                if (f.chapter2_clear)
+                    pages.push(
+                        'You went through the Last Door? Every lamp I own turned toward the east at once. I think the quiet you left behind is the good kind.',
+                    );
+                else if (f.silent_key)
+                    pages.push(
+                        'A key with no voice… The Last Door is at the end of that hall, they say. I hope you’ll tell me what the light is like.',
+                    );
+                else if (f.mourner_defeated)
+                    pages.push(
+                        'Did you feel that? The whole Gallery just let out a breath it had been holding for a thousand dusks. Look for an altar.',
+                    );
+                else if (f.mourner_met)
+                    pages.push(
+                        'Still on your feet? Good. The Long Mourner is only a mourner. Rest at the lantern outside its door; you will want it.',
+                    );
+                else if (st.visited.H1)
+                    pages.push(
+                        'The Hushed Gallery… my grandmother’s grandmother hung those veils. Ring the bells in there if you must, but expect company. The silent ones hear everything.',
+                    );
+                else {
+                    pages.push(
+                        'That sound… the Great Bell! I never thought I’d hear it again. Every lamp in the Hollow is burning brighter. Thank you, Bellweaver.',
+                    );
+
+                    pages.push(
+                        'And there is something else. The black veils at the end of the Ashen Ramparts, east of the Cord Lift: I saw them move from the lift. Veils do not move, Bellweaver. They are listening.',
+                    );
+                }
             } else if (f.warden_defeated) {
                 pages.push(
                     'The air feels lighter. Whatever guarded the cathedral is gone, isn’t it? Then the Great Bell is waiting for you.',
@@ -1961,6 +2008,11 @@
             this.bg.view = { x0: camX - 20, x1: camX + vw + 20 };
             this.bg.drawDeco(ctx, 'back');
 
+            // lights placed with r.light() in the room definition (areas opt in with roomLights)
+            if (this.room.area.roomLights)
+                for (const l of this.room.def.lights)
+                    this.addLight(l.x * T, l.y * T, l.r * T, l.color, l.a != null ? l.a : 0.4);
+
             // terrain (visible part only)
             const tc = this.terrain.canvas;
 
@@ -2077,6 +2129,7 @@
             }
 
             if (this.seqCard) this.drawSeqCard(ctx);
+            if (this.chapterCard) this.drawChapterCard(ctx);
             if (this.deathCard) this.drawDeathCard(ctx);
             if (this.seqText) this.drawSeqText(ctx); // story text sits above the black fade
             if (this.loreSlide) BW.Lore.drawSlide(ctx, this.loreSlide);

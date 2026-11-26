@@ -69,6 +69,25 @@
 
             const f = this.lit ? 0.85 + Math.sin(this.t * 7) * 0.08 + Math.sin(this.t * 13) * 0.05 : 0;
 
+            // the Hushed Gallery's lanterns burn cold: a bell-shaped glass on an iron arm, the post at the left of the art
+            if (this.game.room.area.id === 'hushed') {
+                BW.Assets.drawImg(ctx, this.lit ? 'obj_hg_lantern_lit' : 'obj_hg_lantern', x, y, {
+                    h: 150,
+                    w: 68,
+                    ax: 0.18,
+                    ay: 1,
+                });
+
+                const lx = x + 30,
+                    ly = y - 92;
+
+                if (this.lit)
+                    this.game.addLight(lx, ly, 160 + this.kindle * 120, '#9fd8ff', 0.55 * f + this.kindle * 0.4);
+                else this.game.addLight(lx, ly, 50, '#9fd8ff', 0.12);
+
+                return;
+            }
+
             if (!BW.Assets.drawImg(ctx, this.lit ? 'obj_lantern_lit' : 'obj_lantern', x, y, { h: 118, w: 70, ay: 1 })) {
                 ctx.strokeStyle = '#2a2622';
                 ctx.lineWidth = 5;
@@ -107,6 +126,14 @@
 
             const w = sm ? 26 : 40,
                 h = sm ? 34 : 54;
+
+            // a black memorial slate with a blank mask in the Hushed Gallery
+            if (this.game.room.area.id === 'hushed') {
+                BW.Assets.drawImg(ctx, 'obj_hg_tablet', this.x, this.y, { w: w * 1.5, h: h * 1.5, ay: 1 });
+                this.game.addLight(this.x, this.y - 36, 46, '#9fd8ff', 0.16);
+
+                return;
+            }
 
             if (!BW.Assets.drawImg(ctx, 'obj_tablet', this.x, this.y, { w: w * 1.3, h: h * 1.25, ay: 1 })) {
                 ctx.fillStyle = '#3b3f45';
@@ -214,6 +241,7 @@
 
             this.w = 46;
             this.h = 50;
+            this.strikable = true;
         }
         hurtbox() {
             return { x: this.x - this.w / 2, y: this.y - this.h, w: this.w, h: this.h };

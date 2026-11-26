@@ -1,7 +1,7 @@
 'use strict';
 
-// Test area: the Ashen Ramparts, dressed with the new fortress art.
-// Entered from the east side of the Cord Lift's top station (S6 -> F1).
+// The Ashen Ramparts, dressed with the fortress art: a side branch off the Cord Lift's top station (S6 -> F1) whose last
+// room, the Rampart Gatehall, is the way on to the Hushed Gallery (hushed.js).
 (function (BW) {
     BW.AREAS.fortress = {
         id: 'fortress',
@@ -138,56 +138,54 @@
         brazier(r, 20, 31);
     });
 
-    // Boss test room: the Long Mourner (src/entities/mourner.js) fights here as the throne's guardian. testBoss runs it
-    // like a rematch (see cathedral.js): nothing is earned and the story save is left alone.
-    // A short vestibule with a lantern, a portcullis, then the arena. The floor row is 25, level with F3's terrace.
-    R(
-        {
-            id: 'F4',
-            area: 'fortress',
-            name: 'Ramparts Throne',
-            x: 462,
-            y: 44,
-            w: 52,
-            h: 34,
-            zoom: 0.9,
-            testBoss: true,
-            arena: { x0: 12, x1: 50, floor: 25 },
-        },
-        (r) => {
-            r.air(0, 21, 0, 24); // west <- F3
-            r.air(1, 16, 11, 24); // vestibule
-            r.air(12, 3, 50, 24); // arena
-            r.gate(10, 16, 11, 24, 'arena_sealed', { kind: 'bars', invert: true, fixed: true });
-            r.ent('lantern', 6, 24, { id: 'lan_f4' });
+    // The Rampart Gatehall: the way on to the Hushed Gallery (src/world/hushed.js). Black veils hang across the east tunnel
+    // and will not part until the Great Bell has rung (flag great_bell). The floor row is 25, level with F3's terrace.
+    R({ id: 'F4', area: 'fortress', name: 'Rampart Gatehall', x: 462, y: 44, w: 52, h: 34 }, (r) => {
+        r.air(0, 21, 0, 24); // west <- F3
+        r.air(1, 6, 41, 24); // the gatehall
+        r.air(42, 21, 51, 24); // tunnel east -> H1 (the Hushed Gallery)
+        r.gate(46, 21, 47, 24, 'great_bell', { kind: 'veil' }); // parts for the Great Bell's toll
+        r.plat(10, 14, 22);
+        r.plat(24, 28, 19);
+        r.plat(31, 35, 22);
 
-            r.ent('sign', 3, 24, {
-                title: 'Throne Warning',
-                text: [
-                    'TEST ARENA',
-                    'The Long Mourner guards the throne. Nothing is earned here, and the story save is left untouched.',
-                ],
-            });
+        r.ent('lantern', 6, 24, { id: 'lan_f4' });
+        r.ent('sentinel', 22, 24);
+        r.ent('flyer', 18, 12);
+        r.ent('glint', 26, 18, { id: 'g_f4a', n: 6 });
 
-            r.ent('mourner', 40, 24, { facing: -1 });
-            r.trigger(14, 3, 49, 24, 'warden');
-            prop(r, 'banner', 2, 25, 300);
-            prop(r, 'banner', 9, 25, 300, { flip: true });
-            brazier(r, 4, 25);
-            brazier(r, 8, 25);
-            prop(r, 'portal', 31, 25, 560, { alpha: 0.85 });
-            prop(r, 'arch', 31, 25, 480, { alpha: 0.6 });
-            prop(r, 'banner', 15, 25, 420);
-            prop(r, 'banner', 47, 25, 420, { flip: true });
-            prop(r, 'gargoyle', 21, 25, 190);
-            prop(r, 'gargoyle', 41, 25, 190, { flip: true });
-            prop(r, 'spears', 13, 25, 200);
-            prop(r, 'shield', 49, 25, 110);
-            prop(r, 'chains', 22, 8, 240);
-            prop(r, 'chains', 40, 8, 240);
-            brazier(r, 18, 25);
-            brazier(r, 44, 25);
-            r.light(31, 17, 9, '#cfe0ff', { a: 0.35 });
-        },
-    );
+        r.ent('sign', 3, 24, {
+            title: 'Gatehall Plaque',
+            text: [
+                'THE RAMPART GATEHALL',
+                'The garrison never went east of this hall. They said the road beyond was a funeral, and that nobody had come back from it who could still be spoken to.',
+            ],
+        });
+
+        r.ent('sign', 40, 24, {
+            title: 'The Black Veils',
+            text: [
+                'Black veils hang across the east tunnel, still as a held breath. They do not stir for the wind or the needle.',
+                'They are tied with silver thread, and they are listening. Only a toll from the Great Bell itself would part them.',
+            ],
+        });
+
+        prop(r, 'banner', 2, 25, 300);
+        prop(r, 'banner', 9, 25, 300, { flip: true });
+        prop(r, 'arch', 22, 25, 400, { alpha: 0.6 });
+        prop(r, 'banner', 36, 25, 360, { flip: true });
+        prop(r, 'gargoyle', 28, 25, 180);
+        prop(r, 'spears', 14, 25, 200);
+        brazier(r, 4, 25);
+        brazier(r, 8, 25);
+        brazier(r, 18, 25);
+        brazier(r, 32, 25);
+        prop(r, 'chains', 22, 7, 220);
+
+        // the Gallery's veils creep out under the tunnel roof, with a cold glow beyond them
+        for (const x of [43, 45, 47, 49])
+            r.deco('deco_hg_veil', x, 21, { size: 150, hang: true, sway: 0.02, layer: 'back' });
+
+        r.light(48, 22, 6, '#9fd8ff', { a: 0.3 });
+    });
 })(window.BW);

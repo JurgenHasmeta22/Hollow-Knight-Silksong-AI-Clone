@@ -35,12 +35,20 @@
             desc: 'Warden defeated, resting at the Ashen Barbican lantern. Tests the new fortress art area east of the Cord Lift.',
         },
         {
-            id: 'fortress_boss',
-            name: 'Ramparts Throne (boss test)',
+            id: 'gallery',
+            name: 'The Hushed Gallery (start)',
             diff: 'action',
-            desc: 'Resting at the lantern outside the Ramparts Throne. The test boss waits behind the portcullis; the story save is never changed.',
+            desc: 'The Great Bell has rung. Resting at the Rampart Gatehall lantern, where the black veils have parted. The whole Gallery is unexplored.',
+        },
+        {
+            id: 'gallery_boss',
+            name: 'Before the Long Mourner',
+            diff: 'action',
+            desc: 'The Gallery crossed and its bells unwrapped. Resting at the lantern outside the Hush Arena. The Long Mourner is waiting.',
         },
     ];
+
+    const HUSHED_BEASTS = ['hushling', 'drifter', 'stilt', 'reacher', 'brute', 'mourner'];
 
     function build(id) {
         const meta = LIST.find((e) => e.id === id) || LIST[0];
@@ -64,8 +72,31 @@
             warden_met: id === 'warden' || id === 'warden_nm' ? false : true,
         });
 
+        const gallery = id === 'gallery' || id === 'gallery_boss';
+
+        // the Gallery saves keep the Gallery itself fresh: its secrets, pickups and notes are still to be found
+        const before = ['H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'H7'];
+
         for (const r of BW.ROOM_LIST) {
-            d.visited[r.id] = true;
+            const fresh = gallery && r.area === 'hushed';
+            const seen = !fresh || (id === 'gallery_boss' && before.includes(r.id));
+
+            if (seen) d.visited[r.id] = true;
+
+            if (fresh) {
+                for (const e of r.ents) {
+                    if (
+                        e.type === 'lantern' &&
+                        id === 'gallery_boss' &&
+                        (e.id === 'lan_h1' || e.id === 'lan_h5' || e.id === 'lan_h7')
+                    )
+                        d.lanternsLit[e.id] = true;
+
+                    if (e.type === 'silentbell' && id === 'gallery_boss' && r.id !== 'H8') f['hbell_' + e.id] = true;
+                }
+
+                continue;
+            }
 
             for (const s of r.secrets) f['sec_' + s.id] = true;
             for (const b of r.breakables) f['brk_' + b.id] = true;
@@ -76,17 +107,26 @@
             }
         }
 
+        if (id === 'gallery_boss') {
+            f.hb_h2 = true;
+            f.hb_h4 = true;
+        }
+
         if (id !== 'warden' && id !== 'warden_nm') {
             f.warden_met = true;
             f.warden_defeated = true;
         }
 
-        if (id === 'cleared') {
+        if (id === 'cleared' || gallery) {
             f.great_bell = true;
             f.ending_seen = true;
         }
 
-        for (const n of BW.Lore.NOTES) if (!n.when || f[n.when]) f['note_' + n.id] = true;
+        for (const n of BW.Lore.NOTES) {
+            const hushedNote = BW.ROOMS[n.room] && BW.ROOMS[n.room].area === 'hushed';
+
+            if ((!n.when || f[n.when]) && !(gallery && hushedNote)) f['note_' + n.id] = true;
+        }
 
         f.lore_spindle = true;
         f.lore_belfry = true;
@@ -94,11 +134,14 @@
         d.lanternRoom = 'B3';
         d.lastRoom = 'B3';
 
-        if (id === 'fortress_boss') {
-            d.lantern = 'lan_f4';
-            d.lanternRoom = 'F4';
-            d.lastRoom = 'F4';
-            d.lanternsLit = Object.assign({}, d.lanternsLit, { lan_f4: true });
+        // where each save wakes up
+        const rest = { fortress: ['lan_f1', 'F1'], gallery: ['lan_f4', 'F4'], gallery_boss: ['lan_h7', 'H7'] }[id];
+
+        if (rest) {
+            d.lantern = rest[0];
+            d.lanternRoom = rest[1];
+            d.lastRoom = rest[1];
+            d.lanternsLit = Object.assign({}, d.lanternsLit, { [rest[0]]: true });
         }
 
         d.stats = { playTime: 14400, deaths: 17, wardenAttempts: id === 'warden' || id === 'warden_nm' ? 0 : 6 };
@@ -120,6 +163,19 @@
 
         if (f.warden_defeated) c.kills.warden = 1;
         else delete c.seen.warden;
+
+        // the Gallery's creatures: not met in the Gallery saves (the boss-fight one has crossed the Gallery), and the Long
+        // Mourner is only ever "met" by fighting it
+        for (const hid of HUSHED_BEASTS) {
+            const skip = hid === 'mourner' ? !f.mourner_defeated : id === 'gallery';
+
+            if (skip) {
+                delete c.seen[hid];
+                delete c.kills[hid];
+
+                for (const k of Object.keys(c.moves)) if (k.startsWith(hid + ':')) delete c.moves[k];
+            }
+        }
 
         for (const t of Object.keys(BW.Codex.LESSONS)) c.tips[t] = true;
 

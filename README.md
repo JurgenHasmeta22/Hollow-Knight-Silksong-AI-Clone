@@ -166,7 +166,7 @@ The game still autosaves when you rest, travel or fall. **Load Game** (title and
 
 ## Story and lore
 
-The game opens with a short run of intro chapters, plus an interlude card the first time you enter each region. Sixteen lore notes lie in the world (one needs the Warden defeated). Read one with **E** / **↑**; read notes are listed under **Pause → Archive → Lore** and are marked on the map.
+The game opens with a short run of intro chapters, plus an interlude card the first time you enter each region. Twenty-four lore notes lie in the world (two need a boss defeated). Read one with **E** / **↑**; read notes are listed under **Pause → Archive → Lore** and are marked on the map.
 
 ---
 
@@ -216,6 +216,24 @@ The game opens with a short run of intro chapters, plus an interlude card the fi
 
 ---
 
+## Chapter II: The Hushed Gallery
+
+Once the Great Bell has rung, its toll parts the black veils at the end of the Ashen Ramparts (the **Rampart Gatehall**, east of the Cord Lift) and a new region opens: **The Hushed Gallery**, a funeral gallery of black stone where every bell has had its clapper cut out and wrapped in cloth. It has no music and no ambience: only your footsteps and the bells you wake. Design notes, tuning tables and the test tools are in [docs/HUSHED_GALLERY.md](docs/HUSHED_GALLERY.md).
+
+- **Eight rooms** (plus the Gatehall): a threshold, a hall of veils with a pit to cross, a descent into the Mask Crypt, a tall climb through the Muffled Belfry, a candlelit gauntlet, the Bier Chamber, the Hush Arena and the Last Door Hall. Five lanterns, a secret **Lifethread**, a secret **Silk Spool**, glint stashes and eight lore notes.
+- **Silent bells:** strike one with the needle to unwrap its clapper. It tolls, and every Hushed in the room hears it and comes: Hushlings rush you, Drifters hunt from afar, Reachers drop from the ceiling. Unwrapping a bell is how the veils across the way on are parted, so each one is a small risk you choose to take.
+- **Five new creatures**, each with a readable tell and a punish window (the Archive records them):
+  - **Hushling:** creeps, coils, pounces, lands dazed.
+  - **Shroud Drifter:** hovers, crosses its arms, dives like a pair of spears.
+  - **Stilt Mourner:** leans away, then lunges its long arm across the room.
+  - **Gallows Reacher:** hangs from the ceiling, curls up when you pass beneath, drops, and fights from the floor.
+  - **Shade Brute:** raises both fists, then slams a wave along the floor that you jump.
+- **The Long Mourner** is now the Gallery's boss, fought in the Hush Arena behind a veiled arch that falls when the fight starts. Beating it is worth a large amount of experience and opens the veil to the Key Hall.
+- **The Silent Key and the Last Door:** the key waits on an altar beyond the arena. The Last Door at the end of the Key Hall opens with it, and stepping into the light ends **Chapter II** with a card and a teaser for what is still unspun.
+- **Archive, Gallery, map and saves:** new Bestiary pages (the Long Mourner's has all twelve moves, and its painted portrait is in the Gallery), a Realm and three Memories in the Gallery, map pins for the bells, the altar and the door, an objective that follows you through the chapter, and two test saves (**The Hushed Gallery (start)** and **Before the Long Mourner**).
+
+---
+
 ## Credits
 
 - **Game design, code, levels and writing:** created for this project with Claude Code. No engine or framework (plain HTML5 Canvas and JavaScript).
@@ -254,19 +272,23 @@ src/                game code (classic scripts, no build step; load order is set
   world/
     world.js        room DSL, tile collision
     rooms.js        the world: areas and all rooms (incl. the cathedral)
-    fortress.js     the Ashen Ramparts test area, including the Ramparts Throne boss arena
+    fortress.js     the Ashen Ramparts, ending in the Rampart Gatehall (the way on to the Hushed Gallery)
+    hushed.js       Chapter II: the Hushed Gallery area and its eight rooms
   entities/
     player.js       the Bellweaver
     enemies.js      enemy behaviours
     objects.js      lanterns, pickups, NPC, shrine, toll-looms, lifts, doors, the Great Bell
     boss.js         the Bellbound Warden and its attack hazards
     mourner.js      the Long Mourner: a second boss with its own poses, a moveset of its own, two health bars and an
-                    opening cinematic (fights in the Ramparts Throne test arena)
+                    opening cinematic (fights in the Hush Arena)
+    hushed.js       the five Hushed creatures, the Brute's wave, and the Gallery's objects: silent bells, the hush gate,
+                    the key altar and the Last Door
   progression/
     difficulty.js   Story / Action / Nightmare presets and extra-enemy placement
     xp.js           experience curve, levels and the strike-power bonus
     codex.js        Archive data (tips, bestiary, unlocks)
     lore.js         intro chapters, region interludes, collectible lore notes
+    hushed.js       Chapter II's Archive pages, lore notes and region interlude
   ui/
     hud.js          HUD, prompts, toasts, dialog box
     menus.js        title, pause, options and other menus
@@ -277,6 +299,10 @@ src/                game code (classic scripts, no build step; load order is set
   game/
     game.js         game loop, rooms, camera, sequences
     levels/cathedral.js  doors, boss entrance, arena, victory, Great Bell, ending and credits
+    levels/hushed.js     silent-bell tolls, the Long Mourner's victory, the Silent Key, the Last Door, the Chapter II card
+tools/              importers for the art drops, and two checks that need no browser:
+                    validate_world.js (room overlaps, misaligned exits, reachability) and
+                    smoke_hushed.js (runs the Chapter II creatures, objects and sequences headlessly)
 assets/
   manifest.js       generated sprite / image manifest
   img/ audio/ fonts/

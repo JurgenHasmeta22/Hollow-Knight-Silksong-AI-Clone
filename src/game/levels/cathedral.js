@@ -201,19 +201,22 @@
         }
     };
 
+    // Starts the fight with whichever boss stands in this room: the Warden (flags warden_met / warden_defeated) or the
+    // Long Mourner (mourner_met / mourner_defeated). A boss names its own flags with `flagKey` and its Archive page with `codexId`.
     G.startWardenFight = function () {
         const b = this.boss,
-            st = this.state;
+            st = this.state,
+            key = (b && b.flagKey) || 'warden';
 
-        if (!b || b.state !== 'bound' || st.flags.warden_defeated) return;
+        if (!b || b.state !== 'bound' || st.flags[key + '_defeated']) return;
 
-        const first = !st.flags.warden_met;
+        const first = !st.flags[key + '_met'];
 
-        st.flags.warden_met = true;
+        st.flags[key + '_met'] = true;
 
-        if (!this.rematch) st.stats.wardenAttempts = (st.stats.wardenAttempts || 0) + 1;
+        if (!this.rematch) st.stats[key + 'Attempts'] = (st.stats[key + 'Attempts'] || 0) + 1;
 
-        this.codexSee('warden');
+        this.codexSee((b && b.codexId) || 'warden');
         this.saveGame();
         this.startSequence(
             b.introStyle === 'mourner'
@@ -233,6 +236,12 @@
 
         if (this.rematch) {
             if (this.player.state !== 'dead') this.startSequence(rematchSequence(this, b));
+
+            return;
+        }
+
+        if (b.flagKey === 'mourner') {
+            this.onMournerDefeated(b);
 
             return;
         }
@@ -295,16 +304,17 @@
     };
 
     G.onEnterRoom = function (room) {
-        const f = this.state.flags;
+        const f = this.state.flags,
+            cathedral = room.def.area === 'cathedral'; // only the Great Bell's arena gets the dawn after the ending
 
         if (room.def.arena) {
             room.area = Object.assign({}, room.area); // per-visit copy: phase two and dawn recolour it
             this.bg.area = room.area;
 
-            if (f.great_bell) BW.Audio.playMusic('mus_ending', 3);
+            if (f.great_bell && cathedral) BW.Audio.playMusic('mus_ending', 3);
         }
 
-        this.dawn = f.great_bell ? 1 : 0;
+        this.dawn = f.great_bell && cathedral ? 1 : 0;
     };
 
     // per-frame cathedral state: boss bar, phase-two heat and dawn light, post-game bells
@@ -332,13 +342,18 @@
             const a = room.area,
                 base = BW.AREAS[room.def.area];
 
-            const heat = this.boss ? this.boss.heat : 0;
+            const heat = this.boss ? this.boss.heat : 0,
+                cathedral = room.def.area === 'cathedral';
 
-            this.dawn = BW.approach(this.dawn || 0, f.great_bell ? 1 : 0, dt * 0.35);
-            a.deep = this.dawn > 0 ? mixHex(base.deep, '#120c08', this.dawn) : mixHex(base.deep, '#1c0704', heat);
+            // a boss can name its own phase-two colours (the Long Mourner's are cold); the dawn is the cathedral's alone
+            const heatDeep = (this.boss && this.boss.heatDeep) || '#1c0704',
+                heatTint = (this.boss && this.boss.heatTint) || '#ff4a1a';
+
+            this.dawn = BW.approach(this.dawn || 0, f.great_bell && cathedral ? 1 : 0, dt * 0.35);
+            a.deep = this.dawn > 0 ? mixHex(base.deep, '#120c08', this.dawn) : mixHex(base.deep, heatDeep, heat);
             a.darkness = base.darkness - 0.12 * this.dawn + 0.04 * heat;
             a.light = this.dawn > 0 ? mixHex(base.light, '#ffd29a', this.dawn) : base.light;
-            a.tint = this.dawn > 0 ? { color: '#ffb36a', a: 0.13 * this.dawn } : { color: '#ff4a1a', a: 0.12 * heat };
+            a.tint = this.dawn > 0 ? { color: '#ffb36a', a: 0.13 * this.dawn } : { color: heatTint, a: 0.12 * heat };
         }
 
         // after the ending, the Belfry's bells answer now and then

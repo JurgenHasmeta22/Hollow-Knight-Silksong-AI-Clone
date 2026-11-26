@@ -33,7 +33,9 @@
             this.t += dt;
 
             const kind = this.area.particles;
-            const want = Math.round((kind === 'spores' ? 55 : kind === 'dust' ? 45 : 40) * BW.gfx.motes);
+            const want = Math.round(
+                (kind === 'spores' ? 55 : kind === 'dust' ? 45 : kind === 'hush' ? 34 : 40) * BW.gfx.motes,
+            );
 
             if (this.motes.length > want) this.motes.length = want;
 
@@ -80,6 +82,14 @@
                 m.size = BW.rand(0.8, 2);
                 m.color = Math.random() < 0.5 ? '#ffe2b8' : '#f2e9da';
                 m.thread = Math.random() < 0.18;
+            } else if (kind === 'hush') {
+                // cold motes that barely move, like dust in a held breath; now and then one rises
+                m.life = BW.rand(9, 18);
+                m.wa = BW.rand(3, 9);
+                m.vx = BW.rand(-3, 3);
+                m.vy = Math.random() < 0.3 ? BW.rand(-9, -3) : BW.rand(2, 7);
+                m.size = BW.rand(0.8, 2);
+                m.color = Math.random() < 0.6 ? '#9fd8ff' : '#e6f6ff';
             } else {
                 m.vx = BW.rand(-6, 6);
                 m.vy = BW.rand(6, 16);
@@ -424,14 +434,25 @@
 
                         const ww = (hh * im.width) / im.height;
 
+                        // windows and `hang` props (veils) are anchored by their top edge, the rest stand on y
+                        const top = name === 'deco_bf_window' || !!d.hang,
+                            oy = top ? y : y - hh;
+
                         ctx.save();
                         ctx.globalAlpha = d.alpha != null ? d.alpha : 0.9;
+
+                        // a hanging prop sways gently about where it is hung
+                        if (d.sway) {
+                            ctx.translate(x, y);
+                            ctx.rotate(Math.sin(this.t * 0.55 + d.x * 0.9) * d.sway);
+                            ctx.translate(-x, -y);
+                        }
 
                         if (d.flip) {
                             ctx.translate(x, 0);
                             ctx.scale(-1, 1);
-                            ctx.drawImage(im, -ww / 2, name === 'deco_bf_window' ? y : y - hh, ww, hh);
-                        } else ctx.drawImage(im, x - ww / 2, name === 'deco_bf_window' ? y : y - hh, ww, hh);
+                            ctx.drawImage(im, -ww / 2, oy, ww, hh);
+                        } else ctx.drawImage(im, x - ww / 2, oy, ww, hh);
 
                         ctx.restore();
 

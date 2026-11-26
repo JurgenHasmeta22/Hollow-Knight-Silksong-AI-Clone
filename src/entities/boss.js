@@ -172,7 +172,7 @@
 
             game.boss = this;
 
-            if (game.state.flags.warden_defeated) {
+            if (this.defeated()) {
                 this.state = 'remains';
                 this.pose = 'fallen';
                 this.hp = 0;
@@ -180,6 +180,11 @@
 
                 for (const c of this.cords) c.snap = 9;
             } else this.state = 'bound';
+        }
+
+        // has this boss already been beaten in the save? (the Long Mourner asks its own flag)
+        defeated() {
+            return !!this.game.state.flags.warden_defeated;
         }
 
         // ---------------------------------------------------------------- boxes
@@ -629,7 +634,7 @@
 
             this.face();
             this.vx = 0;
-            g.codexMove('warden', a);
+            g.codexMove(this.codexId || 'warden', a);
 
             switch (a) {
                 case 'sweep':
