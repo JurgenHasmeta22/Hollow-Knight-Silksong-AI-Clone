@@ -24,6 +24,23 @@
         charge: { wind: [0.64, 0.6], speed: [860, 920], stun: [1.15, 1.0] },
         peal: { wind: [1.0, 0.96], speed: [400, 420], len: [440, 440], h: 50, rec: [0.95, 0.78] },
         rain: { tele: 1.1, col: 64, open: 4 },
+        // Tolling Tremor: a chain of eruptions marches out from its feet (`gap` px apart, one every `step` s), each cracking
+        // the floor for `tele` s first. Phase two sends a shorter chain the other way too. Stay close or thread the gaps.
+        cascade: {
+            wind: [0.78, 0.7],
+            gap: [118, 104],
+            step: [0.17, 0.13],
+            n: [6, 8],
+            tele: 0.6,
+            h: 190,
+            rec: [1.0, 0.85],
+        },
+        // Rimcutter: a spinning ring of resonance thrown along the floor that boomerangs back. In phase two it returns high.
+        hurl: { wind: [0.72, 0.62], speed: [640, 720], range: [640, 760], rec: [0.7, 0.55] },
+        // Resonance Volley (phase two): a fan of tone-orbs charges above it, then each is fired at where you stand.
+        volley: { n: [5, 7], tele: 0.85, gap: 0.2, speed: 540, rec: 1.15 },
+        // Vault Collapse (phase two): the ceiling comes down in a steady rain of stone, some of it aimed at you.
+        collapse: { roar: 0.8, n: [6, 8], gap: 0.3, delay: 0.72, rec: 1.2 },
         // Poise is the Warden's guard, and the way the fight is meant to be won: parries and Shadow Steps fill it fast, plain
         // strikes fill it slowly, and it only bleeds away after a few quiet seconds. Full poise = a long stagger in which
         // blows land for far more damage (`staggerVuln`). Landing BOTH a parry and a Shadow Step within `combo.window`
@@ -43,8 +60,22 @@
     BW.PEAL_TEACH = { speed: 340, len: 420, h: 46 }; // the vestibule's practice toll
 
     const BAGS = [
-        ['sweep', 'slam', 'leap', 'charge', 'peal', 'slam', 'sweep', 'leap'],
-        ['sweep', 'slam', 'leap', 'charge', 'peal', 'rain', 'slam', 'peal', 'leap'],
+        ['sweep', 'slam', 'leap', 'charge', 'peal', 'slam', 'sweep', 'leap', 'cascade', 'hurl'],
+        [
+            'sweep',
+            'slam',
+            'leap',
+            'charge',
+            'peal',
+            'rain',
+            'slam',
+            'peal',
+            'leap',
+            'cascade',
+            'hurl',
+            'volley',
+            'collapse',
+        ],
     ];
 
     const STAGGERABLE = {
@@ -58,6 +89,12 @@
         peal_wind: 1,
         peal_rec: 1,
         rain_rec: 1,
+        cascade_wind: 1,
+        cascade_rec: 1,
+        hurl_wind: 1,
+        hurl_rec: 1,
+        volley_rec: 1,
+        collapse_rec: 1,
     };
 
     // telegraph glint positions on the clapper head (facing right, relative to the feet centre)
@@ -495,7 +532,9 @@
             this.vx = 0;
             this.marker = null;
             this.glint = 0;
-            g.hazards = g.hazards.filter((h) => h instanceof Debris === false || h.t >= h.delay);
+            g.hazards = g.hazards.filter(
+                (h) => !LETHAL_TRANSIENT.some((C) => h instanceof C) && !(h instanceof Debris && h.t < h.delay),
+            );
             g.onWardenDefeated(this);
         }
         toIdle(wait) {
@@ -527,6 +566,10 @@
                     return d > 280;
                 case 'peal':
                     return d > 300;
+                case 'cascade':
+                    return d > 180;
+                case 'hurl':
+                    return d > 240;
                 default:
                     return true;
             }
@@ -604,6 +647,34 @@
                         g.state.stats.pealHints = (g.state.stats.pealHints || 0) + 1;
                     }
 
+                    break;
+                case 'cascade':
+                    this.setState('cascade_wind');
+                    this.pose = 'raise';
+                    this.glint = 1;
+                    BW.Audio.play('windup', { rate: 0.55, vol: 1 });
+                    BW.Audio.play('clink', { rate: 0.45, vol: 0.35 });
+                    break;
+                case 'hurl':
+                    this.setState('hurl_wind');
+                    this.pose = 'swingback';
+                    this.glint = 1;
+                    BW.Audio.play('windup', { rate: 0.95, vol: 0.9 });
+                    break;
+                case 'volley':
+                    this.setState('volley_wind');
+                    this.pose = 'roar';
+                    BW.Audio.play('boss_roar', { vol: 0.7, rate: 1.35 });
+                    BW.Audio.play('bell', { pitch: 87.3, vol: 0.8, minGap: 0 });
+                    g.fx.ring(this.cx, this.y + 120, 20, 280, 0.6, '#ffe2a8', 4);
+                    g.spawnHazard(new ToneVolley(g, this, TUNE.volley, ph));
+                    break;
+                case 'collapse':
+                    this.setState('collapse_wind');
+                    this.pose = 'roar';
+                    this.ev = { n: 0 };
+                    BW.Audio.play('boss_roar', { vol: 0.9, rate: 0.8 });
+                    BW.Audio.play('bell', { pitch: 55, vol: 0.9, minGap: 0 });
                     break;
                 case 'rain':
                     this.setState('rain_wind');
@@ -939,6 +1010,103 @@
 
                     if (t >= 2.0) this.toIdle(0.35);
                     return;
+                // ---- tolling tremor: a slam that sets off a chain of floor eruptions marching toward you
+                case 'cascade_wind':
+                    this.vx = 0;
+                    this.sy = BW.damp(this.sy, 1.03, 5, dt);
+
+                    if (t >= TUNE.cascade.wind[ph]) {
+                        this.setState('cascade');
+                        this.pose = 'slam';
+                        this.cascadeImpact();
+                    }
+
+                    return;
+                case 'cascade':
+                    if (t >= 0.14) this.setState('cascade_rec');
+                    return;
+                case 'cascade_rec':
+                    this.vx = 0;
+
+                    if (t > 0.3) this.pose = 'idle';
+
+                    if (t >= TUNE.cascade.rec[ph]) this.toIdle();
+                    return;
+                // ---- rimcutter: a ring of resonance is torn loose and flung along the floor; it comes back
+                case 'hurl_wind':
+                    this.vx = 0;
+                    this.sx = BW.damp(this.sx, 0.96, 6, dt);
+
+                    if (t >= TUNE.hurl.wind[ph]) {
+                        this.setState('hurl');
+                        this.pose = 'swing';
+                        this.hurlThrow();
+                    }
+
+                    return;
+                case 'hurl':
+                    if (t >= 0.2) this.setState('hurl_rec');
+                    return;
+                case 'hurl_rec':
+                    this.vx = 0;
+
+                    if (t > 0.35) this.pose = 'idle';
+
+                    if ((t >= TUNE.hurl.rec[ph] && (!this.rim || this.rim.dead)) || t > 4) this.toIdle(0.2);
+                    return;
+                // ---- resonance volley (phase two): orbs gather above it, then streak at where you stood
+                case 'volley_wind':
+                    this.vx = 0;
+                    this.sy = BW.damp(this.sy, 1.03, 5, dt);
+
+                    if (t >= TUNE.volley.tele + TUNE.volley.n[ph] * TUNE.volley.gap + 0.1) {
+                        this.setState('volley_rec');
+                        this.pose = 'roar';
+                    }
+
+                    return;
+                case 'volley_rec':
+                    this.vx = 0;
+
+                    if (t > 0.45) this.pose = 'idle';
+
+                    if (t >= TUNE.volley.rec) this.toIdle(0.3);
+                    return;
+                // ---- vault collapse (phase two): it roars and the ceiling comes down, some of it aimed
+                case 'collapse_wind':
+                    this.vx = 0;
+
+                    if (Math.random() < dt * 9) g.fx.shake(5, 0.12);
+
+                    this.collapseDust(dt, 60);
+
+                    if (t >= TUNE.collapse.roar) {
+                        this.setState('collapse');
+                        this.ev = { n: 0 };
+                        g.fx.flash('#ffe2a8', 0.14);
+                    }
+
+                    return;
+                case 'collapse': {
+                    const K = TUNE.collapse;
+
+                    this.vx = 0;
+                    this.collapseDust(dt, 90);
+
+                    while (this.ev.n < K.n[ph] && t >= this.ev.n * K.gap) this.collapseDrop(this.ev.n++);
+
+                    if (t >= K.n[ph] * K.gap + K.delay) {
+                        this.setState('collapse_rec');
+                        this.pose = 'idle';
+                    }
+
+                    return;
+                }
+                case 'collapse_rec':
+                    this.vx = 0;
+
+                    if (t >= TUNE.collapse.rec) this.toIdle(0.3);
+                    return;
                 case 'stagger':
                     this.vx = 0;
                     this.pose = t < this.stunDur * 0.8 ? 'stagger' : 'idle';
@@ -1168,6 +1336,97 @@
 
             this.dropDebris(this.phase === 2 ? 4 : 2, this.phase === 2);
         }
+        // tolling tremor: eruptions march out from the strike, one after another (both ways in phase two)
+        cascadeImpact() {
+            const g = this.game,
+                ph = this.phase - 1,
+                K = TUNE.cascade;
+
+            BW.Audio.play('boss_slam', { rate: 0.8 });
+            g.fx.shake(9, 0.35);
+            g.hitstop(0.03);
+            g.fx.ring(this.cx + this.facing * 70, this.floorY - 10, 10, 170, 0.45, '#ffe2a8', 4);
+
+            g.fx.burst(this.cx + this.facing * 90, this.floorY, 16, {
+                color: ['#c9c2b0', '#efe6d2', '#8a8478'],
+                speed: 360,
+                angle: -Math.PI / 2,
+                spread: 2.4,
+                life: 0.7,
+                grav: 1100,
+                size: 4,
+            });
+
+            const dirs = this.phase === 2 ? [this.facing, -this.facing] : [this.facing];
+
+            dirs.forEach((d, di) => {
+                const n = di === 0 ? K.n[ph] : Math.ceil(K.n[ph] * 0.6);
+
+                for (let i = 0; i < n; i++) {
+                    const x = this.cx + d * K.gap[ph] * (i + 1);
+
+                    if (x < this.ax0 + 20 || x > this.ax1 - 20) break;
+
+                    g.spawnHazard(new Eruption(g, x, this.floorY, i * K.step[ph], { tele: K.tele, h: K.h }));
+                }
+            });
+        }
+        // rimcutter: tear a ring loose and throw it along the floor; the Warden holds still until it is caught again
+        hurlThrow() {
+            const g = this.game,
+                ph = this.phase - 1,
+                K = TUNE.hurl;
+
+            BW.Audio.play('boss_sweep', { rate: 0.85, vary: 0.05 });
+            BW.Audio.play('bell', { pitch: 146.8, vol: 0.7, minGap: 0 });
+            g.fx.shake(5, 0.15);
+
+            g.fx.slash(this.cx + this.facing * 60, this.y + this.h - 95, 'side', this.facing, {
+                r: 150,
+                w: 40,
+                life: 0.22,
+                color: '#fff3dc',
+                edge: '#ffb35a',
+            });
+
+            this.rim = new Rimcutter(g, this, this.cx + this.facing * 70, this.floorY - 56, this.facing, {
+                speed: K.speed[ph],
+                range: K.range[ph],
+                high: this.phase === 2,
+            });
+
+            g.spawnHazard(this.rim);
+        }
+        // vault collapse: a stone from the ceiling, aimed at the player on every other drop
+        collapseDrop(i) {
+            const g = this.game,
+                p = g.player,
+                K = TUNE.collapse;
+
+            let x;
+
+            if (i % 2 === 0 && p.state !== 'dead') x = BW.clamp(p.cx + p.vx * 0.3, this.ax0 + 30, this.ax1 - 30);
+            else x = BW.rand(this.ax0 + 40, this.ax1 - 40);
+
+            g.spawnHazard(new Debris(g, x, this.floorY, K.delay));
+            g.fx.shake(3, 0.12);
+        }
+        collapseDust(dt, rate) {
+            if (Math.random() >= dt * rate) return;
+
+            this.game.fx.spawn({
+                x: BW.rand(this.ax0 + 20, this.ax1 - 20),
+                y: 2 * T + 10,
+                vx: BW.rand(-10, 10),
+                vy: BW.rand(120, 260),
+                life: BW.rand(0.5, 0.9),
+                size: BW.rand(1.5, 3),
+                color: BW.pick(['#b9b2a4', '#8a8478', '#c9c2b0']),
+                grav: 200,
+                drag: 0,
+            });
+        }
+
         // debris shaken loose from the vault; in phase two one piece always targets the player
         dropDebris(n, aimed) {
             const g = this.game,
@@ -2014,10 +2273,451 @@
         }
     }
 
+    // Tolling Tremor: the floor cracks and glows, then a column of stone and light bursts up. Step into a gap.
+    class Eruption extends Hazard {
+        constructor(game, x, floorY, delay, o) {
+            super(game);
+            this.dmg = BW.Difficulty.WEIGHTS.warden.eruption;
+            this.x = x;
+            this.fy = floorY;
+            this.delay = delay;
+            this.tele = o.tele;
+            this.h = o.h;
+            this.w = 54;
+            this.live = 0.32;
+            this.went = false;
+        }
+        // how far the column has risen (0 while it is only a crack), easing up fast and sinking away at the end
+        rise() {
+            const a = this.t - this.delay - this.tele;
+
+            if (a < 0 || a > this.live) return 0;
+
+            return Math.min(1, a / 0.09) * Math.min(1, (this.live - a) / 0.1);
+        }
+        boxes() {
+            const k = this.rise();
+
+            return k > 0.15
+                ? [{ x: this.x - this.w / 2 + 4, y: this.fy - this.h * k, w: this.w - 8, h: this.h * k }]
+                : null;
+        }
+        hitX(p) {
+            return this.x;
+        }
+        update(dt) {
+            super.update(dt);
+
+            if (this.t < this.delay) return;
+
+            const g = this.game;
+
+            if (!this.warned) {
+                this.warned = true;
+                BW.Audio.play('debris', { vol: 0.35, rate: 1.1, minGap: 0.06 });
+            }
+
+            if (!this.went && this.t >= this.delay + this.tele) {
+                this.went = true;
+                BW.Audio.play('break', { vol: 0.55, rate: 0.75, minGap: 0.05 });
+                g.fx.shake(4, 0.14);
+
+                g.fx.burst(this.x, this.fy - 6, 14, {
+                    color: ['#efe6d2', '#ffd27a', '#8a8478'],
+                    kind: 'shard',
+                    speed: 380,
+                    angle: -Math.PI / 2,
+                    spread: 0.9,
+                    life: 0.6,
+                    grav: 1100,
+                    size: 4,
+                });
+
+                g.fx.ring(this.x, this.fy - 6, 6, 90, 0.3, '#ffe2a8', 3);
+            }
+
+            if (this.t > this.delay + this.tele + this.live + 0.35) this.dead = true;
+        }
+        draw(ctx) {
+            const k = this.t - this.delay;
+
+            if (k < 0) return;
+
+            const x = this.x,
+                y = this.fy,
+                hw = this.w / 2;
+
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+
+            if (k < this.tele) {
+                const u = k / this.tele,
+                    pulse = 0.8 + Math.sin(this.t * 30) * 0.2;
+
+                ctx.globalAlpha = (0.3 + 0.55 * u) * pulse;
+                ctx.drawImage(BW.glowSprite('#ff9a3c'), x - 56, y - 26, 112, 40);
+                ctx.globalAlpha = 0.4 + 0.5 * u;
+                ctx.strokeStyle = '#ffe9c4';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x - hw, y - 2);
+                ctx.lineTo(x - hw * 0.45, y - 5 - u * 5);
+                ctx.lineTo(x - 4, y - 1);
+                ctx.lineTo(x + hw * 0.4, y - 6 - u * 4);
+                ctx.lineTo(x + hw, y - 2);
+                ctx.stroke();
+                this.game.addLight(x, y - 10, 90, '#ff9a3c', 0.3 * u);
+            } else {
+                const r = this.rise(),
+                    H = this.h * r,
+                    a = this.t - this.delay - this.tele;
+
+                if (r > 0) {
+                    const gr = ctx.createLinearGradient(0, y - H, 0, y);
+
+                    gr.addColorStop(0, 'rgba(255,248,226,0.95)');
+                    gr.addColorStop(0.35, 'rgba(255,206,140,0.75)');
+                    gr.addColorStop(1, 'rgba(255,150,70,0.45)');
+                    ctx.fillStyle = gr;
+                    ctx.beginPath();
+                    ctx.moveTo(x - hw, y);
+                    ctx.lineTo(x - hw * 0.8, y - H * 0.7);
+                    ctx.lineTo(x - hw * 0.35, y - H * 0.92);
+                    ctx.lineTo(x, y - H);
+                    ctx.lineTo(x + hw * 0.4, y - H * 0.88);
+                    ctx.lineTo(x + hw * 0.85, y - H * 0.66);
+                    ctx.lineTo(x + hw, y);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.globalAlpha = 0.7;
+                    ctx.drawImage(BW.glowSprite('#ffb35a'), x - 80, y - H - 30, 160, H + 60);
+                    this.game.addLight(x, y - H * 0.5, 170, '#ffc27a', 0.55 * r);
+                } else if (a > 0) {
+                    ctx.globalAlpha = Math.max(0, 1 - (a - this.live) / 0.35) * 0.5;
+                    ctx.drawImage(BW.glowSprite('#ff9a3c'), x - 50, y - 24, 100, 34);
+                }
+            }
+
+            ctx.restore();
+        }
+    }
+
+    // Rimcutter: a spinning ring of resonance on a silk cord. It flies out along the floor, hangs a beat, and comes
+    // back. In phase two it returns high, so the answer to the way out (jump) is the wrong one on the way back.
+    class Rimcutter extends Hazard {
+        constructor(game, owner, x, y, dir, o) {
+            super(game);
+            this.dmg = BW.Difficulty.WEIGHTS.warden.rim;
+            this.owner = owner;
+            this.x = x;
+            this.x0 = x;
+            this.y = y;
+            this.fy = owner.floorY;
+            this.dir = dir;
+            this.speed = o.speed;
+            this.range = o.range;
+            this.backY = this.fy - (o.high ? 150 : 56);
+            this.r = 32;
+            this.mode = 'out';
+            this.hang = 0;
+            this.rot = 0;
+        }
+        boxes() {
+            const r = this.r * 0.8;
+
+            return [{ x: this.x - r, y: this.y - r, w: r * 2, h: r * 2 }];
+        }
+        hitX(p) {
+            return this.x;
+        }
+        update(dt) {
+            super.update(dt);
+
+            const g = this.game,
+                o = this.owner;
+
+            this.rot += (this.mode === 'hang' ? 9 : 24) * dt * this.dir;
+
+            if (this.mode === 'out') {
+                this.x += this.dir * this.speed * dt;
+
+                if (Math.abs(this.x - this.x0) >= this.range || g.room.solidPx(this.x + this.dir * this.r, this.y)) {
+                    this.mode = 'hang';
+                    this.hang = 0;
+                    BW.Audio.play('clink', { rate: 0.6, vol: 0.7 });
+
+                    g.fx.burst(this.x, this.y, 12, {
+                        color: ['#fff3d6', '#ffd27a'],
+                        kind: 'spark',
+                        speed: 300,
+                        life: 0.3,
+                        add: true,
+                    });
+                }
+            } else if (this.mode === 'hang') {
+                this.hang += dt;
+                this.y = BW.damp(this.y, this.backY, 10, dt);
+
+                if (this.hang >= 0.22) {
+                    this.mode = 'back';
+                    BW.Audio.play('bell', { pitch: 196, vol: 0.6, minGap: 0 });
+                }
+            } else {
+                const hx = o.cx,
+                    hy = o.y + o.h - 110,
+                    dx = hx - this.x,
+                    dy = hy - this.y,
+                    d = Math.hypot(dx, dy),
+                    v = this.speed * 1.08 * dt;
+
+                if (d <= v + 46) {
+                    this.dead = true;
+                    BW.Audio.play('clink', { rate: 0.8, vol: 0.8 });
+                    g.fx.ring(hx, hy, 10, 120, 0.3, '#ffe2a8', 3);
+                } else {
+                    this.x += (dx / d) * v;
+                    this.y += (dy / d) * v;
+                }
+            }
+
+            if (Math.random() < dt * 60)
+                g.fx.spawn({
+                    x: this.x + BW.rand(-10, 10),
+                    y: this.y + BW.rand(-10, 10),
+                    vx: BW.rand(-30, 30),
+                    vy: BW.rand(-40, 40),
+                    life: BW.rand(0.25, 0.5),
+                    size: BW.rand(1.5, 3),
+                    color: BW.pick(['#fff1c8', '#ffd27a']),
+                    kind: 'glow',
+                    add: true,
+                    drag: 1,
+                });
+        }
+        draw(ctx) {
+            const o = this.owner,
+                x = this.x,
+                y = this.y,
+                r = this.r;
+
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+
+            // the silk cord back to its hand
+            if (o) {
+                const hx = o.cx,
+                    hy = o.y + o.h - 110;
+
+                ctx.strokeStyle = 'rgba(255,240,214,0.4)';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(hx, hy);
+                ctx.quadraticCurveTo((hx + x) / 2, Math.max(hy, y) + 26, x, y);
+                ctx.stroke();
+            }
+
+            ctx.globalAlpha = 0.75;
+            ctx.drawImage(BW.glowSprite('#ffb35a'), x - r * 2.2, y - r * 2.2, r * 4.4, r * 4.4);
+            ctx.globalAlpha = 1;
+            ctx.translate(x, y);
+            ctx.rotate(this.rot);
+            ctx.strokeStyle = 'rgba(255,246,222,0.95)';
+            ctx.lineWidth = 7;
+
+            for (let k = 0; k < 4; k++) {
+                ctx.beginPath();
+                ctx.arc(0, 0, r * 0.82, k * Math.PI * 0.5 + 0.2, (k + 1) * Math.PI * 0.5 - 0.2);
+                ctx.stroke();
+            }
+
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = 'rgba(255,214,150,0.7)';
+            ctx.beginPath();
+            ctx.arc(0, 0, r * 0.5, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.fillStyle = 'rgba(255,250,236,0.95)';
+
+            for (let k = 0; k < 4; k++) {
+                const a = k * Math.PI * 0.5 + Math.PI * 0.25;
+
+                ctx.beginPath();
+                ctx.moveTo(Math.cos(a - 0.14) * r * 0.9, Math.sin(a - 0.14) * r * 0.9);
+                ctx.lineTo(Math.cos(a) * r * 1.2, Math.sin(a) * r * 1.2);
+                ctx.lineTo(Math.cos(a + 0.14) * r * 0.9, Math.sin(a + 0.14) * r * 0.9);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            ctx.restore();
+            this.game.addLight(x, y, 130, '#ffc27a', 0.5);
+        }
+    }
+
+    // Resonance Volley: tone-orbs charge in an arc over the Warden, each shows a thin line to where you are, and is
+    // then fired at that spot. They cannot be parried; keep moving and they miss.
+    class ToneVolley extends Hazard {
+        constructor(game, owner, K, ph) {
+            super(game);
+            this.dmg = BW.Difficulty.WEIGHTS.warden.orb;
+            this.owner = owner;
+            this.speed = K.speed;
+            this.orbs = [];
+
+            const n = K.n[ph],
+                order = [];
+
+            for (let i = 0, j = n - 1; i <= j; i++, j--) {
+                order.push(i);
+
+                if (j !== i) order.push(j);
+            }
+
+            for (let i = 0; i < n; i++) {
+                const ang = BW.lerp(-2.6, -0.54, n > 1 ? i / (n - 1) : 0.5);
+
+                this.orbs.push({
+                    ox: Math.cos(ang) * 170,
+                    oy: -250 + Math.sin(ang) * 70,
+                    at: K.tele + order.indexOf(i) * K.gap,
+                    born: order.indexOf(i) * 0.07,
+                    mode: 'charge',
+                    x: 0,
+                    y: 0,
+                    vx: 0,
+                    vy: 0,
+                    life: 0,
+                });
+            }
+        }
+        boxes() {
+            const out = [];
+
+            for (const o of this.orbs) if (o.mode === 'fly') out.push({ x: o.x - 14, y: o.y - 14, w: 28, h: 28 });
+
+            return out.length ? out : null;
+        }
+        hitX(p) {
+            let best = null;
+
+            for (const o of this.orbs)
+                if (o.mode === 'fly' && (!best || Math.abs(o.x - p.cx) < Math.abs(best.x - p.cx))) best = o;
+
+            return best ? best.x : p.cx;
+        }
+        update(dt) {
+            super.update(dt);
+
+            const g = this.game,
+                b = this.owner,
+                p = g.player;
+
+            let alive = 0;
+
+            for (const o of this.orbs) {
+                if (o.mode === 'done') continue;
+
+                alive++;
+
+                if (o.mode === 'charge') {
+                    o.x = b.cx + o.ox;
+                    o.y = b.y + b.h + o.oy;
+
+                    if (this.t >= o.at) {
+                        const dx = p.cx - o.x,
+                            dy = p.y + p.h / 2 - o.y,
+                            d = Math.hypot(dx, dy) || 1;
+
+                        o.mode = 'fly';
+                        o.vx = (dx / d) * this.speed;
+                        o.vy = (dy / d) * this.speed;
+                        BW.Audio.play('silk_volley', { vol: 0.35, rate: 1.7, minGap: 0.08 });
+                    }
+
+                    continue;
+                }
+
+                o.x += o.vx * dt;
+                o.y += o.vy * dt;
+                o.life += dt;
+
+                if (g.room.solidPx(o.x, o.y) || o.y >= b.floorY - 6 || o.life > 2.2) {
+                    o.mode = 'done';
+
+                    g.fx.burst(o.x, Math.min(o.y, b.floorY - 8), 8, {
+                        color: ['#fff3d6', '#ffd27a'],
+                        kind: 'spark',
+                        speed: 240,
+                        life: 0.3,
+                        add: true,
+                    });
+                }
+            }
+
+            if (!alive) this.dead = true;
+        }
+        draw(ctx) {
+            const g = this.game,
+                p = g.player;
+
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+
+            for (const o of this.orbs) {
+                if (o.mode === 'done' || this.t < o.born) continue;
+
+                if (o.mode === 'charge') {
+                    const k = Math.min(1, (this.t - o.born) / Math.max(0.1, o.at - o.born)),
+                        r = 6 + k * 14 + Math.sin(this.t * 22 + o.ox) * 1.5,
+                        left = o.at - this.t;
+
+                    if (left < 0.3 && p.state !== 'dead') {
+                        ctx.globalAlpha = (1 - left / 0.3) * 0.55;
+                        ctx.strokeStyle = '#ffe2a8';
+                        ctx.lineWidth = 1.5;
+                        ctx.beginPath();
+                        ctx.moveTo(o.x, o.y);
+                        ctx.lineTo(p.cx, p.y + p.h / 2);
+                        ctx.stroke();
+                    }
+
+                    ctx.globalAlpha = 0.5 + 0.4 * k;
+                    ctx.drawImage(BW.glowSprite('#ff9a3c'), o.x - r * 2.2, o.y - r * 2.2, r * 4.4, r * 4.4);
+                    ctx.globalAlpha = 0.95;
+                    ctx.drawImage(BW.glowSprite('#fff0d2'), o.x - r * 0.7, o.y - r * 0.7, r * 1.4, r * 1.4);
+                    g.addLight(o.x, o.y, 80, '#ffb35a', 0.4 * k);
+                } else {
+                    const sp = Math.hypot(o.vx, o.vy) || 1;
+
+                    ctx.globalAlpha = 0.5;
+                    ctx.strokeStyle = '#ffd27a';
+                    ctx.lineWidth = 6;
+                    ctx.lineCap = 'round';
+                    ctx.beginPath();
+                    ctx.moveTo(o.x, o.y);
+                    ctx.lineTo(o.x - (o.vx / sp) * 46, o.y - (o.vy / sp) * 46);
+                    ctx.stroke();
+                    ctx.globalAlpha = 0.9;
+                    ctx.drawImage(BW.glowSprite('#ff9a3c'), o.x - 30, o.y - 30, 60, 60);
+                    ctx.globalAlpha = 1;
+                    ctx.drawImage(BW.glowSprite('#fff0d2'), o.x - 11, o.y - 11, 22, 22);
+                    g.addLight(o.x, o.y, 90, '#ffb35a', 0.5);
+                }
+            }
+
+            ctx.restore();
+        }
+    }
+
+    // transient hazards that vanish the moment the Warden falls
+    const LETHAL_TRANSIENT = [Eruption, Rimcutter, ToneVolley];
+
     BW.ENEMY_TYPES.warden = Warden;
     BW.Warden = Warden;
     BW.Shockwave = Shockwave;
     BW.PealWave = PealWave;
     BW.ThreadRain = ThreadRain;
     BW.Debris = Debris;
+    BW.Eruption = Eruption;
+    BW.Rimcutter = Rimcutter;
+    BW.ToneVolley = ToneVolley;
 })(window.BW);

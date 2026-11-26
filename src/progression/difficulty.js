@@ -100,6 +100,9 @@
             peal: 1,
             rain: 1,
             debris: 0.5,
+            eruption: 1,
+            rim: 1,
+            orb: 1,
         },
     };
 

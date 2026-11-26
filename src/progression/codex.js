@@ -329,7 +329,7 @@
                 'Keeper of the Cathedral of the Last Toll, bound by silk to the Great Bell so it could never ring unattended. When the bells fell silent, its vow turned inward.',
                 'Now it guards the silence itself. It will not strike first, but it will not let the Great Bell be rethreaded.',
             ],
-            habits: 'Attacks come from a shuffled bag, so none repeats at once, and each opens with a glint of the clapper or a roar. Below half health the fight changes: it is faster and adds the Thread Rain.',
+            habits: 'Attacks come from a shuffled bag, so none repeats at once, and each opens with a glint of the clapper or a roar. Below half health the fight changes: it is faster and adds the Thread Rain, the Resonance Volley and the Vault Collapse.',
             notes: 'Strike in its recovery windows and Mend only while it is recovering. Plain strikes barely hurt it on Action and Nightmare: perfect parries and Shadow Steps fill its poise bar, and a staggered Warden takes about triple damage. Land BOTH in quick succession to break its guard for a longer, deadlier stun.',
             moves: [
                 [
@@ -358,9 +358,29 @@
                     'It tolls a ringing wave along the floor, too wide to run through. Jump and Silk Dash together to clear it. It cannot be parried.',
                 ],
                 [
+                    'cascade',
+                    'Tolling Tremor',
+                    'It slams the floor and a chain of eruptions marches toward you, each one cracking and glowing a moment before it bursts. Step into a gap, or stay close to it. They cannot be parried.',
+                ],
+                [
+                    'hurl',
+                    'Rimcutter',
+                    'It tears a spinning ring of resonance loose and flings it along the floor on a silk cord, then hauls it back. Jump the throw. In its second phase the ring returns high, so keep your feet on the ground. It cannot be parried.',
+                ],
+                [
                     'rain',
                     'Thread Rain',
                     'In its second phase, silk spears fall in columns from above, each marked on the floor first. Find the gaps. They cannot be parried.',
+                ],
+                [
+                    'volley',
+                    'Resonance Volley',
+                    'In its second phase it roars and a fan of glowing orbs gathers over its head. Each draws a thin line to where you stand, then streaks along it. Keep moving, or dash through. They cannot be parried.',
+                ],
+                [
+                    'collapse',
+                    'Vault Collapse',
+                    'In its second phase it roars and the cathedral ceiling starts to come down, every other stone aimed where you are running. Each is shadowed on the floor first. Keep moving. It cannot be parried.',
                 ],
             ],
         },
