@@ -1,6 +1,6 @@
 'use strict';
 
-// Test area: the Ashen Ramparts, dressed with the new fortress art (assets/manifest_fortress.js).
+// Test area: the Ashen Ramparts, dressed with the new fortress art.
 // Entered from the east side of the Cord Lift's top station (S6 -> F1).
 (function (BW) {
     BW.AREAS.fortress = {

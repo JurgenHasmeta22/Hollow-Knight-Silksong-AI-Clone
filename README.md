@@ -233,33 +233,48 @@ The game never contacts Higgsfield or any other service while you play. Every as
 index.html          entry point
 play.command/.bat   optional local-server launchers
 saves/              a ready-made save just before the boss (optional)
-src/                game code (classic scripts, no build step)
-  core.js           constants, physics tuning, helpers
-  input.js          keyboard + gamepad
-  audio.js          music / ambience streaming, SFX, synth fallbacks
-  save.js           versioned save format, export / import, migration
-  difficulty.js     Story / Action / Nightmare presets and extra-enemy placement
-  xp.js             experience curve, levels and the strike-power bonus
-  graphics.js       Quality presets and the per-frame render settings (BW.gfx)
-  world.js          room DSL, tile collision
-  rooms.js          the world: areas and all rooms (incl. the cathedral)
-  fx.js             particles, slashes, screen shake
-  player.js         the Bellweaver
-  enemies.js        enemy behaviours
-  objects.js        lanterns, pickups, NPC, shrine, toll-looms, lifts, doors, the Great Bell
-  boss.js           the Bellbound Warden and its attack hazards
-  codex.js / guide.js  Archive data (tips, bestiary, unlocks) and its menu screen (tips, bestiary, lore tabs)
-  lore.js           intro chapters, region interludes, collectible lore notes
-  slots.js          manual save slot, lantern menu and boss rematch screens
-  testsaves.js      ready-made test saves (Save Data → Test Saves)
-  terrain.js        pre-rendered terrain
-  background.js     parallax, atmosphere, lighting
-  hud.js / menus.js HUD, dialog, menus
-  glyphs.js         keyboard keycaps and Xbox / PlayStation / Switch / generic button icons
-  map.js            the world map screen (exits, pins, objective, zoom and pan)
-  game.js           game loop, rooms, camera, sequences
-  cathedral.js      doors, boss entrance, arena, victory, Great Bell, ending and credits
-  gallery.js        Gallery screen (realms, creatures, replayable story memories) and the read-only replay mode
+src/                game code (classic scripts, no build step; load order is set in index.html)
+  core/
+    core.js         constants, physics tuning, helpers
+    main.js         entry point
+  input/
+    input.js        keyboard + gamepad
+    glyphs.js       keyboard keycaps and Xbox / PlayStation / Switch / generic button icons
+  audio/
+    audio.js        music / ambience streaming, SFX, synth fallbacks
+  save/
+    save.js         versioned save format, export / import, migration
+    testsaves.js    ready-made test saves (Save Data → Test Saves)
+  rendering/
+    graphics.js     Quality presets and the per-frame render settings (BW.gfx)
+    assets.js       image loading and sprite drawing
+    fx.js           particles, slashes, screen shake
+    terrain.js      pre-rendered terrain
+    background.js   parallax, atmosphere, lighting
+  world/
+    world.js        room DSL, tile collision
+    rooms.js        the world: areas and all rooms (incl. the cathedral)
+    fortress.js     the Ashen Ramparts test area
+  entities/
+    player.js       the Bellweaver
+    enemies.js      enemy behaviours
+    objects.js      lanterns, pickups, NPC, shrine, toll-looms, lifts, doors, the Great Bell
+    boss.js         the Bellbound Warden and its attack hazards
+  progression/
+    difficulty.js   Story / Action / Nightmare presets and extra-enemy placement
+    xp.js           experience curve, levels and the strike-power bonus
+    codex.js        Archive data (tips, bestiary, unlocks)
+    lore.js         intro chapters, region interludes, collectible lore notes
+  ui/
+    hud.js          HUD, prompts, toasts, dialog box
+    menus.js        title, pause, options and other menus
+    guide.js        the Archive screen (tips, bestiary, lore tabs)
+    map.js          the world map screen (exits, pins, objective, zoom and pan)
+    slots.js        manual save slot, lantern menu and boss rematch screens
+    gallery.js      Gallery screen (realms, creatures, replayable story memories) and the read-only replay mode
+  game/
+    game.js         game loop, rooms, camera, sequences
+    levels/cathedral.js  doors, boss entrance, arena, victory, Great Bell, ending and credits
 assets/
   manifest.js       generated sprite / image manifest
   img/ audio/ fonts/
