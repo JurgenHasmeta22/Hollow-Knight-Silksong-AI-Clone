@@ -128,6 +128,7 @@
 
             if (opts.variant === 'pale') src = this.tinted(s.img, 'pale', paleTint) || src;
             else if (opts.variant === 'ember') src = this.tinted(s.img, 'ember', emberTint) || src;
+            else if (opts.variant === 'shade') src = this.tinted(s.img, 'shade', shadeTint) || src;
 
             const f = s.frames[((fi % s.frames.length) + s.frames.length) % s.frames.length];
             const sc = (opts.scale || 1) * s.scale;
@@ -223,6 +224,23 @@
         x.globalAlpha = 0.42;
         x.fillStyle = '#e8e2d4';
 
+        x.fillRect(0, 0, c.width, c.height);
+        x.globalAlpha = 1;
+        x.globalCompositeOperation = 'source-over';
+    }
+
+    function shadeTint(x, img, c) {
+        // the Ronin's burning form, for the poses that were only drawn in his normal look: multiply the colour so the white
+        // mask and the blade go crimson and the dark cloth leans violet, then give it a faint violet glow. The shape is kept.
+        x.drawImage(img, 0, 0);
+        x.globalCompositeOperation = 'multiply';
+        x.fillStyle = '#d0507c';
+        x.fillRect(0, 0, c.width, c.height);
+        x.globalCompositeOperation = 'destination-in';
+        x.drawImage(img, 0, 0);
+        x.globalCompositeOperation = 'source-atop';
+        x.globalAlpha = 0.22;
+        x.fillStyle = '#5a2aa8';
         x.fillRect(0, 0, c.width, c.height);
         x.globalAlpha = 1;
         x.globalCompositeOperation = 'source-over';

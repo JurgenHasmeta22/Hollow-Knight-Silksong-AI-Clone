@@ -135,6 +135,10 @@
         return s ? h / (s.frames[0][3] * s.scale) : 1;
     }
 
+    // The poses drawn in the burning form's own look (crimson and violet, red eyes). Every other pose was drawn in the normal
+    // look, so while transformed it is drawn tinted (Assets variant 'shade') until it has a transformed version of its own.
+    const isFormArt = (pose) => pose === 'transformed' || pose.startsWith('form_') || pose.startsWith('giant');
+
     // run cycle, rest and the like: pose lists with the speed they play at
     const ANIMS = {
         idle: { poses: ['idle_a', 'breath', 'idle_b', 'breath'], fps: 1.3 },
@@ -142,6 +146,7 @@
         death: { poses: ['crumple', 'crawl', 'lying', 'dead', 'ash'], fps: 2.2, hold: true },
         // the pose each quick item is thrown or drunk in
         item: { charge: 'crouch', shards: 'barrage', veil: 'illusion', draught: 'taunt' },
+        itemForm: { charge: 'focus', shards: 'barrage', veil: 'illusion', draught: 'aura' },
     };
 
     const lerp = BW.lerp;
@@ -866,7 +871,7 @@
         // ---- Ground Eruption: five black spikes burst out of the floor, one after another
         erupt: {
             dur: TUNE.erupt.dur,
-            pose: () => 'pound',
+            pose: () => 'spikes',
             start(p) {
                 p.vx = 0;
                 p.skillInv = 0.2;
@@ -903,7 +908,7 @@
         pound: {
             dur: Infinity,
             noGrav: true,
-            pose: (p, s) => (s.phase === 'land' ? 'spikes' : 'dive'),
+            pose: (p, s) => (s.phase === 'land' ? 'spikes' : 'form_airslash'),
             start(p, s) {
                 s.phase = 'dive';
                 p.skillInv = 5;
@@ -2822,7 +2827,7 @@
                 case 'sit':
                     return 'meditate';
                 case 'heal':
-                    return 'drink';
+                    return F ? 'focus' : 'drink';
                 case 'guard':
                     return this.parryT > 0 ? this.firstPose('parry', 'ready') : 'ready';
                 case 'block':
@@ -2832,8 +2837,8 @@
                 case 'dash':
                     return F ? 'speed' : 'run4';
                 case 'atk': {
-                    if (this.attackDir === 'up') return 'swordup';
-                    if (this.attackDir === 'down') return 'pound';
+                    if (this.attackDir === 'up') return F ? 'form_juggle' : 'swordup';
+                    if (this.attackDir === 'down') return F ? 'form_airslash' : 'pound';
                     if (!this.onGround) return this.comboN === 0 ? 'airslash' : 'juggle';
                     if (!this.atk) return 'ready';
 
@@ -2847,24 +2852,30 @@
                     return L[Math.floor(k * L.length)];
                 }
                 case 'hurt':
+                    if (F) return 'transformed'; // no transformed hurt pose yet: the flash and the knock-back carry it
+
                     return this.lockT > 0.3 ? 'knock' : 'hurt';
                 case 'item':
-                    return ANIMS.item[this.itemKind] || 'taunt';
+                    return (F ? ANIMS.itemForm : ANIMS.item)[this.itemKind] || 'taunt';
                 case 'deflect':
                     return this.firstPose('parry_perfect', 'ready');
                 case 'dodge':
                     return this.firstPose('dodge', 'tumble');
                 case 'land':
+                    if (F) return 'transformed';
+
                     return this.landHard ? 'slam' : 'crouch';
                 case 'walk':
                     return 'walk';
                 case 'ascent':
-                    return 'flame';
+                    return this.firstPose('form_jump', 'flame'); // the transformed jump, with the flame burst around it
                 case 'jump':
                     return 'jump';
                 case 'fall':
                     return 'midair';
                 case 'run':
+                    if (F && BW.Assets.sprite(SPR('form_walk'))) return 'form_walk'; // no transformed run cycle yet
+
                     return ANIMS.run.poses[Math.floor(this.animT * ANIMS.run.fps) % ANIMS.run.poses.length];
                 default:
                     if (this.game.state.hp <= 1 && this.game.state.maxHp > 1 && !F) return 'kneel';
@@ -2937,8 +2948,13 @@
 
             BW.Assets.draw(ctx, name, 0, x, y, {
                 flip: this.facing < 0,
+                variant: this.form && !isFormArt(pose) ? 'shade' : undefined,
                 sx: this.sx,
-                sy: this.sy,
+                sy:
+                    this.sy *
+                    (this.form && this.anim === 'run' && pose === 'form_walk'
+                        ? 1 + 0.035 * Math.sin(this.animT * 22)
+                        : 1),
                 rot,
                 flash: this.flash,
                 alpha: this.veilT > 0 ? 0.5 : undefined,

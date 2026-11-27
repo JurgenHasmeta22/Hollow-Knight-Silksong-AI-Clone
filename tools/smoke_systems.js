@@ -601,6 +601,66 @@ console.log('the poses');
         P2.pickAnim();
     });
 
+    // ---- the burning form never draws the normal look untinted
+    {
+        const calls = [],
+            real = BW.Assets.draw;
+
+        BW.Assets.draw = (c, name, f, x, y, o) => (calls.push([name, o && o.variant]), real(c, name, f, x, y, o));
+
+        const last = () => calls[calls.length - 1];
+        const F = (label, set, expectPose, tinted) => {
+            P2.form = true;
+            P2.skill = null;
+            P2.state = 'normal';
+            P2.blocking = false;
+            P2.breakT = 0;
+            P2.lockT = 0;
+            P2.landT = 0;
+            P2.itemAnimT = 0;
+            P2.deflectT = 0;
+            P2.dodgeAnimT = 0;
+            P2.ascentT = 0;
+            P2.attackT = 0;
+            P2.onGround = true;
+            P2.vx = 0;
+            P2.vy = 0;
+            set();
+            P2.pickAnim();
+            calls.length = 0;
+            P2.draw(sink, 0.5);
+
+            const [name, variant] = last() || [];
+
+            check(name === 'ronin_' + expectPose, `transformed ${label}: draws ${expectPose} (${name})`);
+            check(
+                tinted ? variant === 'shade' : !variant,
+                `transformed ${label}: ${tinted ? 'tinted' : 'its own art, untinted'}`,
+            );
+        };
+
+        F('stand', () => {}, 'transformed', false);
+        F('double jump', () => ((P2.ascentT = 0.4), (P2.onGround = false), (P2.vy = -300)), 'form_jump', false);
+        F('jump', () => ((P2.onGround = false), (P2.vy = -300)), 'form_jump', false);
+        F('fall', () => ((P2.onGround = false), (P2.vy = 300)), 'form_midair', false);
+        F('walk', () => (P2.vx = 90), 'form_walk', false);
+        F('run', () => (P2.vx = 330), 'form_walk', false);
+        F('block', () => ((P2.blocking = true), (P2.posture = 50)), 'form_block', false);
+        F('broken guard', () => (P2.breakT = 0.5), 'knock', true);
+        F('clone dash', () => startForm('clonedash'), 'clone', true);
+        F('whirlwind', () => startForm('whirl'), 'whirl', true);
+        F('ground eruption', () => startForm('erupt'), 'spikes', true);
+        F('ground pound dive', () => startForm('pound'), 'form_airslash', false);
+
+        function startForm(name) {
+            P2.skill = { name, def: BW.RoninFx.SKILLS[name], t: 0.2, dur: 1, ev: {}, phase: 'dive' };
+        }
+
+        P2.form = false;
+        P2.skill = null;
+        BW.Assets.draw = real;
+    }
+
     // every pose the sheet holds is drawn somewhere now
     const text = fs.readFileSync(path.join(ROOT, 'src/entities/ronin.js'), 'utf8');
     const unused = Object.keys(manifest.sprites)

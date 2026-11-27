@@ -602,7 +602,7 @@ console.log('the second form');
     const vy0 = p.vy;
 
     step(g, [], ['jump']);
-    check(p.vy < vy0 - 300 && p.ascentT > 0 && p.poseNow() === 'flame', 'a second jump in the air rises with flames');
+    check(p.vy < vy0 - 300 && p.ascentT > 0 && p.poseNow() === 'form_jump', 'a second jump in the air rises in the transformed jump pose');
 
     step(g, [], ['jump']);
     check(p.airJumps === 0, 'there is only the one');
